@@ -2,8 +2,8 @@ export const SEGMENT_COLORS: Record<string, string> = {
   Champions: '#10b981',
   'Loyal Customers': '#3b82f6',
   'At Risk': '#f59e0b',
-  Hibernating: '#6b7280',
-  'New Customers': '#8b5cf6',
+  Dormant: '#6b7280',
+  'Growth Potential': '#8b5cf6',
 };
 
 export const RISK_COLORS: Record<string, string> = {

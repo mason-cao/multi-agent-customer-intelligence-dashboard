@@ -1,4 +1,6 @@
+import { Sparkles } from 'lucide-react';
 import PageHeader from '../components/shared/PageHeader';
+import EmptyState from '../components/shared/EmptyState';
 
 export default function AskAnything() {
   return (
@@ -7,9 +9,11 @@ export default function AskAnything() {
         title="Ask Anything"
         description="Natural language queries powered by AI agents"
       />
-      <div className="rounded-lg border border-gray-200 bg-white p-6 mt-6 text-sm text-gray-500">
-        Coming soon — data pipeline integration pending.
-      </div>
+      <EmptyState
+        icon={Sparkles}
+        title="Natural language queries"
+        description="Ask questions about your customers in plain English. The AI query agent will translate your question into data lookups and return insights."
+      />
     </div>
   );
 }

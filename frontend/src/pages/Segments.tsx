@@ -1,4 +1,6 @@
+import { PieChart } from 'lucide-react';
 import PageHeader from '../components/shared/PageHeader';
+import EmptyState from '../components/shared/EmptyState';
 
 export default function Segments() {
   return (
@@ -7,9 +9,11 @@ export default function Segments() {
         title="Segment Intelligence"
         description="Understand and compare customer segments"
       />
-      <div className="rounded-lg border border-gray-200 bg-white p-6 mt-6 text-sm text-gray-500">
-        Coming soon — data pipeline integration pending.
-      </div>
+      <EmptyState
+        icon={PieChart}
+        title="Segment analysis"
+        description="Customer segment distribution, characteristics, and cross-segment comparisons will appear here once the segmentation agent has been run."
+      />
     </div>
   );
 }

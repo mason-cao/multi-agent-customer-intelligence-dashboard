@@ -1,4 +1,6 @@
+import { MessageCircle } from 'lucide-react';
 import PageHeader from '../components/shared/PageHeader';
+import EmptyState from '../components/shared/EmptyState';
 
 export default function SentimentSupport() {
   return (
@@ -7,9 +9,11 @@ export default function SentimentSupport() {
         title="Sentiment & Support Intelligence"
         description="Voice of the customer — sentiment trends, topics, and support analysis"
       />
-      <div className="rounded-lg border border-gray-200 bg-white p-6 mt-6 text-sm text-gray-500">
-        Coming soon — data pipeline integration pending.
-      </div>
+      <EmptyState
+        icon={MessageCircle}
+        title="Sentiment analysis"
+        description="Sentiment distribution, trend analysis, and support ticket insights will appear here once the sentiment agent has been run."
+      />
     </div>
   );
 }

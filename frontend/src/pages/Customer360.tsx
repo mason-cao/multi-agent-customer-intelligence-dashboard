@@ -1,4 +1,6 @@
+import { Users } from 'lucide-react';
 import PageHeader from '../components/shared/PageHeader';
+import EmptyState from '../components/shared/EmptyState';
 
 export default function Customer360() {
   return (
@@ -7,9 +9,11 @@ export default function Customer360() {
         title="Customer 360 Explorer"
         description="Deep-dive into individual customer profiles, behavior, and AI analysis"
       />
-      <div className="rounded-lg border border-gray-200 bg-white p-6 mt-6 text-sm text-gray-500">
-        Coming soon — data pipeline integration pending.
-      </div>
+      <EmptyState
+        icon={Users}
+        title="Customer profiles"
+        description="Individual customer profiles with behavioral features, churn risk, sentiment, and AI-generated insights will appear here once the data pipeline is connected."
+      />
     </div>
   );
 }

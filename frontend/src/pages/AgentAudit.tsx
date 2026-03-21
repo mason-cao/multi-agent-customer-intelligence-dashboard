@@ -1,4 +1,6 @@
+import { ShieldCheck } from 'lucide-react';
 import PageHeader from '../components/shared/PageHeader';
+import EmptyState from '../components/shared/EmptyState';
 
 export default function AgentAudit() {
   return (
@@ -7,9 +9,11 @@ export default function AgentAudit() {
         title="Agent Audit & Explainability"
         description="Transparency into how AI agents reached their conclusions"
       />
-      <div className="rounded-lg border border-gray-200 bg-white p-6 mt-6 text-sm text-gray-500">
-        Coming soon — data pipeline integration pending.
-      </div>
+      <EmptyState
+        icon={ShieldCheck}
+        title="Agent audit trail"
+        description="Execution history, validation results, timing, and token usage for each AI agent will appear here once agents have been run."
+      />
     </div>
   );
 }
