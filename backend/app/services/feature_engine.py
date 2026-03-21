@@ -167,7 +167,7 @@ def compute_revenue_features(engine) -> pd.DataFrame:
         text(
             "SELECT customer_id, "
             "  SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END) AS total_revenue, "
-            "  COUNT(*) AS order_count, "
+            "  COUNT(CASE WHEN status = 'completed' THEN 1 END) AS order_count, "
             "  MAX(order_date) AS last_order_date "
             "FROM orders "
             "GROUP BY customer_id"

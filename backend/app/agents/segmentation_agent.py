@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Tuple
 import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 from sqlalchemy import text
 
@@ -143,7 +144,10 @@ class SegmentationAgent(BaseAgent):
             .to_dict()
         )
 
-        self._logger.info("segmentation_complete", distribution=dist)
+        # Silhouette score: clustering quality metric in [-1, 1], higher is better
+        sil = round(float(silhouette_score(X_scaled, labels)), 4)
+
+        self._logger.info("segmentation_complete", distribution=dist, silhouette=sil)
 
         return {
             "status": "completed",
@@ -154,7 +158,7 @@ class SegmentationAgent(BaseAgent):
                 "distribution": dist,
                 "avg_revenue_by_segment": avg_rev,
                 "avg_engagement_by_segment": avg_eng,
-                "silhouette_note": "Compute via sklearn.metrics.silhouette_score for presentation.",
+                "silhouette_score": sil,
             },
         }
 
@@ -166,10 +170,16 @@ class SegmentationAgent(BaseAgent):
         rows = output.get("rows_affected", 0)
         if rows == 0:
             errors.append("No rows written to customer_segments")
-        elif rows < 4500:
-            errors.append(f"Expected ~5000 rows, got {rows}")
 
         summary = output.get("segment_summary", {})
+
+        # Fallback mode has relaxed validation — data was too small for KMeans
+        if summary.get("fallback"):
+            return (rows > 0, errors)
+
+        if rows < 4500:
+            errors.append(f"Expected ~5000 rows, got {rows}")
+
         dist = summary.get("distribution", {})
 
         # All 5 segment names should be present

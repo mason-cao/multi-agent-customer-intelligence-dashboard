@@ -13,13 +13,11 @@ Phase:   1 (no agent dependencies)
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Tuple
 
-import numpy as np
 import pandas as pd
 from sqlalchemy import text
 
 from app.agents.base import BaseAgent
 from app.services.feature_engine import (
-    DEFAULT_REFERENCE_DATE,
     compute_engagement_features,
     compute_login_features,
     compute_revenue_features,
@@ -100,7 +98,10 @@ class BehaviorAgent(BaseAgent):
         # Timestamp
         features["computed_at"] = datetime.now(timezone.utc).isoformat()
 
-        # Write to database — clear existing rows first
+        # Write to database — clear existing rows first.
+        # NOTE: This DELETE wipes avg_sentiment and nps_score set by
+        # SentimentAgent. The orchestrator must re-run Sentiment after
+        # Behavior whenever Behavior is re-executed.
         self._logger.info("writing_features", rows=len(features))
         db.execute(text("DELETE FROM customer_features"))
         db.commit()
