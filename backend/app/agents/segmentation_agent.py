@@ -1,11 +1,16 @@
 """
-SegmentationAgent — clusters customers into 5 named segments.
+SegmentationAgent — assigns customers to business-friendly segments
+using deterministic rule-based logic on RFM + engagement features.
 
-Uses KMeans on standardized RFM + engagement features from customer_features.
-Deterministic ML agent (scikit-learn only, no LLM calls).
+Approach: Waterfall rules evaluated in priority order.  Thresholds are
+percentile-based, computed from customer_features at runtime so they
+adapt to the data while remaining 100 % deterministic for the same input.
 
-Inputs:  customer_features
-Outputs: customer_segments (5,000 rows)
+Explainability: Every assignment traces to specific feature thresholds.
+Each customer receives a primary_reason explaining their classification.
+
+Inputs:  customer_features (5K rows)
+Outputs: customer_segments (5K rows)
 Phase:   1 (depends on BehaviorAgent having populated customer_features)
 """
 
@@ -14,40 +19,77 @@ from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
-from sklearn.preprocessing import StandardScaler
 from sqlalchemy import text
 
 from app.agents.base import BaseAgent
 
 
-# Features used for clustering
-CLUSTER_FEATURES = [
-    "login_frequency_30d",
-    "feature_usage_breadth",
-    "session_duration_avg",
-    "engagement_score",
+# ── Version ───────────────────────────────────────────────────────
+# Bump when rules, thresholds, or segment definitions change.
+SEGMENTATION_VERSION = "rules-v1"
+
+# ── Segment definitions (priority order — first match wins) ──────
+SEGMENTS = [
+    {
+        "id": 0,
+        "code": "champions",
+        "name": "Champions",
+        "description": (
+            "Top-tier customers with high revenue, strong engagement, "
+            "and recent purchase activity. Priority for retention and upsell."
+        ),
+    },
+    {
+        "id": 1,
+        "code": "loyal",
+        "name": "Loyal Customers",
+        "description": (
+            "Consistent buyers with solid revenue contribution and "
+            "regular purchase patterns. Priority for deepening relationship."
+        ),
+    },
+    {
+        "id": 2,
+        "code": "growth",
+        "name": "Growth Potential",
+        "description": (
+            "Recently active customers with moderate engagement showing "
+            "room for expansion. Priority for activation campaigns."
+        ),
+    },
+    {
+        "id": 3,
+        "code": "at_risk",
+        "name": "At Risk",
+        "description": (
+            "Previously valuable customers showing signs of declining "
+            "engagement or purchase frequency. Priority for re-engagement."
+        ),
+    },
+    {
+        "id": 4,
+        "code": "dormant",
+        "name": "Dormant",
+        "description": (
+            "Customers with low recent activity and minimal engagement. "
+            "Priority for win-back campaigns or graceful sunset."
+        ),
+    },
+]
+
+SEGMENT_BY_CODE = {s["code"]: s for s in SEGMENTS}
+VALID_CODES = {s["code"] for s in SEGMENTS}
+
+# ── Feature columns consumed ─────────────────────────────────────
+FEATURE_COLS = [
+    "customer_id",
     "total_revenue",
     "order_count",
     "days_since_last_order",
+    "engagement_score",
     "avg_order_value",
     "support_ticket_count_30d",
 ]
-
-# Segment names assigned by descending average revenue after clustering.
-# Index 0 = highest revenue cluster, index 4 = lowest.
-SEGMENT_NAMES = [
-    "Champions",
-    "Loyal Customers",
-    "At Risk",
-    "New Customers",
-    "Hibernating",
-]
-
-K = 5
-RANDOM_STATE = 42
-MIN_SEGMENT_FRACTION = 0.02  # Validation: no segment below 2%
 
 
 class SegmentationAgent(BaseAgent):
@@ -56,98 +98,57 @@ class SegmentationAgent(BaseAgent):
     def name(self) -> str:
         return "segmentation"
 
+    # ──────────────────────────────────────────────────────────────
+    # Main entry
+    # ──────────────────────────────────────────────────────────────
+
     def run(self, db) -> Dict[str, Any]:
         engine = db.get_bind()
 
-        # Load features
+        # Step 1 — Load customer features
         df = pd.read_sql(
-            text(
-                "SELECT customer_id, "
-                + ", ".join(CLUSTER_FEATURES)
-                + " FROM customer_features"
-            ),
+            text("SELECT " + ", ".join(FEATURE_COLS) + " FROM customer_features"),
             engine,
         )
         self._logger.info("loaded_features", rows=len(df))
 
-        if len(df) < K * 10:
-            # Not enough data for meaningful clustering — use fallback
-            return self._fallback_quartile(df, db, engine)
-
-        # Prepare feature matrix
-        X = df[CLUSTER_FEATURES].copy()
-        # days_since_last_order is inverse (lower = better), invert it
-        max_days = X["days_since_last_order"].max()
-        X["days_since_last_order"] = max_days - X["days_since_last_order"]
-        X = X.fillna(0)
-
-        # Standardize
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
-
-        # KMeans
-        kmeans = KMeans(n_clusters=K, random_state=RANDOM_STATE, n_init=10)
-        labels = kmeans.fit_predict(X_scaled)
-
-        # Compute distance to assigned cluster center
-        distances = np.linalg.norm(
-            X_scaled - kmeans.cluster_centers_[labels], axis=1
+        # Step 2 — Compute percentile thresholds from the data
+        thresholds = _compute_thresholds(df)
+        self._logger.info(
+            "thresholds_computed",
+            thresholds={k: round(v, 2) for k, v in thresholds.items()},
         )
 
-        df["cluster_label"] = labels
-        df["cluster_distance"] = np.round(distances, 4)
+        # Step 3 — Assign segments via waterfall rules (vectorized)
+        df["segment_code"] = _assign_segments(df, thresholds)
 
-        # Order clusters by average total_revenue (descending) and assign names
-        cluster_revenue = (
-            df.groupby("cluster_label")["total_revenue"]
-            .mean()
-            .sort_values(ascending=False)
-        )
-        label_to_rank = {
-            label: rank for rank, label in enumerate(cluster_revenue.index)
-        }
-        df["segment_id"] = df["cluster_label"].map(label_to_rank)
-        df["segment_name"] = df["segment_id"].map(
-            lambda i: SEGMENT_NAMES[i] if i < len(SEGMENT_NAMES) else f"Segment_{i}"
-        )
+        # Step 4 — Enrich with segment metadata and per-customer reasons
+        segments = _build_output(df, thresholds)
 
-        # Build output DataFrame
-        segments = df[
-            ["customer_id", "segment_id", "segment_name", "cluster_distance"]
-        ].copy()
-        segments["computed_at"] = datetime.now(timezone.utc).isoformat()
+        # Step 5 — Write to database (replace handles schema migration)
+        self._write_segments(segments, engine)
 
-        # Write to database
-        self._logger.info("writing_segments", rows=len(segments))
-        db.execute(text("DELETE FROM customer_segments"))
-        db.commit()
-        segments.to_sql(
-            "customer_segments", engine, if_exists="append", index=False
-        )
+        # Step 6 — Build summary statistics
+        dist = segments.groupby("segment_name")["customer_id"].count().to_dict()
 
-        # Build summary
-        dist = (
-            segments.groupby("segment_name")["customer_id"]
-            .count()
-            .to_dict()
+        merged = segments.merge(
+            df[["customer_id", "total_revenue", "engagement_score"]],
+            on="customer_id",
         )
         avg_rev = (
-            df.groupby("segment_name")["total_revenue"]
+            merged.groupby("segment_name")["total_revenue"]
             .mean()
             .round(2)
             .to_dict()
         )
         avg_eng = (
-            df.groupby("segment_name")["engagement_score"]
+            merged.groupby("segment_name")["engagement_score"]
             .mean()
             .round(4)
             .to_dict()
         )
 
-        # Silhouette score: clustering quality metric in [-1, 1], higher is better
-        sil = round(float(silhouette_score(X_scaled, labels)), 4)
-
-        self._logger.info("segmentation_complete", distribution=dist, silhouette=sil)
+        self._logger.info("segmentation_complete", distribution=dist)
 
         return {
             "status": "completed",
@@ -155,12 +156,19 @@ class SegmentationAgent(BaseAgent):
             "tokens_used": 0,
             "model_used": None,
             "segment_summary": {
+                "segmentation_version": SEGMENTATION_VERSION,
                 "distribution": dist,
                 "avg_revenue_by_segment": avg_rev,
                 "avg_engagement_by_segment": avg_eng,
-                "silhouette_score": sil,
+                "thresholds_used": {
+                    k: round(v, 4) for k, v in thresholds.items()
+                },
             },
         }
+
+    # ──────────────────────────────────────────────────────────────
+    # Validation
+    # ──────────────────────────────────────────────────────────────
 
     def validate_output(
         self, output: Dict[str, Any]
@@ -170,68 +178,160 @@ class SegmentationAgent(BaseAgent):
         rows = output.get("rows_affected", 0)
         if rows == 0:
             errors.append("No rows written to customer_segments")
-
-        summary = output.get("segment_summary", {})
-
-        # Fallback mode has relaxed validation — data was too small for KMeans
-        if summary.get("fallback"):
-            return (rows > 0, errors)
-
-        if rows < 4500:
+        elif rows < 4500:
             errors.append(f"Expected ~5000 rows, got {rows}")
 
+        summary = output.get("segment_summary", {})
         dist = summary.get("distribution", {})
 
-        # All 5 segment names should be present
-        if len(dist) != K:
-            errors.append(f"Expected {K} segments, got {len(dist)}")
+        # All 5 segments should be represented
+        expected = {s["name"] for s in SEGMENTS}
+        present = set(dist.keys())
+        missing = expected - present
+        if missing:
+            errors.append(f"Missing segments: {missing}")
 
-        # No segment below minimum fraction
+        # No segment should exceed 40% or fall below 5%
         total = sum(dist.values()) if dist else 0
         if total > 0:
             for seg_name, count in dist.items():
                 frac = count / total
-                if frac < MIN_SEGMENT_FRACTION:
+                if frac > 0.40:
                     errors.append(
-                        f"Segment '{seg_name}' has {frac:.1%} of customers "
-                        f"(below {MIN_SEGMENT_FRACTION:.0%} minimum)"
+                        f"Segment '{seg_name}' exceeds 40% at {frac:.1%}"
+                    )
+                if frac < 0.05:
+                    errors.append(
+                        f"Segment '{seg_name}' below 5% at {frac:.1%}"
                     )
 
         return (len(errors) == 0, errors)
 
-    # ------------------------------------------------------------------
-    # Fallback for insufficient data
-    # ------------------------------------------------------------------
+    # ──────────────────────────────────────────────────────────────
+    # Database persistence
+    # ──────────────────────────────────────────────────────────────
 
-    def _fallback_quartile(
-        self, df: pd.DataFrame, db, engine
-    ) -> Dict[str, Any]:
-        """Simple RFM quartile binning when data is too small for KMeans."""
-        self._logger.warning("using_quartile_fallback", rows=len(df))
-
-        df = df.copy()
-        df["segment_id"] = 2  # default to "At Risk"
-        df["segment_name"] = "At Risk"
-        df["cluster_distance"] = 0.0
-        df["computed_at"] = datetime.now(timezone.utc).isoformat()
-
-        segments = df[
-            ["customer_id", "segment_id", "segment_name",
-             "cluster_distance", "computed_at"]
-        ]
-        db.execute(text("DELETE FROM customer_segments"))
-        db.commit()
+    def _write_segments(self, segments, engine):
+        """Write segments using 'replace' to handle schema migration."""
+        self._logger.info("writing_segments", rows=len(segments))
         segments.to_sql(
-            "customer_segments", engine, if_exists="append", index=False
+            "customer_segments", engine, if_exists="replace", index=False
         )
 
-        return {
-            "status": "completed",
-            "rows_affected": len(segments),
-            "tokens_used": 0,
-            "model_used": None,
-            "segment_summary": {
-                "distribution": {"At Risk": len(segments)},
-                "fallback": True,
-            },
-        }
+
+# ── Module-level helpers ──────────────────────────────────────────
+
+
+def _compute_thresholds(df: pd.DataFrame) -> Dict[str, float]:
+    """Derive percentile-based thresholds from the feature distribution."""
+    return {
+        "revenue_p75": float(df["total_revenue"].quantile(0.75)),
+        "revenue_p50": float(df["total_revenue"].quantile(0.50)),
+        "revenue_p25": float(df["total_revenue"].quantile(0.25)),
+        "engagement_p60": float(df["engagement_score"].quantile(0.60)),
+        "engagement_p40": float(df["engagement_score"].quantile(0.40)),
+        "recency_p50": float(df["days_since_last_order"].quantile(0.50)),
+        "order_count_p50": float(df["order_count"].quantile(0.50)),
+    }
+
+
+def _assign_segments(
+    df: pd.DataFrame, t: Dict[str, float]
+) -> np.ndarray:
+    """Assign segment codes via waterfall rules (vectorized).
+
+    Rules are evaluated in priority order — first match wins.
+    ``np.select`` short-circuits on the first True condition per row.
+    """
+    rev = df["total_revenue"]
+    eng = df["engagement_score"]
+    rec = df["days_since_last_order"]
+    orders = df["order_count"]
+
+    conditions = [
+        # Champions: high revenue + high engagement + recent activity
+        (rev >= t["revenue_p75"])
+        & (eng >= t["engagement_p60"])
+        & (rec <= t["recency_p50"]),
+        # Loyal: solid revenue + good purchase frequency
+        (rev >= t["revenue_p50"]) & (orders >= t["order_count_p50"]),
+        # Growth: recent activity + moderate engagement
+        (rec <= t["recency_p50"]) & (eng >= t["engagement_p40"]),
+        # At Risk: had value but declining signals
+        (rev >= t["revenue_p25"])
+        & ((rec > t["recency_p50"]) | (eng < t["engagement_p40"])),
+    ]
+    choices = ["champions", "loyal", "growth", "at_risk"]
+
+    return np.select(conditions, choices, default="dormant")
+
+
+def _build_output(
+    df: pd.DataFrame, thresholds: Dict[str, float]
+) -> pd.DataFrame:
+    """Build the full output DataFrame with metadata and per-customer reasons."""
+    now = datetime.now(timezone.utc).isoformat()
+    rows: List[Dict[str, Any]] = []
+
+    for _, row in df.iterrows():
+        code = row["segment_code"]
+        seg = SEGMENT_BY_CODE[code]
+        reason = _explain_assignment(row, code, thresholds)
+
+        rows.append(
+            {
+                "customer_id": row["customer_id"],
+                "segment_id": seg["id"],
+                "segment_code": code,
+                "segment_name": seg["name"],
+                "segment_description": seg["description"],
+                "primary_reason": reason,
+                "segmentation_version": SEGMENTATION_VERSION,
+                "computed_at": now,
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+def _explain_assignment(
+    row: pd.Series, code: str, thresholds: Dict[str, float]
+) -> str:
+    """Generate a human-readable reason for this customer's segment."""
+    rev = row["total_revenue"]
+    eng = row["engagement_score"]
+    rec = int(row["days_since_last_order"])
+    orders = int(row["order_count"])
+
+    if code == "champions":
+        return (
+            f"High revenue (${rev:,.0f}), strong engagement ({eng:.2f}), "
+            f"and recent activity ({rec}d ago)"
+        )
+
+    if code == "loyal":
+        return (
+            f"Solid revenue (${rev:,.0f}) with {orders} orders "
+            f"and engagement of {eng:.2f}"
+        )
+
+    if code == "growth":
+        return (
+            f"Recent activity ({rec}d ago) with moderate engagement "
+            f"({eng:.2f}) and room to expand"
+        )
+
+    if code == "at_risk":
+        issues: List[str] = []
+        if rec > thresholds["recency_p50"]:
+            issues.append(f"stale activity ({rec}d since last purchase)")
+        if eng < thresholds["engagement_p40"]:
+            issues.append(f"low engagement ({eng:.2f})")
+        issue_text = " and ".join(issues) if issues else "declining signals"
+        return f"Revenue of ${rev:,.0f} but {issue_text}"
+
+    # dormant
+    return (
+        f"Low engagement ({eng:.2f}), {rec}d since last purchase, "
+        f"${rev:,.0f} total revenue"
+    )

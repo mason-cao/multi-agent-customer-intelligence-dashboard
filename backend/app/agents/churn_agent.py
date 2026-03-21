@@ -302,7 +302,7 @@ class ChurnAgent(BaseAgent):
 
         # Merge segment ID (from SegmentationAgent)
         df = df.merge(segments_df, on="customer_id", how="left")
-        df["segment_id"] = df["segment_id"].fillna(2)  # default "At Risk"
+        df["segment_id"] = df["segment_id"].fillna(4)  # default "Dormant"
 
         # Compute days_until_renewal and aggregate per-customer subscriptions
         subs = subs_df.copy()
@@ -336,7 +336,7 @@ class ChurnAgent(BaseAgent):
             "payment_failures_90d": 0,
             "auto_renew": 1,
             "days_until_renewal": 180,
-            "segment_id": 2,
+            "segment_id": 4,
         }
         for col, val in defaults.items():
             if col in df.columns:
@@ -524,26 +524,35 @@ def _top_shap_factors(
 def _generate_explanation(
     prob: float, tier: str, factors: List[Dict[str, Any]]
 ) -> str:
-    """Build a human-readable churn explanation from SHAP-based factors."""
+    """Build a human-readable churn explanation from SHAP-based factors.
+
+    Separates risk-increasing and risk-decreasing (protective) factors so
+    explanations remain honest when rank-based tiers diverge from absolute
+    probability values.
+    """
     if not factors:
-        return (
-            f"Churn risk score: {prob:.0%} ({tier}). "
-            "Insufficient data for detailed analysis."
-        )
+        return "Insufficient data for detailed risk factor analysis."
 
-    if tier in ("Critical", "High"):
-        opener = "This customer has elevated churn risk"
-    elif tier == "Medium":
-        opener = "This customer has moderate churn risk"
-    else:
-        opener = "This customer has low churn risk"
+    risk_drivers = [f for f in factors if f["direction"] == "increases risk"]
+    protective = [f for f in factors if f["direction"] == "decreases risk"]
 
-    descs = [f["descriptor"] for f in factors]
-    if len(descs) == 1:
-        driver_text = descs[0]
-    elif len(descs) == 2:
-        driver_text = f"{descs[0]} and {descs[1]}"
-    else:
-        driver_text = f"{descs[0]}, {descs[1]}, and {descs[2]}"
+    if risk_drivers and protective:
+        risk_text = _join_natural([f["descriptor"] for f in risk_drivers])
+        prot_text = _join_natural([f["descriptor"] for f in protective])
+        return f"Risk driven by {risk_text}, offset by {prot_text}."
 
-    return f"{opener} (score: {prob:.0%}) driven primarily by {driver_text}."
+    if risk_drivers:
+        risk_text = _join_natural([f["descriptor"] for f in risk_drivers])
+        return f"Risk driven by {risk_text}."
+
+    prot_text = _join_natural([f["descriptor"] for f in protective])
+    return f"Risk mitigated by {prot_text}."
+
+
+def _join_natural(items: List[str]) -> str:
+    """Join a list with commas and 'and' for the last item."""
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+    return f"{', '.join(items[:-1])}, and {items[-1]}"

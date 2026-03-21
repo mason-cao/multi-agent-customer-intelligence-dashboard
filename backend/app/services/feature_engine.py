@@ -201,12 +201,13 @@ def compute_support_features(
     Compute support ticket features per customer.
 
     Returns DataFrame with columns:
-        customer_id, support_ticket_count_30d
+        customer_id, support_ticket_count_30d, avg_resolution_hours
     """
     ref = reference_date or DEFAULT_REFERENCE_DATE
     d30 = (ref - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S")
     ref_str = ref.strftime("%Y-%m-%dT%H:%M:%S")
 
+    # 30-day ticket count
     tickets = pd.read_sql(
         text(
             "SELECT customer_id, COUNT(*) AS support_ticket_count_30d "
@@ -218,4 +219,75 @@ def compute_support_features(
         params={"d30": d30, "ref": ref_str},
     )
     tickets["support_ticket_count_30d"] = tickets["support_ticket_count_30d"].astype(int)
-    return tickets
+
+    # Avg resolution hours (all time, resolved tickets only)
+    resolution = pd.read_sql(
+        text(
+            "SELECT customer_id, "
+            "  AVG((julianday(resolved_at) - julianday(created_at)) * 24) "
+            "    AS avg_resolution_hours "
+            "FROM support_tickets "
+            "WHERE resolved_at IS NOT NULL "
+            "  AND resolution_status = 'resolved' "
+            "  AND created_at <= :ref "
+            "GROUP BY customer_id"
+        ),
+        engine,
+        params={"ref": ref_str},
+    )
+
+    result = tickets.merge(resolution, on="customer_id", how="outer")
+    result["support_ticket_count_30d"] = result["support_ticket_count_30d"].fillna(0).astype(int)
+    result["avg_resolution_hours"] = result["avg_resolution_hours"].round(2)
+    return result
+
+
+def compute_activity_features(
+    engine, reference_date: datetime = None
+) -> pd.DataFrame:
+    """
+    Compute overall activity features per customer from behavior_events.
+
+    Returns DataFrame with columns:
+        customer_id, total_event_count, last_active_at
+    """
+    ref = reference_date or DEFAULT_REFERENCE_DATE
+    ref_str = ref.strftime("%Y-%m-%dT%H:%M:%S")
+
+    activity = pd.read_sql(
+        text(
+            "SELECT customer_id, "
+            "  COUNT(*) AS total_event_count, "
+            "  MAX(timestamp) AS last_active_at "
+            "FROM behavior_events "
+            "WHERE timestamp <= :ref "
+            "GROUP BY customer_id"
+        ),
+        engine,
+        params={"ref": ref_str},
+    )
+    activity["total_event_count"] = activity["total_event_count"].astype(int)
+    return activity
+
+
+def compute_tenure_features(engine) -> pd.DataFrame:
+    """
+    Compute tenure features per customer from customers table.
+
+    Returns DataFrame with columns:
+        customer_id, tenure_days
+    """
+    ref_str = DEFAULT_REFERENCE_DATE.strftime("%Y-%m-%d")
+
+    tenure = pd.read_sql(
+        text(
+            "SELECT customer_id, "
+            "  CAST(julianday(:ref) - julianday(signup_date) AS INTEGER) "
+            "    AS tenure_days "
+            "FROM customers"
+        ),
+        engine,
+        params={"ref": ref_str},
+    )
+    tenure["tenure_days"] = tenure["tenure_days"].clip(lower=0).astype(int)
+    return tenure

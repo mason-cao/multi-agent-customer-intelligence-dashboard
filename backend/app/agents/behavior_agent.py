@@ -2,8 +2,8 @@
 BehaviorAgent — computes per-customer behavioral feature vectors.
 
 This is a deterministic agent (pure Python/Pandas, no LLM calls).
-It reads raw events, orders, and tickets, computes engagement metrics,
-and populates the customer_features table.
+It reads raw events, orders, tickets, and customer records, computes
+engagement metrics, and populates the customer_features table.
 
 Inputs:  behavior_events, orders, support_tickets, customers
 Outputs: customer_features (5,000 rows)
@@ -18,11 +18,18 @@ from sqlalchemy import text
 
 from app.agents.base import BaseAgent
 from app.services.feature_engine import (
+    compute_activity_features,
     compute_engagement_features,
     compute_login_features,
     compute_revenue_features,
     compute_support_features,
+    compute_tenure_features,
 )
+
+
+# ── Version ───────────────────────────────────────────────────────
+# Bump when features, weights, or computation logic changes.
+BEHAVIOR_VERSION = "features-v2"
 
 
 class BehaviorAgent(BaseAgent):
@@ -31,17 +38,21 @@ class BehaviorAgent(BaseAgent):
     def name(self) -> str:
         return "behavior"
 
+    # ──────────────────────────────────────────────────────────────
+    # Main entry
+    # ──────────────────────────────────────────────────────────────
+
     def run(self, db) -> Dict[str, Any]:
         engine = db.get_bind()
         self._logger.info("computing_features")
 
-        # Get all customer IDs as the base
+        # Step 1 — Load customer base
         customers = pd.read_sql(
             text("SELECT customer_id FROM customers"), engine
         )
         self._logger.info("customer_count", count=len(customers))
 
-        # Compute each feature group
+        # Step 2 — Compute each feature group
         self._logger.info("computing_login_features")
         logins = compute_login_features(engine)
 
@@ -54,13 +65,19 @@ class BehaviorAgent(BaseAgent):
         self._logger.info("computing_support_features")
         support = compute_support_features(engine)
 
-        # Merge all features onto the customer base
+        self._logger.info("computing_activity_features")
+        activity = compute_activity_features(engine)
+
+        self._logger.info("computing_tenure_features")
+        tenure = compute_tenure_features(engine)
+
+        # Step 3 — Merge all features onto the customer base
         features = customers.copy()
-        for df in [logins, engagement, revenue, support]:
+        for df in [logins, engagement, revenue, support, activity, tenure]:
             if not df.empty:
                 features = features.merge(df, on="customer_id", how="left")
 
-        # Fill missing values for customers with no activity
+        # Step 4 — Fill missing values for customers with no activity
         fill_defaults = {
             "login_frequency_7d": 0,
             "login_frequency_30d": 0,
@@ -72,6 +89,10 @@ class BehaviorAgent(BaseAgent):
             "days_since_last_order": 999,
             "avg_order_value": 0.0,
             "support_ticket_count_30d": 0,
+            "avg_resolution_hours": 0.0,
+            "total_event_count": 0,
+            "last_active_at": None,
+            "tenure_days": 0,
         }
         for col, default in fill_defaults.items():
             if col in features.columns:
@@ -84,11 +105,12 @@ class BehaviorAgent(BaseAgent):
             "login_frequency_7d", "login_frequency_30d",
             "feature_usage_breadth", "order_count",
             "days_since_last_order", "support_ticket_count_30d",
+            "total_event_count", "tenure_days",
         ]
         for col in int_cols:
             features[col] = features[col].astype(int)
 
-        # Compute composite engagement_score (0 to 1)
+        # Step 5 — Compute composite engagement_score (0 to 1)
         features["engagement_score"] = self._compute_engagement_score(features)
 
         # Placeholder columns for sentiment (populated by SentimentAgent later)
@@ -98,41 +120,54 @@ class BehaviorAgent(BaseAgent):
         # Timestamp
         features["computed_at"] = datetime.now(timezone.utc).isoformat()
 
-        # Write to database — clear existing rows first.
-        # NOTE: This DELETE wipes avg_sentiment and nps_score set by
-        # SentimentAgent. The orchestrator must re-run Sentiment after
-        # Behavior whenever Behavior is re-executed.
+        # Step 6 — Write to database (replace handles schema migration)
+        # NOTE: This wipes avg_sentiment and nps_score set by SentimentAgent.
+        # The orchestrator must re-run Sentiment after Behavior whenever
+        # Behavior is re-executed.
         self._logger.info("writing_features", rows=len(features))
-        db.execute(text("DELETE FROM customer_features"))
-        db.commit()
-
         features.to_sql(
-            "customer_features", engine, if_exists="append", index=False
+            "customer_features", engine, if_exists="replace", index=False
         )
+
+        # Step 7 — Build summary statistics
+        summary = {
+            "avg_engagement_score": round(
+                features["engagement_score"].mean(), 4
+            ),
+            "trend_distribution": features["trend_direction"]
+            .value_counts()
+            .to_dict(),
+            "avg_login_30d": round(
+                features["login_frequency_30d"].mean(), 2
+            ),
+            "avg_revenue": round(features["total_revenue"].mean(), 2),
+            "avg_tenure_days": round(features["tenure_days"].mean(), 1),
+            "avg_total_events": round(
+                features["total_event_count"].mean(), 1
+            ),
+            "avg_resolution_hours": round(
+                features["avg_resolution_hours"].mean(), 2
+            ),
+        }
+
+        self._logger.info("behavior_complete", summary=summary)
 
         return {
             "status": "completed",
             "rows_affected": len(features),
             "tokens_used": 0,
             "model_used": None,
-            "feature_summary": {
-                "avg_engagement_score": round(
-                    features["engagement_score"].mean(), 4
-                ),
-                "trend_distribution": features["trend_direction"]
-                .value_counts()
-                .to_dict(),
-                "avg_login_30d": round(
-                    features["login_frequency_30d"].mean(), 2
-                ),
-                "avg_revenue": round(features["total_revenue"].mean(), 2),
-            },
+            "feature_summary": summary,
         }
+
+    # ──────────────────────────────────────────────────────────────
+    # Validation
+    # ──────────────────────────────────────────────────────────────
 
     def validate_output(
         self, output: Dict[str, Any]
     ) -> Tuple[bool, List[str]]:
-        errors = []
+        errors: List[str] = []
 
         rows = output.get("rows_affected", 0)
         if rows == 0:
@@ -154,11 +189,15 @@ class BehaviorAgent(BaseAgent):
         if invalid:
             errors.append(f"Invalid trend_direction values: {invalid}")
 
+        avg_tenure = summary.get("avg_tenure_days", 0)
+        if avg_tenure <= 0:
+            errors.append(f"avg_tenure_days should be positive: {avg_tenure}")
+
         return (len(errors) == 0, errors)
 
-    # ------------------------------------------------------------------
+    # ──────────────────────────────────────────────────────────────
     # Internal
-    # ------------------------------------------------------------------
+    # ──────────────────────────────────────────────────────────────
 
     @staticmethod
     def _compute_engagement_score(df: pd.DataFrame) -> pd.Series:
