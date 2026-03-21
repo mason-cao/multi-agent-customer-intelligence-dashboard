@@ -2,7 +2,7 @@
 name = "nexus-intelligence"
 version = "0.1.0"
 description = "Multi-Agent Customer Intelligence Dashboard"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.110.0",
     "uvicorn[standard]>=0.27.0",
@@ -29,5 +29,5 @@ dev = [
 ]
 
 [build-system]
-requires = ["setuptools>=68.0"]
-build-backend = "setuptools.backends._legacy:_Backend"
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
