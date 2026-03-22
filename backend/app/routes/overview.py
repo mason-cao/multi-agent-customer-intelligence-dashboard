@@ -130,7 +130,7 @@ def get_narrative(db: Session = Depends(get_db)):
 
     churn_pct = avg_churn * 100
     sentiment_label = (
-        "positive" if avg_sent > 0.6 else "neutral" if avg_sent > 0.4 else "negative"
+        "positive" if avg_sent > 0.20 else "neutral" if avg_sent > -0.20 else "negative"
     )
 
     highlights = []
@@ -145,7 +145,7 @@ def get_narrative(db: Session = Depends(get_db)):
             f"Elevated churn risk at {churn_pct:.1f}% across the customer base"
         )
 
-    if avg_sent > 0.6:
+    if avg_sent > 0.20:
         highlights.append(
             f"Customer sentiment is {sentiment_label} (avg score: {avg_sent:.2f})"
         )

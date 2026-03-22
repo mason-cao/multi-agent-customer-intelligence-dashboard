@@ -353,11 +353,13 @@ class RecommendationAgent(BaseAgent):
     # Database persistence
     # ──────────────────────────────────────────────────────────────
 
-    def _write_recommendations(self, recommendations, _db, engine):
-        """Write recommendations (replace handles schema migration)."""
+    def _write_recommendations(self, recommendations, db, engine):
+        """Write recommendations via DELETE + INSERT to preserve ORM constraints."""
         self._logger.info("writing_recommendations", rows=len(recommendations))
+        db.execute(text("DELETE FROM recommendations"))
+        db.commit()
         recommendations.to_sql(
-            "recommendations", engine, if_exists="replace", index=False
+            "recommendations", engine, if_exists="append", index=False
         )
 
 

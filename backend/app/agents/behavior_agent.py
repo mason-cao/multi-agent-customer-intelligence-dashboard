@@ -120,13 +120,15 @@ class BehaviorAgent(BaseAgent):
         # Timestamp
         features["computed_at"] = datetime.now(timezone.utc).isoformat()
 
-        # Step 6 — Write to database (replace handles schema migration)
+        # Step 6 — Write to database (DELETE + INSERT preserves ORM constraints)
         # NOTE: This wipes avg_sentiment and nps_score set by SentimentAgent.
         # The orchestrator must re-run Sentiment after Behavior whenever
         # Behavior is re-executed.
         self._logger.info("writing_features", rows=len(features))
+        db.execute(text("DELETE FROM customer_features"))
+        db.commit()
         features.to_sql(
-            "customer_features", engine, if_exists="replace", index=False
+            "customer_features", engine, if_exists="append", index=False
         )
 
         # Step 7 — Build summary statistics

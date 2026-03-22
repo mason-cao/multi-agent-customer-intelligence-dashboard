@@ -448,6 +448,7 @@ class ChurnAgent(BaseAgent):
                     "risk_tier": tier,
                     "top_risk_factors": json.dumps(factors),
                     "explanation": explanation,
+                    "scoring_version": SCORING_VERSION,
                     "computed_at": now,
                 }
             )
@@ -521,6 +522,29 @@ def _top_shap_factors(
     return factors
 
 
+def _fmt_factor(f: Dict[str, Any]) -> str:
+    """Format a SHAP factor with its numeric value for specificity."""
+    name = f.get("feature", "")
+    value = f.get("value", 0)
+    descriptor = f.get("descriptor", name)
+    name_lower = name.lower()
+
+    if "auto" in name_lower and "renew" in name_lower:
+        val_str = "off" if value == 0 else "on"
+    elif "revenue" in name_lower or "mrr" in name_lower or "value" in name_lower:
+        val_str = f"${value:,.0f}"
+    elif "days" in name_lower or "recency" in name_lower or "renewal" in name_lower:
+        val_str = f"{int(value)}d"
+    elif "score" in name_lower or "probability" in name_lower:
+        val_str = f"{value:.2f}"
+    elif value == int(value):
+        val_str = str(int(value))
+    else:
+        val_str = f"{value:.1f}"
+
+    return f"{descriptor} ({val_str})"
+
+
 def _generate_explanation(
     prob: float, tier: str, factors: List[Dict[str, Any]]
 ) -> str:
@@ -528,7 +552,7 @@ def _generate_explanation(
 
     Separates risk-increasing and risk-decreasing (protective) factors so
     explanations remain honest when rank-based tiers diverge from absolute
-    probability values.
+    probability values.  Includes numeric values for per-customer specificity.
     """
     if not factors:
         return "Insufficient data for detailed risk factor analysis."
@@ -537,15 +561,15 @@ def _generate_explanation(
     protective = [f for f in factors if f["direction"] == "decreases risk"]
 
     if risk_drivers and protective:
-        risk_text = _join_natural([f["descriptor"] for f in risk_drivers])
-        prot_text = _join_natural([f["descriptor"] for f in protective])
+        risk_text = _join_natural([_fmt_factor(f) for f in risk_drivers])
+        prot_text = _join_natural([_fmt_factor(f) for f in protective])
         return f"Risk driven by {risk_text}, offset by {prot_text}."
 
     if risk_drivers:
-        risk_text = _join_natural([f["descriptor"] for f in risk_drivers])
+        risk_text = _join_natural([_fmt_factor(f) for f in risk_drivers])
         return f"Risk driven by {risk_text}."
 
-    prot_text = _join_natural([f["descriptor"] for f in protective])
+    prot_text = _join_natural([_fmt_factor(f) for f in protective])
     return f"Risk mitigated by {prot_text}."
 
 

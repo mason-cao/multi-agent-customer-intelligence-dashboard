@@ -11,4 +11,5 @@ class ChurnPrediction(Base):
     risk_tier = Column(String, nullable=False)
     top_risk_factors = Column(Text, nullable=True)  # JSON
     explanation = Column(Text, nullable=True)
+    scoring_version = Column(String, nullable=True)
     computed_at = Column(String, nullable=True)

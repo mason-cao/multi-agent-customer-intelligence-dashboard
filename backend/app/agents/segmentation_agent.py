@@ -125,8 +125,8 @@ class SegmentationAgent(BaseAgent):
         # Step 4 — Enrich with segment metadata and per-customer reasons
         segments = _build_output(df, thresholds)
 
-        # Step 5 — Write to database (replace handles schema migration)
-        self._write_segments(segments, engine)
+        # Step 5 — Write to database (DELETE + INSERT preserves ORM constraints)
+        self._write_segments(segments, db, engine)
 
         # Step 6 — Build summary statistics
         dist = segments.groupby("segment_name")["customer_id"].count().to_dict()
@@ -211,11 +211,13 @@ class SegmentationAgent(BaseAgent):
     # Database persistence
     # ──────────────────────────────────────────────────────────────
 
-    def _write_segments(self, segments, engine):
-        """Write segments using 'replace' to handle schema migration."""
+    def _write_segments(self, segments, db, engine):
+        """Write segments via DELETE + INSERT to preserve ORM constraints."""
         self._logger.info("writing_segments", rows=len(segments))
+        db.execute(text("DELETE FROM customer_segments"))
+        db.commit()
         segments.to_sql(
-            "customer_segments", engine, if_exists="replace", index=False
+            "customer_segments", engine, if_exists="append", index=False
         )
 
 

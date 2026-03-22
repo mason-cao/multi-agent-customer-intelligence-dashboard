@@ -99,9 +99,11 @@ class AuditAgent(BaseAgent):
         results.extend(_check_freshness(engine, now))
         self._logger.info("freshness_checked")
 
-        # Write to database
+        # Write to database (DELETE + INSERT preserves ORM constraints)
         df = pd.DataFrame(results)
-        df.to_sql("audit_results", engine, if_exists="replace", index=False)
+        db.execute(text("DELETE FROM audit_results"))
+        db.commit()
+        df.to_sql("audit_results", engine, if_exists="append", index=False)
         self._logger.info("audit_results_written", rows=len(df))
 
         # Build output summary
@@ -965,7 +967,8 @@ def _check_groundedness(engine, now: str) -> List[Dict[str, Any]]:
             metrics_raw = churn_section.iloc[0]["supporting_metrics"]
             if metrics_raw:
                 metrics = json.loads(metrics_raw) if isinstance(metrics_raw, str) else metrics_raw
-                claimed_critical = metrics.get("critical_count")
+                risk_dist = metrics.get("risk_tier_dist", {})
+                claimed_critical = risk_dist.get("Critical", metrics.get("critical_count"))
                 if claimed_critical is not None:
                     actual = pd.read_sql(
                         text(

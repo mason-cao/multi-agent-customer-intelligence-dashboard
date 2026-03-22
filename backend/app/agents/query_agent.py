@@ -660,9 +660,11 @@ class QueryAgent(BaseAgent):
             result = self.answer_question(q, engine)
             results.append(result)
 
-        # Write all results to query_results table
+        # Write all results to query_results table (DELETE + INSERT preserves ORM constraints)
         df = pd.DataFrame(results)
-        df.to_sql("query_results", engine, if_exists="replace", index=False)
+        db.execute(text("DELETE FROM query_results"))
+        db.commit()
+        df.to_sql("query_results", engine, if_exists="append", index=False)
         self._logger.info("query_results_written", rows=len(df))
 
         success = sum(1 for r in results if r["query_status"] == "success")

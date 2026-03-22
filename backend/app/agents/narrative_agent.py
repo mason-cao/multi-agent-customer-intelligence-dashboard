@@ -74,8 +74,8 @@ class NarrativeAgent(BaseAgent):
         summaries = _assemble_sections(stats, insights)
         self._logger.info("sections_assembled", count=len(summaries))
 
-        # Step 4 -- Write to database
-        self._write_summaries(summaries, engine)
+        # Step 4 -- Write to database (DELETE + INSERT preserves ORM constraints)
+        self._write_summaries(summaries, db, engine)
 
         # Step 5 -- Build output summary
         section_types = [s["summary_type"] for s in summaries]
@@ -145,12 +145,14 @@ class NarrativeAgent(BaseAgent):
     # Database persistence
     # ──────────────────────────────────────────────────────────────
 
-    def _write_summaries(self, summaries: List[Dict], engine):
-        """Write summaries (replace handles table creation/migration)."""
+    def _write_summaries(self, summaries: List[Dict], db, engine):
+        """Write summaries via DELETE + INSERT to preserve ORM constraints."""
         self._logger.info("writing_summaries", rows=len(summaries))
+        db.execute(text("DELETE FROM executive_summaries"))
+        db.commit()
         df = pd.DataFrame(summaries)
         df.to_sql(
-            "executive_summaries", engine, if_exists="replace", index=False
+            "executive_summaries", engine, if_exists="append", index=False
         )
 
 
