@@ -1,4 +1,4 @@
-# Nexus Intelligence → Luminosity Intelligence — Project Context
+# Luminosity Intelligence — Project Context
 
 ## Project Purpose
 Workspace-based customer intelligence platform. Users create workspaces, generate realistic synthetic company data inside the app, and explore AI-driven insights through an executive dashboard. Eight coordinated AI agents transform raw customer data into behavioral profiles, segments, sentiment analysis, churn predictions, recommendations, executive narratives, validation audits, and natural language answers.
@@ -6,8 +6,6 @@ Workspace-based customer intelligence platform. Users create workspaces, generat
 **Capstone context**: High school flagship project. Must demonstrate systems architecture, AI engineering, product thinking, and software maturity.
 
 **Critical framing**: This is NOT a static dashboard with pre-loaded fake data. It is an interactive application where the user triggers synthetic data generation and the intelligence layer processes it. The data is synthetic by design — no real company integrations exist or are planned for the current scope.
-
-**Pending rename**: The platform is being renamed from **Nexus Intelligence** to **Luminosity Intelligence**. The next session must execute this rename across all references.
 
 ## Official Phase Plan
 
@@ -94,9 +92,8 @@ Railway (backend) + Vercel (frontend) deployment, demo mode, presentation prepar
 - Demo must work offline from cached agent outputs.
 
 ## Next Session — Required Actions
-1. **Rename platform to Luminosity Intelligence** across all code, UI, and docs
-2. **Create Ticket 4 / 5** for remaining Phase 4 Productization work
-3. **Implement Tickets 4 / 5**
+1. **Create Ticket 4 / 5** for remaining Phase 4 Productization work
+2. **Implement Tickets 4 / 5**
 
 ## Scope Constraints
 

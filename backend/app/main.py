@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Nexus Intelligence API",
+    title="Luminosity Intelligence API",
     description="Multi-Agent Customer Intelligence Dashboard",
     version="0.1.0",
     lifespan=lifespan,

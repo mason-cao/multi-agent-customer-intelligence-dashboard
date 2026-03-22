@@ -174,7 +174,7 @@ export default function WorkspaceHub() {
             </div>
             <div className="flex flex-col">
               <span className="text-sm font-bold tracking-tight text-slate-900">
-                Nexus
+                Luminosity
               </span>
               <span className="text-[10px] font-semibold uppercase tracking-widest text-emerald-600">
                 Intelligence

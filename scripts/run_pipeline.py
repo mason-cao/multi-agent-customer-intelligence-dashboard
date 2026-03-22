@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-run_pipeline.py — Run all 8 Nexus Intelligence agents in dependency order.
+run_pipeline.py — Run all 8 Luminosity Intelligence agents in dependency order.
 
 Usage:
     python scripts/run_pipeline.py              # normal run
@@ -92,14 +92,14 @@ def run_agent(label: str, module_path: str, class_name: str) -> dict:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run the Nexus Intelligence agent pipeline")
+    parser = argparse.ArgumentParser(description="Run the Luminosity Intelligence agent pipeline")
     parser.add_argument("--clean", action="store_true", help="Drop derived tables and recreate with ORM constraints before running")
     args = parser.parse_args()
 
     if args.clean:
         clean_tables()
 
-    print("=== NEXUS INTELLIGENCE PIPELINE ===\n")
+    print("=== LUMINOSITY INTELLIGENCE PIPELINE ===\n")
     total_start = time.time()
     results = {}
 

@@ -1,4 +1,4 @@
-# Nexus Intelligence → Luminosity Intelligence — Progress Tracker
+# Luminosity Intelligence — Progress Tracker
 
 ---
 
@@ -8,8 +8,6 @@
 **HEAD:** `48232ed` — Workspace setup flow + workspace-aware dashboard entry
 **Working tree:** Clean
 **Current phase:** Phase 4 (Productization) — in progress. Tickets 1–3.1 committed.
-**Pending rename:** Platform will be renamed to **Luminosity Intelligence** in the next session.
-
 ---
 
 ## Phase Summary
@@ -126,8 +124,6 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 
 ### Remaining Phase 4 Work
 - Ticket 4 / 5 — to be defined and implemented in next session
-- Platform rename to **Luminosity Intelligence**
-
 ---
 
 ## What Is Not Built Yet
@@ -185,9 +181,8 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 
 ## Next Steps
 
-1. **Rename platform to Luminosity Intelligence** — update all references across frontend, backend, docs
-2. **Create and implement Ticket 4 / 5** for Phase 4 Productization
-3. **Complete Phase 4** — remaining productization work
+1. **Create and implement Ticket 4 / 5** for Phase 4 Productization
+2. **Complete Phase 4** — remaining productization work
 4. After Phase 4: orchestrator, ChromaDB, tests (Phase 5)
 5. After Phase 5: deployment, demo prep (Phase 6)
 

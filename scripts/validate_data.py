@@ -1,5 +1,5 @@
 """
-Validate synthetic Nexus Analytics dataset.
+Validate synthetic Luminosity Analytics dataset.
 
 Checks row counts, distributions, correlations, foreign key integrity,
 and story assumptions (outage window, churn signals, engagement patterns).
@@ -277,7 +277,7 @@ def check_churn_event_timing():
 # ---------------------------------------------------------------------------
 def main():
     print("=" * 60)
-    print("  Nexus Analytics — Synthetic Data Validation")
+    print("  Luminosity Analytics — Synthetic Data Validation")
     print("=" * 60)
 
     check_row_counts()

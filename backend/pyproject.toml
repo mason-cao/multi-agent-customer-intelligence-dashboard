@@ -1,5 +1,5 @@
 [project]
-name = "nexus-intelligence"
+name = "luminosity-intelligence"
 version = "0.1.0"
 description = "Multi-Agent Customer Intelligence Dashboard"
 requires-python = ">=3.11"

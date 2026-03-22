@@ -1,5 +1,5 @@
 """
-BaseAgent — abstract base class for all Nexus Intelligence agents.
+BaseAgent — abstract base class for all Luminosity Intelligence agents.
 
 Every agent inherits from this and implements:
   - name (property): unique agent identifier

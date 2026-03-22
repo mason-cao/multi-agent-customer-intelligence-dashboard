@@ -71,7 +71,7 @@ MOCK_RESPONSES = {
     ),
     "narrative": json.dumps({
         "executive_summary": (
-            "Nexus Analytics serves 5,000 customers generating $7.3M in total "
+            "Luminosity Analytics serves 5,000 customers generating $7.3M in total "
             "revenue. The overall churn rate stands at 14.2%, with the At Risk "
             "segment showing a 3.2x higher churn rate than Champions. Sentiment "
             "analysis reveals that billing confusion and performance concerns are "

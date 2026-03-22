@@ -1,5 +1,5 @@
 """
-Synthetic data generator for Nexus Analytics — a fictional B2B SaaS company.
+Synthetic data generator for Luminosity Analytics — a fictional B2B SaaS company.
 
 Generates 18 months of correlated customer data (Jul 2024 – Dec 2025) with
 realistic patterns: seasonal revenue, churn signals, sentiment drift, a
@@ -646,7 +646,7 @@ def main(seed: int = 42):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate synthetic Nexus Analytics data")
+    parser = argparse.ArgumentParser(description="Generate synthetic Luminosity Analytics data")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
     args = parser.parse_args()
     main(args.seed)

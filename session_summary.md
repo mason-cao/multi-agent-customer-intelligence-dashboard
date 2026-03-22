@@ -4,7 +4,7 @@
 
 ## 1. Current State
 
-**Nexus Intelligence** (rename to **Luminosity Intelligence** pending) is a workspace-based customer intelligence platform. Users create workspaces, select company scenarios, generate realistic synthetic data, and explore AI-driven insights through an executive dashboard. Eight AI agents process workspace data through a dependency-ordered pipeline.
+**Luminosity Intelligence** is a workspace-based customer intelligence platform. Users create workspaces, select company scenarios, generate realistic synthetic data, and explore AI-driven insights through an executive dashboard. Eight AI agents process workspace data through a dependency-ordered pipeline.
 
 High school capstone project. All data is synthetic by design — no real integrations.
 
@@ -56,9 +56,8 @@ High school capstone project. All data is synthetic by design — no real integr
 
 **The next session must do the following in order:**
 
-1. **Rename platform to Luminosity Intelligence** — update all references across frontend, backend, docs, README
-2. **Create Ticket 4 / 5** for remaining Phase 4 Productization work
-3. **Implement Ticket 4 / 5** — continue Phase 4
+1. **Create Ticket 4 / 5** for remaining Phase 4 Productization work
+2. **Implement Ticket 4 / 5** — continue Phase 4
 
 ---
 
@@ -104,16 +103,15 @@ High school capstone project. All data is synthetic by design — no real integr
 ## 8. Resume Prompt
 
 ```
-Resuming Nexus Intelligence capstone project (pending rename to Luminosity Intelligence).
+Resuming Luminosity Intelligence capstone project.
 
 State: Phases 1–3 complete. Phase 4 Productization in progress — Tickets 1–3.1 committed on main at HEAD 48232ed. Working tree clean.
 
 Product model: Workspace-based synthetic-data intelligence platform. Users create workspaces, select scenarios, generate synthetic data, and explore AI-driven insights. Data is synthetic by design.
 
 Next session sequence:
-1. Rename platform to Luminosity Intelligence
-2. Create Ticket 4 / 5 for Phase 4
-3. Implement remaining Phase 4 work
+1. Create Ticket 4 / 5 for Phase 4
+2. Implement remaining Phase 4 work
 
 Do not skip phases. Do not add Phase 5/6 features. Do not add real data ingestion. Do not describe as a static dashboard.
 ```

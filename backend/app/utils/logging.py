@@ -1,4 +1,4 @@
-"""Structlog configuration for the Nexus Intelligence backend."""
+"""Structlog configuration for the Luminosity Intelligence backend."""
 
 import logging
 import structlog

@@ -1,4 +1,4 @@
-# Nexus Intelligence
+# Luminosity Intelligence
 
 **Workspace-Based Customer Intelligence Platform**
 
@@ -10,7 +10,7 @@ A full-stack customer intelligence application where users create workspaces, ge
 
 ## What This Is
 
-Nexus Intelligence is not a static dashboard with pre-loaded charts. It is an interactive workspace-based application where:
+Luminosity Intelligence is not a static dashboard with pre-loaded charts. It is an interactive workspace-based application where:
 
 1. A user enters the app and creates a **workspace**
 2. They select a **company scenario** (industry, size, behavioral profile)
@@ -149,8 +149,8 @@ No API keys required. The entire system runs locally in mock mode.
 
 ```bash
 # Clone
-git clone https://github.com/YOUR_USERNAME/nexus-intelligence.git
-cd nexus-intelligence
+git clone https://github.com/YOUR_USERNAME/luminosity-intelligence.git
+cd luminosity-intelligence
 
 # Backend
 cd backend
@@ -201,7 +201,7 @@ LLM providers enhance narrative explanations but are never required for core sco
 | 1 | Agent Buildout | Complete |
 | 2 | Validation & Hardening | Complete |
 | 3 | Integration | Complete |
-| **4** | **Productization** | **Next** |
+| **4** | **Productization** | **In Progress** |
 | 5 | Infrastructure & Polish | Planned |
 | 6 | Deployment & Presentation | Planned |
 
@@ -237,7 +237,7 @@ LLM providers enhance narrative explanations but are never required for core sco
 ## Repository Structure
 
 ```
-nexus-intelligence/
+luminosity-intelligence/
 ├── backend/
 │   ├── app/
 │   │   ├── agents/          # 8 AI agents + BaseAgent ABC

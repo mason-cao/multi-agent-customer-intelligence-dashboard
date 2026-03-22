@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { useWorkspace } from '../api/workspaces';
 import type { Workspace } from '../types/workspace';
 
-const STORAGE_KEY = 'nexus_active_workspace';
+const STORAGE_KEY = 'luminosity_active_workspace';
 
 interface WorkspaceContextType {
   activeWorkspace: Workspace | null;
