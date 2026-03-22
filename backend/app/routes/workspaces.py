@@ -68,6 +68,32 @@ def get_workspace_detail(workspace_id: str):
     return WorkspaceResponse.model_validate(ws)
 
 
+@router.post("/{workspace_id}/generate", status_code=202)
+def trigger_generation(workspace_id: str):
+    """Start workspace data generation and agent pipeline.
+
+    Returns 202 Accepted immediately. The frontend should poll
+    GET /api/workspaces/{id} to track progress via status,
+    current_stage, stage_index, and total_stages fields.
+    """
+    ws = get_workspace(workspace_id)
+    if not ws:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    if ws.status not in ("created", "failed"):
+        raise HTTPException(
+            status_code=409,
+            detail=f"Workspace is '{ws.status}' — generation can only start from 'created' or 'failed' state",
+        )
+
+    from app.services.workspace_generator import start_generation
+
+    started = start_generation(workspace_id)
+    if not started:
+        raise HTTPException(status_code=500, detail="Failed to start generation")
+
+    return {"status": "generating", "workspace_id": workspace_id}
+
+
 @router.delete("/{workspace_id}", status_code=204)
 def remove_workspace(workspace_id: str):
     """Delete a workspace and its database file."""

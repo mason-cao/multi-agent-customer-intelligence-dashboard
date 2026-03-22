@@ -148,10 +148,25 @@ def uid() -> str:
 # ---------------------------------------------------------------------------
 # Customer generation
 # ---------------------------------------------------------------------------
-def generate_customers(rng: np.random.Generator, fake: Faker) -> pd.DataFrame:
-    """Generate 5,000 customers with demographic attributes."""
+def generate_customers(
+    rng: np.random.Generator,
+    fake: Faker,
+    customer_count: int = NUM_CUSTOMERS,
+    churn_rate: float = CHURN_RATE,
+    primary_industry: str = None,
+) -> pd.DataFrame:
+    """Generate customers with demographic attributes."""
+    # Industry distribution — weight toward primary if specified
+    if primary_industry and primary_industry in INDUSTRIES:
+        n = len(INDUSTRIES)
+        base_w = 0.5 / (n - 1)
+        industry_weights = [base_w] * n
+        industry_weights[INDUSTRIES.index(primary_industry)] = 0.5
+    else:
+        industry_weights = None
+
     rows = []
-    for _ in range(NUM_CUSTOMERS):
+    for _ in range(customer_count):
         signup = START_DATE + timedelta(
             days=int(rng.exponential(scale=120))  # heavier early signups
         )
@@ -174,7 +189,7 @@ def generate_customers(rng: np.random.Generator, fake: Faker) -> pd.DataFrame:
             "name": fake.name(),
             "email": fake.email(),
             "company": fake.company(),
-            "industry": rng.choice(INDUSTRIES),
+            "industry": rng.choice(INDUSTRIES, p=industry_weights),
             "company_size": company_size,
             "plan_tier": plan_tier,
             "signup_date": signup.strftime("%Y-%m-%d"),
@@ -188,7 +203,7 @@ def generate_customers(rng: np.random.Generator, fake: Faker) -> pd.DataFrame:
 
     # Assign churn — bias toward lower tiers and later signups
     churn_indices = rng.choice(
-        len(df), size=int(NUM_CUSTOMERS * CHURN_RATE), replace=False
+        len(df), size=int(customer_count * churn_rate), replace=False
     )
     for idx in churn_indices:
         signup = datetime.strptime(df.at[idx, "signup_date"], "%Y-%m-%d")
@@ -529,63 +544,104 @@ def generate_campaigns(rng: np.random.Generator) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# Main
+# Reusable dataset generation
 # ---------------------------------------------------------------------------
-def main(seed: int = 42):
+def generate_dataset(
+    target_engine,
+    customer_count: int = NUM_CUSTOMERS,
+    churn_rate: float = CHURN_RATE,
+    primary_industry: str = None,
+    seed: int = 42,
+    on_stage=None,
+) -> dict:
+    """Generate a complete synthetic dataset into target_engine.
+
+    Args:
+        target_engine: SQLAlchemy engine to write data into.
+        customer_count: Number of customers to generate.
+        churn_rate: Fraction of customers that churn (0.0-1.0).
+        primary_industry: If set, weights industry distribution toward this value.
+        seed: Random seed for reproducibility.
+        on_stage: Optional callback(index, name) called before each stage.
+
+    Returns:
+        Dict mapping table names to row counts.
+    """
     rng = np.random.default_rng(seed)
     fake = Faker()
     Faker.seed(seed)
 
-    print("Generating customers...")
-    customers = generate_customers(rng, fake)
-    print(f"  {len(customers)} customers ({customers['is_churned'].sum()} churned)")
+    def _stage(index, name):
+        if on_stage:
+            on_stage(index, name)
 
-    print("Generating orders...")
-    orders = generate_orders(customers, rng)
-    print(f"  {len(orders)} orders")
+    _stage(1, "Creating customer profiles")
+    customers = generate_customers(rng, fake, customer_count, churn_rate, primary_industry)
 
-    print("Generating subscriptions...")
+    _stage(2, "Generating subscriptions")
     subscriptions = generate_subscriptions(customers, rng)
-    print(f"  {len(subscriptions)} subscriptions")
 
-    print("Generating support tickets...")
-    tickets = generate_tickets(customers, rng)
-    print(f"  {len(tickets)} tickets")
+    _stage(3, "Generating orders & transactions")
+    orders = generate_orders(customers, rng)
 
-    print("Generating feedback...")
-    feedback = generate_feedback(customers, rng)
-    print(f"  {len(feedback)} feedback entries")
-
-    print("Generating behavior events...")
+    _stage(4, "Building behavioral events")
     events = generate_events(customers, rng)
-    print(f"  {len(events)} events")
 
-    print("Generating campaigns...")
+    _stage(5, "Generating support tickets")
+    tickets = generate_tickets(customers, rng)
+
+    _stage(6, "Generating customer feedback")
+    feedback = generate_feedback(customers, rng)
+
+    _stage(7, "Loading marketing campaigns")
     campaigns = generate_campaigns(rng)
-    print(f"  {len(campaigns)} campaigns")
 
-    # Write to SQLite
+    # Create tables in target database
+    import app.models  # noqa: F401 — register models
+    Base.metadata.create_all(target_engine)
+
+    # Write all tables
+    customers.to_sql("customers", target_engine, if_exists="append", index=False)
+    orders.to_sql("orders", target_engine, if_exists="append", index=False)
+    subscriptions.to_sql("subscriptions", target_engine, if_exists="append", index=False)
+    tickets.to_sql("support_tickets", target_engine, if_exists="append", index=False)
+    feedback.to_sql("feedback", target_engine, if_exists="append", index=False)
+    events.to_sql("behavior_events", target_engine, if_exists="append", index=False)
+    campaigns.to_sql("campaigns", target_engine, if_exists="append", index=False)
+
+    return {
+        "customers": len(customers),
+        "orders": len(orders),
+        "subscriptions": len(subscriptions),
+        "support_tickets": len(tickets),
+        "feedback": len(feedback),
+        "behavior_events": len(events),
+        "campaigns": len(campaigns),
+    }
+
+
+# ---------------------------------------------------------------------------
+# CLI entry point
+# ---------------------------------------------------------------------------
+def main(seed: int = 42):
     os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
 
-    import app.models  # noqa: F401 — register models
+    # Drop existing tables for clean regeneration of global DB
+    import app.models  # noqa: F401
     Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
 
-    print(f"\nWriting to {DATABASE_PATH}...")
-    customers.to_sql("customers", engine, if_exists="append", index=False)
-    orders.to_sql("orders", engine, if_exists="append", index=False)
-    subscriptions.to_sql("subscriptions", engine, if_exists="append", index=False)
-    tickets.to_sql("support_tickets", engine, if_exists="append", index=False)
-    feedback.to_sql("feedback", engine, if_exists="append", index=False)
-    events.to_sql("behavior_events", engine, if_exists="append", index=False)
-    campaigns.to_sql("campaigns", engine, if_exists="append", index=False)
+    def on_stage(index, name):
+        print(f"  [{index}/7] {name}...")
+
+    print("Generating synthetic dataset...\n")
+    summary = generate_dataset(
+        target_engine=engine,
+        seed=seed,
+        on_stage=on_stage,
+    )
 
     print("\nDone! Summary:")
-    for table_name in [
-        "customers", "orders", "subscriptions", "support_tickets",
-        "feedback", "behavior_events", "campaigns",
-    ]:
-        count = pd.read_sql(f"SELECT COUNT(*) as n FROM {table_name}", engine).iloc[0]["n"]
+    for table_name, count in summary.items():
         print(f"  {table_name}: {count:,} rows")
 
 
