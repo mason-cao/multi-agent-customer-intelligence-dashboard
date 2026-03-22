@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.db.database import Base, engine
 from app.routes.agents import router as agents_router
+from app.routes.workspaces import router as workspaces_router
 from app.routes.churn import router as churn_router
 from app.routes.customers import router as customers_router
 from app.routes.overview import router as overview_router
@@ -18,6 +19,11 @@ async def lifespan(app: FastAPI):
     # Ensure all ORM-defined tables exist with proper constraints
     import app.models  # noqa: F401 — register all models with Base
     Base.metadata.create_all(bind=engine)
+
+    # Initialize workspace metadata database
+    from app.services.workspace_manager import init_metadata_db
+    init_metadata_db()
+
     yield
 
 
@@ -44,6 +50,7 @@ app.include_router(sentiment_router)
 app.include_router(agents_router)
 app.include_router(customers_router)
 app.include_router(query_router)
+app.include_router(workspaces_router)
 
 
 @app.get("/api/health")
