@@ -14,6 +14,7 @@ from app.models.recommendation import Recommendation
 from app.models.executive_summary import ExecutiveSummary
 from app.models.agent_run import AgentRun
 from app.models.audit_result import AuditResult
+from app.models.query_result import QueryResult
 
 __all__ = [
     "Customer",
@@ -32,4 +33,5 @@ __all__ = [
     "ExecutiveSummary",
     "AgentRun",
     "AuditResult",
+    "QueryResult",
 ]
