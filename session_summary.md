@@ -17,17 +17,21 @@ This is a high school capstone project. All data is synthetic by design — no r
 ## 2. Completed Phases
 
 ### Phase 1 — Agent Buildout (Complete)
+
 All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and structured output validation:
+
 - BehaviorAgent, SegmentationAgent, SentimentAgent, ChurnAgent
 - RecommendationAgent, NarrativeAgent, AuditAgent, QueryAgent
 
 ### Phase 2 — Validation & Hardening (Complete)
+
 - Fixed sentiment thresholds, churn explanation diversity, AuditAgent key lookup
 - Standardized all agents to DELETE+INSERT write pattern
 - Created `scripts/run_pipeline.py` pipeline runner
 - Fixed route-level bugs (feature importance, truthiness, thresholds)
 
 ### Phase 3 — Integration (Complete)
+
 - 8 FastAPI route files with 12+ endpoints
 - 8 React dashboard pages wired to real backend data
 - 15 TypeScript interfaces, 12 TanStack Query hooks
@@ -55,6 +59,7 @@ This phase does NOT include: auth, real data ingestion, third-party connectors, 
 **Begin Phase 4 implementation.** The exact implementation plan has been designed but not yet executed. The user must explicitly direct when to start.
 
 Suggested sequence:
+
 1. Backend workspace model (metadata store, workspace-aware DB resolution)
 2. Generation endpoint (parameterized `generate_data.py` + pipeline runner)
 3. Frontend workspace creation/selection flow
@@ -107,6 +112,7 @@ Suggested sequence:
 ## 8. Documentation State
 
 All project documentation was synchronized on 2026-03-22:
+
 - `README.md` — public-facing project description, updated to workspace-based framing
 - `CLAUDE.md` — internal engineering memo for Claude sessions
 - `docs/progress.md` — operational progress tracker
