@@ -4,7 +4,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.db.database import Base, engine
+from app.routes.agents import router as agents_router
+from app.routes.churn import router as churn_router
+from app.routes.customers import router as customers_router
 from app.routes.overview import router as overview_router
+from app.routes.query import router as query_router
+from app.routes.recommendations import router as recommendations_router
+from app.routes.segments import router as segments_router
+from app.routes.sentiment import router as sentiment_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -30,6 +37,13 @@ app.add_middleware(
 )
 
 app.include_router(overview_router)
+app.include_router(segments_router)
+app.include_router(churn_router)
+app.include_router(recommendations_router)
+app.include_router(sentiment_router)
+app.include_router(agents_router)
+app.include_router(customers_router)
+app.include_router(query_router)
 
 
 @app.get("/api/health")
