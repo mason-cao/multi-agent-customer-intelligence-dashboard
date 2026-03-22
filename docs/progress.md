@@ -1,13 +1,14 @@
-# Nexus Intelligence — Progress Tracker
+# Nexus Intelligence → Luminosity Intelligence — Progress Tracker
 
 ---
 
 ## Current Status
 
 **Branch:** `main`
-**HEAD:** `e2b5dc4` — Integration for all 8 pages
+**HEAD:** `48232ed` — Workspace setup flow + workspace-aware dashboard entry
 **Working tree:** Clean
-**Current phase:** Phase 3 (Integration) complete. Phase 4 (Productization) is next.
+**Current phase:** Phase 4 (Productization) — in progress. Tickets 1–3.1 committed.
+**Pending rename:** Platform will be renamed to **Luminosity Intelligence** in the next session.
 
 ---
 
@@ -18,7 +19,7 @@
 | 1 | Agent Buildout | Complete | 8 agents implemented and committed |
 | 2 | Validation & Hardening | Complete | Full-system hardening pass, pipeline runner |
 | 3 | Integration | Complete | All 8 pages wired to real backend data |
-| **4** | **Productization** | **Next** | Workspace model, onboarding, user-triggered generation |
+| **4** | **Productization** | **In Progress** | Tickets 1–3.1 committed; Tickets 4/5 next |
 | 5 | Infrastructure & Polish | Planned | Orchestrator, ChromaDB, tests |
 | 6 | Deployment & Presentation | Planned | Railway + Vercel, demo prep |
 
@@ -92,16 +93,44 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 
 ---
 
-## What Is Not Built Yet
+## Phase 4 — Productization (In Progress)
 
-### Phase 4 — Productization (Next)
-- Workspace creation flow / onboarding UI
-- Company scenario selection (4 predefined archetypes + custom)
-- User-triggered synthetic data generation from within the app
-- Processing state with real-time pipeline status (SSE or polling)
-- Workspace isolation (separate SQLite file per workspace)
-- Workspace-aware database resolution
-- Landing page / workspace list
+### Ticket 1 — Workspace Metadata Model (Committed: `9a4ef00`)
+- Workspace ORM model with 15 columns on WorkspaceBase
+- Metadata SQLite DB at `data/workspaces.db` (separate from per-workspace data DBs)
+- CRUD API: GET /scenarios, GET /, POST /, GET /{id}, POST /{id}/generate, DELETE /{id}
+- 4 predefined scenario archetypes: velocity_saas, atlas_enterprise, beacon_analytics, meridian_data
+- Pydantic schemas: WorkspaceCreate, WorkspaceResponse, WorkspaceListResponse, ScenarioResponse
+
+### Ticket 2 — Workspace Generation Pipeline (Committed: `a3baee5`)
+- Background thread orchestration in `workspace_generator.py`
+- 14-stage progress tracking (7 data gen + 6 agents + 1 finalize)
+- Parameterized `generate_data.py` with customer_count, churn_rate, primary_industry
+- Per-workspace SQLite isolation at `data/workspaces/{id}.db`
+- POST /{id}/generate returns 202 Accepted, generation runs async
+
+### Ticket 3 — Frontend Workspace Hub & Dashboard Entry (Committed: `48232ed`)
+- WorkspaceHub page (655 lines): list/create views, scenario cards, progress polling
+- WorkspaceContext: React Context + localStorage persistence, optimistic fallback
+- TanStack Query hooks with auto-polling (2s interval during generation)
+- Layout guard: loading spinner during rehydration, redirect if no active ready workspace
+- Header: shows active workspace company_name, industry, customer count
+- Combined create + generate UX chains two API calls in single user action
+- Auto-redirect with 800ms delay when workspace becomes ready
+
+### Ticket 3.1 — Workspace-Scoped DB Routing (Committed: `48232ed`)
+- Axios request interceptor sets `X-Workspace-ID` header from localStorage
+- Backend `get_db` reads header and routes to workspace DB when present
+- All 8 dashboard route files automatically workspace-aware (zero route changes needed)
+- Fallback to global DB when header absent or workspace DB doesn't exist
+
+### Remaining Phase 4 Work
+- Ticket 4 / 5 — to be defined and implemented in next session
+- Platform rename to **Luminosity Intelligence**
+
+---
+
+## What Is Not Built Yet
 
 ### Phase 5 — Infrastructure & Polish
 - DAG-based agent orchestrator for parallel execution
@@ -156,9 +185,11 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 
 ## Next Steps
 
-1. **Begin Phase 4 (Productization)** — workspace model, onboarding flow, scenario selection, user-triggered generation
-2. After Phase 4: orchestrator, ChromaDB, tests (Phase 5)
-3. After Phase 5: deployment, demo prep (Phase 6)
+1. **Rename platform to Luminosity Intelligence** — update all references across frontend, backend, docs
+2. **Create and implement Ticket 4 / 5** for Phase 4 Productization
+3. **Complete Phase 4** — remaining productization work
+4. After Phase 4: orchestrator, ChromaDB, tests (Phase 5)
+5. After Phase 5: deployment, demo prep (Phase 6)
 
 ### Do Not Do Yet
 - Do not add orchestration before Phase 5
@@ -167,3 +198,27 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 - Do not create new agents
 - Do not add stretch UI features
 - Do not add real data ingestion
+
+---
+
+## Session Log
+
+### Session — 2026-03-22 (Phase 4 Productization)
+
+**Work completed:**
+- Implemented and committed Tickets 1, 2, 3, and 3.1 for Phase 4 Productization
+- Ticket 1: Workspace metadata model, CRUD API, 4 scenario archetypes
+- Ticket 2: Background generation pipeline, 14-stage progress, per-workspace SQLite isolation
+- Ticket 3: Full workspace hub UI, context/state management, layout guard, auto-polling
+- Ticket 3.1: Workspace-scoped DB routing via X-Workspace-ID header (2-file fix)
+- Strict audit of each ticket before proceeding to the next
+
+**Key decisions:**
+- Dashboard-entry limitation identified during Ticket 3 audit: dashboard routes were reading from global DB instead of workspace DB. Resolved with Ticket 3.1 header-based routing.
+- Product framing firmly established: workspace-based synthetic-data application, NOT a static dashboard
+- Platform rename to **Luminosity Intelligence** decided for next session
+
+**Next session priorities:**
+1. Rename platform to Luminosity Intelligence
+2. Create Ticket 4 / 5 for Phase 4
+3. Continue Phase 4 implementation
