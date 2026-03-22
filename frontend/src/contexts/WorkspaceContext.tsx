@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useWorkspace } from '../api/workspaces';
 import type { Workspace } from '../types/workspace';
 
@@ -24,6 +25,7 @@ export function useActiveWorkspace() {
 }
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [storedId, setStoredId] = useState<string | null>(() => {
     return localStorage.getItem(STORAGE_KEY);
   });
@@ -51,16 +53,18 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }, [isError, storedId]);
 
   const setActiveWorkspace = useCallback((ws: Workspace) => {
+    queryClient.removeQueries();
     setStoredId(ws.id);
     setLocalWorkspace(ws);
     localStorage.setItem(STORAGE_KEY, ws.id);
-  }, []);
+  }, [queryClient]);
 
   const clearWorkspace = useCallback(() => {
+    queryClient.removeQueries();
     setStoredId(null);
     setLocalWorkspace(null);
     localStorage.removeItem(STORAGE_KEY);
-  }, []);
+  }, [queryClient]);
 
   return (
     <WorkspaceContext.Provider

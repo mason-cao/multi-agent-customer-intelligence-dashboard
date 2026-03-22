@@ -1,6 +1,6 @@
 import os
 
-from fastapi import Request
+from fastapi import HTTPException, Request
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
@@ -20,19 +20,26 @@ class Base(DeclarativeBase):
 
 
 def get_db(request: Request):
-    """Yield a DB session, routing to the workspace DB when the header is set."""
-    db = None
+    """Yield a DB session, routing to the workspace DB when the header is set.
+
+    When X-Workspace-ID is present, the session is bound to the per-workspace
+    SQLite file.  If that file does not exist, a 404 is raised immediately —
+    dashboard routes must never silently fall back to the global database.
+    """
     workspace_id = request.headers.get("x-workspace-id")
     if workspace_id:
         from app.db.workspace_db import get_workspace_db_path, get_workspace_engine
 
         db_path = get_workspace_db_path(workspace_id)
-        if db_path.exists():
-            ws_engine = get_workspace_engine(workspace_id)
-            WsSession = sessionmaker(bind=ws_engine)
-            db = WsSession()
-
-    if db is None:
+        if not db_path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"Workspace database not found: {workspace_id}",
+            )
+        ws_engine = get_workspace_engine(workspace_id)
+        WsSession = sessionmaker(bind=ws_engine)
+        db = WsSession()
+    else:
         db = SessionLocal()
 
     try:
