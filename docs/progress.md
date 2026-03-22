@@ -1,85 +1,169 @@
-# Nexus Intelligence — Progress Log
+# Nexus Intelligence — Progress Tracker
 
 ---
 
-## Session 4 Handoff (2026-03-21)
+## Current Status
 
-**Branch:** `phase-4-audit-reset`
-**Last commit:** `75c7842` — Add SentimentAgent with deterministic scoring, fix ticket 2 & 3
-
-### Completed Tickets
-
-| Ticket | What | Status |
-|--------|------|--------|
-| 0 | Repo scaffold, models, schemas, data gen, validation | Committed |
-| 1 | BaseAgent ABC, LLMClient (mock/anthropic/openai), agent_runs | Committed |
-| 2 | BehaviorAgent + feature_engine → customer_features (5K rows) | Committed + hardened |
-| 3 | SegmentationAgent KMeans → customer_segments (5K rows, 5 segments) | Committed + hardened |
-| 3.5 | Hardening: order_count fix, silhouette score, fallback validation | Committed (in 75c7842) |
-| 4 | SentimentAgent → sentiment_results (18.7K rows) + customer_features updates | Committed (in 75c7842) |
-| 4.1 | Lint cleanup (unused import in behavior_agent) | Committed (in 75c7842) |
-
-### Backend Status
-All 3 Phase 1 agents import and run. FastAPI app starts. No orchestrator yet. No routes wired to agent data yet.
-
-### Frontend Status
-Shell only — React+Vite+Tremor+Tailwind with 8 stub pages, sidebar, header, layout. No real data connected. Proxy configured to backend :8000.
-
-### Data/Agent Status
-- `data/nexus.db` (176MB, gitignored): 7 source tables populated, 3 derived tables populated
-  - customer_features: 5K rows
-  - customer_segments: 5K rows
-  - sentiment_results: 18.7K rows
-  - customer_features.avg_sentiment set on 4,870 customers, nps_score on 1,322
-- Pipeline re-run order: Behavior → Segmentation → Sentiment (BehaviorAgent DELETE wipes avg_sentiment/nps_score)
-- Silhouette score: 0.1662
-- Segment split: Champions 20%, Loyal 9.5%, At Risk 25.6%, New 29.7%, Hibernating 15.1%
-- Sentiment label split: negative 34.8%, neutral 42.4%, positive 22.7%, avg score -0.047
-
-### Open Issues
-None.
-
-### Next Ticket
-Ticket 5 — ChurnAgent (GradientBoosting + SHAP + Claude explanations in mock mode). First hybrid ML+LLM agent. Depends on all 3 Phase 1 agent outputs.
-
-### Architectural Constraints
-All agents inherit BaseAgent ABC (run/validate_output/execute). Mock-first: every agent must work with zero API keys. No LangChain — custom orchestration is intentional. Sequential execution only until Ticket 6 orchestrator. No frontend data wiring until Ticket 10. LLMClient auto-selects mock→anthropic→openai based on available keys. Agents write to dedicated output tables via DELETE+INSERT pattern. Tier 2 scope is locked: 8 agents, 8 dashboard pages, ChromaDB, NL query, agent audit. No stretch features.
-
----
-
-## End-of-Agent-Buildout Handoff (2026-03-21)
-
-**Branch:** `agent-validation-and-integration` (tracks `origin/phase-4-audit-reset`)
-**HEAD:** `e069c99` — Implement QueryAgent and safe natural-language insight layer
+**Branch:** `main`
+**HEAD:** `e2b5dc4` — Integration for all 8 pages
 **Working tree:** Clean
+**Current phase:** Phase 3 (Integration) complete. Phase 4 (Productization) is next.
 
-### All 8 Agents Implemented
+---
 
-| Ticket | Agent | Output Table | Rows | Status |
-|--------|-------|-------------|------|--------|
-| 2 | BehaviorAgent | customer_features | 5,000 | Audited |
-| 3 | SegmentationAgent | customer_segments | 5,000 | Audited |
-| 4 | SentimentAgent | sentiment_results | 18,731 | Audited |
-| 5 | ChurnAgent | churn_predictions | 5,000 | Audited |
-| 6 | RecommendationAgent | recommendations | 5,000 | Audited |
-| 7 | NarrativeAgent | executive_summaries | 7 | Audited |
-| 8 | AuditAgent | audit_results | 44 | Audited (8.1 patch applied) |
-| 9 | QueryAgent | query_results | 11 | **Implemented, audit pending** |
+## Phase Summary
 
-Supporting tables: agent_runs (22 rows), plus 7 source tables (customers, orders, subscriptions, support_tickets, feedback, behavior_events, campaigns).
+| Phase | Name | Status | Key Deliverable |
+|-------|------|--------|----------------|
+| 1 | Agent Buildout | Complete | 8 agents implemented and committed |
+| 2 | Validation & Hardening | Complete | Full-system hardening pass, pipeline runner |
+| 3 | Integration | Complete | All 8 pages wired to real backend data |
+| **4** | **Productization** | **Next** | Workspace model, onboarding, user-triggered generation |
+| 5 | Infrastructure & Polish | Planned | Orchestrator, ChromaDB, tests |
+| 6 | Deployment & Presentation | Planned | Railway + Vercel, demo prep |
 
-### Database State
-- 16 tables, all populated
-- Total source rows: ~812K (752K behavior_events dominate)
-- Total derived rows: ~52K across 9 agent output tables
-- AuditAgent: 44/44 checks passed, 0 failures
-- QueryAgent: 10/11 queries successful, 1 intentional unsupported
+---
 
-### Frontend State
-React 19 + Vite 8 + Tailwind 4. Overview page has KPI cards with real health check. 7 stub pages with polished Lucide-icon empty states. Emerald accent color system applied.
+## Phase 1 — Agent Buildout (Complete)
 
-### Next Steps (in strict order)
-1. **Audit Ticket 9** — formal 8-step audit protocol for QueryAgent
-2. **Full-system pipeline check** — run all 8 agents sequentially, verify end-to-end consistency
-3. **Integration** — wire routes → API → frontend for all 8 dashboard pages
-4. **Final phase** — orchestrator, ChromaDB, tests, deployment, presentation prep
+All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and structured output validation.
+
+| Agent | Output Table | Rows | Key Details |
+|-------|-------------|------|-------------|
+| BehaviorAgent | `customer_features` | 5,000 | 17 behavioral features + engagement score |
+| SegmentationAgent | `customer_segments` | 5,000 | 5 segments: Champions, Loyal, Growth Potential, At Risk, Dormant |
+| SentimentAgent | `sentiment_results` | 18,731 | Deterministic keyword-based scoring |
+| ChurnAgent | `churn_predictions` | 5,000 | GradientBoosting + SHAP + per-customer explanations |
+| RecommendationAgent | `recommendations` | 5,000 | 12-rule priority cascade, 10 action types |
+| NarrativeAgent | `executive_summaries` | 7 | 7 executive summary sections |
+| AuditAgent | `audit_results` | 44 | 44 checks across 5 categories, 0 failures |
+| QueryAgent | `query_results` | on demand | 10 intents, whitelisted SQL handlers |
+
+---
+
+## Phase 2 — Validation & Hardening (Complete)
+
+- Fixed overview.py sentiment threshold bug (scale is [-1,1], thresholds were wrong)
+- Improved churn explanation diversity with `_fmt_factor` helper
+- Added `scoring_version` to churn prediction output
+- Fixed AuditAgent groundedness key lookup
+- Standardized all 8 agents to DELETE+INSERT write pattern (replaced `to_sql("replace")`)
+- Added `Base.metadata.create_all` lifespan to `main.py`
+- Created `scripts/run_pipeline.py` with `--clean` flag for full pipeline runs
+- Fixed churn route feature importance computation (from `top_risk_factors` JSON, not null `output_data`)
+- Fixed Python truthiness bug in customer route (0.0 values returning None)
+
+---
+
+## Phase 3 — Integration (Complete)
+
+### Backend — 8 Route Files, 12+ Endpoints
+
+| Route File | Endpoints |
+|-----------|-----------|
+| `overview.py` | `GET /api/overview/kpis`, `GET /api/overview/narrative` |
+| `segments.py` | `GET /api/segments/summary` |
+| `churn.py` | `GET /api/churn/distribution`, `GET /api/churn/at-risk`, `GET /api/churn/feature-importance` |
+| `recommendations.py` | `GET /api/recommendations/summary`, `GET /api/recommendations/top` |
+| `sentiment.py` | `GET /api/sentiment/summary` |
+| `agents.py` | `GET /api/agents/summary` |
+| `customers.py` | `GET /api/customers` |
+| `query.py` | `POST /api/query` |
+
+### Frontend — All 8 Pages Wired
+
+| Page | Data Source | Key UI |
+|------|-----------|--------|
+| Overview | KPI endpoint + narrative | KPI cards, AI-generated summary |
+| Customer 360 | Paginated customer list (5-table join) | 9-column table, pagination |
+| Segments | Segment summary (3-table join) | Distribution bar, segment cards |
+| Churn & Retention | Distribution + at-risk + feature importance | Risk tier cards, customer table, importance bars |
+| Recommendations | Summary + top priority | Action distribution bars, priority table |
+| Sentiment & Support | Sentiment summary | Stacked bar, topic table |
+| Agent Audit | Combined audit + runs + checks | Pass rate cards, run history, check table |
+| Ask Anything | Live QueryAgent invocation | Input + example chips + result history |
+
+### Frontend Infrastructure
+
+- 15 TypeScript interfaces in `types/index.ts`
+- 12 TanStack Query hooks in `api/hooks.ts`
+- Shared utilities: `colors.ts` (segment, risk, sentiment color maps), `formatters.ts`
+- All pages have skeleton loading states and error handling
+
+---
+
+## What Is Not Built Yet
+
+### Phase 4 — Productization (Next)
+- Workspace creation flow / onboarding UI
+- Company scenario selection (4 predefined archetypes + custom)
+- User-triggered synthetic data generation from within the app
+- Processing state with real-time pipeline status (SSE or polling)
+- Workspace isolation (separate SQLite file per workspace)
+- Workspace-aware database resolution
+- Landing page / workspace list
+
+### Phase 5 — Infrastructure & Polish
+- DAG-based agent orchestrator for parallel execution
+- ChromaDB vector store for NL query semantic search
+- Automated tests (pytest backend, Vitest frontend)
+- Code cleanup and documentation
+
+### Phase 6 — Deployment & Presentation
+- Railway backend deployment
+- Vercel frontend deployment
+- Demo mode / presentation preparation
+- Offline cached agent outputs for demo reliability
+
+### Not In Scope
+- Auth / user accounts
+- Real company data ingestion
+- Third-party data connectors (CRM, warehouse)
+- Stretch UI features (D3 graphs, cohort heatmaps, PDF export, dark mode)
+
+---
+
+## Database State
+
+16 tables total in `data/nexus.db` (gitignored, ~175MB):
+
+**Source tables (7):** customers (5K), orders (36.6K), subscriptions (5K), support_tickets (11K), feedback (7.7K), behavior_events (752K), campaigns (25)
+
+**Derived tables (9):** customer_features (5K), customer_segments (5K), churn_predictions (5K), sentiment_results (18.7K), recommendations (5K), executive_summaries (7), audit_results (44), query_results (variable), agent_runs (variable)
+
+17 ORM models across all tables.
+
+---
+
+## Known Issues
+
+1. `customer_features.avg_sentiment` is NULL for all rows — BehaviorAgent DELETE wipes SentimentAgent updates. Agents compute avg_sentiment from `sentiment_results` directly.
+2. NL query layer uses strict intent classification + whitelisted SQL. No user text composes SQL.
+3. Demo must work offline from cached agent outputs.
+
+---
+
+## Architectural Constraints
+
+- All agents inherit BaseAgent ABC (`run`, `validate_output`, `execute`, `save_run`)
+- Mock-first: every agent works with zero API keys
+- No LangChain — custom orchestration is intentional
+- DELETE+INSERT write pattern for all agent database writes
+- Pipeline runs in strict dependency order (Behavior → Segmentation → Sentiment → Churn → Recommendation → Narrative → Audit → Query)
+- Phase plan must be followed in order — do not skip phases
+
+---
+
+## Next Steps
+
+1. **Begin Phase 4 (Productization)** — workspace model, onboarding flow, scenario selection, user-triggered generation
+2. After Phase 4: orchestrator, ChromaDB, tests (Phase 5)
+3. After Phase 5: deployment, demo prep (Phase 6)
+
+### Do Not Do Yet
+- Do not add orchestration before Phase 5
+- Do not add ChromaDB before Phase 5
+- Do not add deployment before Phase 6
+- Do not create new agents
+- Do not add stretch UI features
+- Do not add real data ingestion
