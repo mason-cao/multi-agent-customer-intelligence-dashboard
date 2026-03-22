@@ -446,10 +446,10 @@ def _handle_high_risk_negative(engine) -> Dict[str, Any]:
         engine,
     )
     rows = df.to_dict("records")
-    # Also get action distribution for this group
+    # Also get action distribution for this group (one row per customer)
     dist = pd.read_sql(
         text(
-            "SELECT r.action_label, COUNT(*) as cnt "
+            "SELECT r.customer_id, r.action_label "
             "FROM recommendations r "
             "JOIN churn_predictions cp ON r.customer_id = cp.customer_id "
             "LEFT JOIN sentiment_results sr ON r.customer_id = sr.customer_id "
@@ -459,9 +459,9 @@ def _handle_high_risk_negative(engine) -> Dict[str, Any]:
         ),
         engine,
     )
-    # Aggregate action counts from the per-customer rows
-    action_counts = dist.groupby("action_label")["cnt"].sum().sort_values(ascending=False)
-    total_affected = int(action_counts.sum())
+    # Count customers per action
+    action_counts = dist.groupby("action_label").size().sort_values(ascending=False)
+    total_affected = len(dist)
 
     answer = f"{total_affected} high-risk customers with negative sentiment:\n"
     answer += "Action breakdown:\n"
