@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routes.overview import router as overview_router
+
 app = FastAPI(
     title="Nexus Intelligence API",
     description="Multi-Agent Customer Intelligence Dashboard",
@@ -14,6 +16,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(overview_router)
 
 
 @app.get("/api/health")
