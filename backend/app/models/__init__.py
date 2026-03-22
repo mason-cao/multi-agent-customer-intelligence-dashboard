@@ -11,6 +11,7 @@ from app.models.churn_prediction import ChurnPrediction
 from app.models.sentiment_result import SentimentResult
 from app.models.anomaly import Anomaly
 from app.models.recommendation import Recommendation
+from app.models.executive_summary import ExecutiveSummary
 from app.models.agent_run import AgentRun
 
 __all__ = [
@@ -27,5 +28,6 @@ __all__ = [
     "SentimentResult",
     "Anomaly",
     "Recommendation",
+    "ExecutiveSummary",
     "AgentRun",
 ]
