@@ -2,7 +2,7 @@
 
 **Workspace-Based Customer Intelligence Platform**
 
-A full-stack customer intelligence application where users create workspaces, generate realistic synthetic company data, and explore AI-driven insights through an executive dashboard. Eight coordinated AI agents transform raw customer data into behavioral profiles, segments, sentiment analysis, churn predictions, recommendations, and natural language answers — all with full explainability and audit trails.
+A full-stack customer intelligence application where users create workspaces, generate realistic synthetic company data, and explore AI-driven insights through an executive dashboard. Eight coordinated AI agents transform raw customer data into behavioral profiles, segments, sentiment analysis, churn predictions, recommendations, and natural language answers -all with full explainability and audit trails.
 
 > Built as a flagship high school capstone project demonstrating systems architecture, AI/ML engineering, full-stack development, and product thinking.
 
@@ -14,9 +14,9 @@ Luminosity Intelligence is not a static dashboard with pre-loaded charts. It is 
 
 1. A user enters the app and creates a **workspace**
 2. They select a **company scenario** (industry, size, behavioral profile)
-3. The system **generates realistic synthetic data** — customers, transactions, support tickets, behavioral events
+3. The system **generates realistic synthetic data** -customers, transactions, support tickets, behavioral events
 4. Eight AI agents **process that data** through a dependency-ordered pipeline
-5. The dashboard displays **real computed insights** — every metric, prediction, and recommendation traces back to the generated data
+5. The dashboard displays **real computed insights** -every metric, prediction, and recommendation traces back to the generated data
 
 The data is synthetic by design. This is a demonstration platform, not a production analytics tool. But the intelligence layer is real: the ML models train on the generated data, SHAP computes actual feature attributions, and every insight is explainable.
 
@@ -24,21 +24,21 @@ The data is synthetic by design. This is a demonstration platform, not a product
 
 **Current (capstone):** Users generate synthetic company data inside the app and explore AI-driven insights. No real company integrations, no third-party data connectors, no live ingestion. The synthetic data generator is the data source.
 
-**Future (production path):** The synthetic data generator could be replaced with real data ingestion — CSV uploads, CRM connectors, warehouse integrations. The agent pipeline, dashboard, and explainability layer would work identically. But that is not the current scope.
+**Future (production path):** The synthetic data generator could be replaced with real data ingestion -CSV uploads, CRM connectors, warehouse integrations. The agent pipeline, dashboard, and explainability layer would work identically. But that is not the current scope.
 
 ---
 
 ## What Makes This Different
 
-**It's not a notebook.** The ML models don't live in a Jupyter notebook — they're embedded in a coordinated agent system with structured output, validation, and audit logging.
+**It's not a notebook.** The ML models don't live in a Jupyter notebook -they're embedded in a coordinated agent system with structured output, validation, and audit logging.
 
 **It's not a static dashboard.** The user triggers data generation and agent processing. Every chart, metric, and table renders from computed agent outputs, not hardcoded values.
 
-**Explainability is built in.** The ChurnAgent doesn't just output a probability — it uses SHAP to identify the top factors driving each customer's risk. The SegmentationAgent writes a plain-English reason for every classification. The AuditAgent validates all agents against 44 cross-system checks.
+**Explainability is built in.** The ChurnAgent doesn't just output a probability -it uses SHAP to identify the top factors driving each customer's risk. The SegmentationAgent writes a plain-English reason for every classification. The AuditAgent validates all agents against 44 cross-system checks.
 
 **Mock-first architecture.** The entire system works with zero API keys. LLM providers (Anthropic, OpenAI) enhance explanations when available but are never required. This means the full pipeline runs offline, costs $0, and produces reproducible results.
 
-**No LangChain.** All agent orchestration is custom-built — more explainable, easier to debug, and demonstrates deeper architectural understanding.
+**No LangChain.** All agent orchestration is custom-built -more explainable, easier to debug, and demonstrates deeper architectural understanding.
 
 ---
 
@@ -93,7 +93,7 @@ All pages render real computed data from backend API endpoints. No hardcoded stu
                                        │ /api proxy
                         ┌──────────────┴──────────────────────┐
                         │          FastAPI Backend             │
-                        │  8 Route Files ── 12+ Endpoints     │
+                        │  9 Route Files ── 19 Endpoints       │
                         │  Pydantic Schemas ── Services        │
                         └──────────────┬──────────────────────┘
                                        │
@@ -201,19 +201,22 @@ LLM providers enhance narrative explanations but are never required for core sco
 | 1 | Agent Buildout | Complete |
 | 2 | Validation & Hardening | Complete |
 | 3 | Integration | Complete |
-| **4** | **Productization** | **In Progress** |
-| 5 | Infrastructure & Polish | Planned |
+| 4 | Productization | Complete |
+| **5** | **Infrastructure & Polish** | **In Progress** |
 | 6 | Deployment & Presentation | Planned |
 
-**Phase 4 (Productization)** transforms the system from a developer-run pipeline into a user-facing application. This includes:
+**Phase 4 (Productization)** transformed the system from a developer-run pipeline into a user-facing application:
 
-- Setup/onboarding flow where users create workspaces
-- Company scenario selection (industry, size, behavioral profile)
-- User-triggered synthetic data generation inside the product
-- Processing state with real-time pipeline status
-- Workspace-aware dashboard entry
+- Workspace creation with 4 predefined scenarios + custom configuration
+- User-triggered synthetic data generation with 14-stage progress tracking
+- Per-workspace SQLite isolation and DB routing via request headers
+- Workspace lifecycle management (create, generate, regenerate, delete)
+- Dashboard scoped to active workspace
 
-**Phase 5** covers orchestration, ChromaDB vector search, automated testing, and code polish.
+**Phase 5 (Infrastructure & Polish)** is the current phase, focused on reliability and maintainability:
+
+- Ticket 1: Frontend resilience layer (error boundaries, loading states)
+- Ticket 2: Backend error handling standardization (decorator pattern, structlog)
 
 **Phase 6** covers deployment (Railway + Vercel) and presentation preparation.
 
@@ -226,7 +229,7 @@ LLM providers enhance narrative explanations but are never required for core sco
 | **No LangChain** | Custom orchestration is more explainable and demonstrates deeper architectural understanding |
 | **Rule-based segmentation** | Business-friendly labels with deterministic, explainable assignments |
 | **Cross-validated churn** | Each customer's score comes from a model that never saw them during training |
-| **SHAP over global importance** | Per-customer attribution — "why is *this* customer at risk" |
+| **SHAP over global importance** | Per-customer attribution -"why is *this* customer at risk" |
 | **Rank-based risk tiers** | Population-relative percentile ranking guarantees meaningful tier distribution |
 | **SQLite** | Zero-config, portable, appropriate for single-user capstone. Upgradeable to PostgreSQL |
 | **Mock-first LLM** | Develop and demo without API keys. Live providers enhance but never gate functionality |
@@ -241,18 +244,20 @@ luminosity-intelligence/
 ├── backend/
 │   ├── app/
 │   │   ├── agents/          # 8 AI agents + BaseAgent ABC
-│   │   ├── db/              # Database connection
-│   │   ├── models/          # 17 SQLAlchemy ORM models
-│   │   ├── routes/          # 8 FastAPI route files (12+ endpoints)
-│   │   ├── schemas/         # Pydantic response schemas
-│   │   ├── services/        # LLM client, feature engine
+│   │   ├── db/              # Database connection + workspace DB routing
+│   │   ├── models/          # 17 SQLAlchemy ORM models + workspace model
+│   │   ├── routes/          # 9 FastAPI route files (19 endpoints)
+│   │   ├── schemas/         # Pydantic response schemas + workspace schemas
+│   │   ├── services/        # LLM client, feature engine, workspace manager
+│   │   ├── utils/           # Error handling decorator, structured logging
 │   │   └── main.py          # FastAPI entry point
 │   └── pyproject.toml
 ├── frontend/
 │   ├── src/
 │   │   ├── api/             # Axios client + 12 TanStack Query hooks
 │   │   ├── components/      # Layout + shared UI
-│   │   ├── pages/           # 8 dashboard pages
+│   │   ├── contexts/        # WorkspaceContext (state + localStorage)
+│   │   ├── pages/           # 8 dashboard pages + WorkspaceHub
 │   │   ├── types/           # 15 TypeScript interfaces
 │   │   └── utils/           # Color maps, formatters
 │   └── package.json
@@ -273,7 +278,7 @@ This project was built as a capstone / portfolio project. See the repository for
 
 ## Author
 
-**Mason** — Full-stack development, AI/ML engineering, system architecture, and product design.
+**Mason** -Full-stack development, AI/ML engineering, system architecture, and product design.
 
 Built incrementally using ticket-driven development. Every agent was implemented, validated, hardened, and audited before moving to the next phase.
 

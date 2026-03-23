@@ -1,13 +1,13 @@
-# Luminosity Intelligence — Progress Tracker
+# Luminosity Intelligence -Progress Tracker
 
 ---
 
 ## Current Status
 
 **Branch:** `main`
-**HEAD:** `c67aa86` — Workspace lifecycle completion + custom scenario mode
+**HEAD:** `e75188c` -Standardize backend error handling
 **Working tree:** Clean
-**Current phase:** Phase 4 (Productization) — near completion. Tickets 1–4 committed.
+**Current phase:** Phase 5 (Infrastructure & Polish) -Tickets 1–2 committed.
 ---
 
 ## Phase Summary
@@ -17,13 +17,13 @@
 | 1 | Agent Buildout | Complete | 8 agents implemented and committed |
 | 2 | Validation & Hardening | Complete | Full-system hardening pass, pipeline runner |
 | 3 | Integration | Complete | All 8 pages wired to real backend data |
-| **4** | **Productization** | **Near Complete** | Tickets 1–4 committed; deletion + random scenario remaining |
-| 5 | Infrastructure & Polish | Planned | Orchestrator, ChromaDB, tests |
+| 4 | Productization | Complete | Workspace model, generation pipeline, hub UI, DB routing, lifecycle, custom scenarios |
+| **5** | **Infrastructure & Polish** | **In Progress** | Tickets 1–2 committed (frontend resilience, backend error handling) |
 | 6 | Deployment & Presentation | Planned | Railway + Vercel, demo prep |
 
 ---
 
-## Phase 1 — Agent Buildout (Complete)
+## Phase 1 -Agent Buildout (Complete)
 
 All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and structured output validation.
 
@@ -40,7 +40,7 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 
 ---
 
-## Phase 2 — Validation & Hardening (Complete)
+## Phase 2 -Validation & Hardening (Complete)
 
 - Fixed overview.py sentiment threshold bug (scale is [-1,1], thresholds were wrong)
 - Improved churn explanation diversity with `_fmt_factor` helper
@@ -54,9 +54,9 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 
 ---
 
-## Phase 3 — Integration (Complete)
+## Phase 3 -Integration (Complete)
 
-### Backend — 8 Route Files, 12+ Endpoints
+### Backend -8 Route Files, 12+ Endpoints
 
 | Route File | Endpoints |
 |-----------|-----------|
@@ -69,7 +69,7 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 | `customers.py` | `GET /api/customers` |
 | `query.py` | `POST /api/query` |
 
-### Frontend — All 8 Pages Wired
+### Frontend -All 8 Pages Wired
 
 | Page | Data Source | Key UI |
 |------|-----------|--------|
@@ -91,23 +91,23 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 
 ---
 
-## Phase 4 — Productization (In Progress)
+## Phase 4 -Productization (In Progress)
 
-### Ticket 1 — Workspace Metadata Model (Committed: `9a4ef00`)
+### Ticket 1 -Workspace Metadata Model (Committed: `9a4ef00`)
 - Workspace ORM model with 15 columns on WorkspaceBase
 - Metadata SQLite DB at `data/workspaces.db` (separate from per-workspace data DBs)
 - CRUD API: GET /scenarios, GET /, POST /, GET /{id}, POST /{id}/generate, DELETE /{id}
 - 4 predefined scenario archetypes: velocity_saas, atlas_enterprise, beacon_analytics, meridian_data
 - Pydantic schemas: WorkspaceCreate, WorkspaceResponse, WorkspaceListResponse, ScenarioResponse
 
-### Ticket 2 — Workspace Generation Pipeline (Committed: `a3baee5`)
+### Ticket 2 -Workspace Generation Pipeline (Committed: `a3baee5`)
 - Background thread orchestration in `workspace_generator.py`
 - 14-stage progress tracking (7 data gen + 6 agents + 1 finalize)
 - Parameterized `generate_data.py` with customer_count, churn_rate, primary_industry
 - Per-workspace SQLite isolation at `data/workspaces/{id}.db`
 - POST /{id}/generate returns 202 Accepted, generation runs async
 
-### Ticket 3 — Frontend Workspace Hub & Dashboard Entry (Committed: `48232ed`)
+### Ticket 3 -Frontend Workspace Hub & Dashboard Entry (Committed: `48232ed`)
 - WorkspaceHub page (655 lines): list/create views, scenario cards, progress polling
 - WorkspaceContext: React Context + localStorage persistence, optimistic fallback
 - TanStack Query hooks with auto-polling (2s interval during generation)
@@ -116,13 +116,13 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 - Combined create + generate UX chains two API calls in single user action
 - Auto-redirect with 800ms delay when workspace becomes ready
 
-### Ticket 3.1 — Workspace-Scoped DB Routing (Committed: `48232ed`)
+### Ticket 3.1 -Workspace-Scoped DB Routing (Committed: `48232ed`)
 - Axios request interceptor sets `X-Workspace-ID` header from localStorage
 - Backend `get_db` reads header and routes to workspace DB when present
 - All 8 dashboard route files automatically workspace-aware (zero route changes needed)
 - Fallback to global DB when header absent or workspace DB doesn't exist
 
-### Ticket 4 — Workspace Lifecycle Completion + Custom Scenario Mode (`c67aa86`)
+### Ticket 4 -Workspace Lifecycle Completion + Custom Scenario Mode (`c67aa86`)
 - Regeneration flow: ready workspaces can re-run full pipeline with stale DB cleanup
 - Retry corruption fix: workspace `.db` deleted before re-generation
 - Delete UI with confirmation dialog and `useDeleteWorkspace` hook
@@ -133,21 +133,41 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 - `churn_rate`, `include_outage`, `scenario_description` added to workspace schema
 - Workspace `.db` files excluded from git tracking via `.gitignore`
 
-### Remaining Phase 4 Work
-- Add workspace deletion UI (frontend delete flow)
-- Add random company scenario option
-- Then start Phase 5
+### Phase 4 Completion (Sessions 3–4)
+- Workspace deletion cleanup: active workspace reset on delete, trash icon UI (`9b4373b`)
+- Random company scenario option with one-click randomized creation (`d1f3b3d`)
+- Workspace-scoped cache isolation for dashboard data integrity (`4f1ed9d`)
+- Phase 4 fully complete -all productization work committed
+
+---
+
+## Phase 5 -Infrastructure & Polish (In Progress)
+
+### Ticket 1 -Frontend Resilience Layer (`1349465`)
+- Error boundaries, loading states, API error handling improvements
+
+### Ticket 2 -Backend Error Handling Standardization (`e75188c`)
+- Created `handle_errors` decorator in `backend/app/utils/error_handling.py`
+- Applied to all 19 route endpoints across 9 route files
+- HTTPExceptions (4xx) pass through unchanged; unexpected exceptions logged via structlog → 500
+- Wired `setup_logging()` in app lifespan, added global exception handler in `main.py`
+- Fixed bare except in overview.py to log with structlog
+- Ticket 2.1: Fixed import ordering in overview.py
+- 12-section disciplined audit confirmed clean implementation
+
+### Remaining Phase 5 Work
+- Ticket 3+ not yet defined -continue roadmap
 ---
 
 ## What Is Not Built Yet
 
-### Phase 5 — Infrastructure & Polish
+### Phase 5 -Infrastructure & Polish
 - DAG-based agent orchestrator for parallel execution
 - ChromaDB vector store for NL query semantic search
 - Automated tests (pytest backend, Vitest frontend)
 - Code cleanup and documentation
 
-### Phase 6 — Deployment & Presentation
+### Phase 6 -Deployment & Presentation
 - Railway backend deployment
 - Vercel frontend deployment
 - Demo mode / presentation preparation
@@ -175,7 +195,7 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 
 ## Known Issues
 
-1. `customer_features.avg_sentiment` is NULL for all rows — BehaviorAgent DELETE wipes SentimentAgent updates. Agents compute avg_sentiment from `sentiment_results` directly.
+1. `customer_features.avg_sentiment` is NULL for all rows -BehaviorAgent DELETE wipes SentimentAgent updates. Agents compute avg_sentiment from `sentiment_results` directly.
 2. NL query layer uses strict intent classification + whitelisted SQL. No user text composes SQL.
 3. Demo must work offline from cached agent outputs.
 
@@ -185,32 +205,29 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 
 - All agents inherit BaseAgent ABC (`run`, `validate_output`, `execute`, `save_run`)
 - Mock-first: every agent works with zero API keys
-- No LangChain — custom orchestration is intentional
+- No LangChain -custom orchestration is intentional
 - DELETE+INSERT write pattern for all agent database writes
 - Pipeline runs in strict dependency order (Behavior → Segmentation → Sentiment → Churn → Recommendation → Narrative → Audit → Query)
-- Phase plan must be followed in order — do not skip phases
+- Phase plan must be followed in order -do not skip phases
 
 ---
 
 ## Next Steps
 
-1. **Add workspace deletion** — frontend delete flow for workspace management
-2. **Add random company scenario option** — one-click randomized workspace creation
-3. **Start Phase 5** — Infrastructure & Polish (orchestrator, ChromaDB, tests)
+Continue Phase 5 -Infrastructure & Polish. Follow the roadmap.
 
 ### Do Not Do Yet
-- Do not add orchestration before Phase 5
-- Do not add ChromaDB before Phase 5
 - Do not add deployment before Phase 6
 - Do not create new agents
 - Do not add stretch UI features
 - Do not add real data ingestion
+- Do not skip phases
 
 ---
 
 ## Session Log
 
-### Session 1 — 2026-03-22 (Phase 4 Productization: Tickets 1–3.1)
+### Session 1 -2026-03-22 (Phase 4 Productization: Tickets 1–3.1)
 
 **Work completed:**
 - Implemented and committed Tickets 1, 2, 3, and 3.1 for Phase 4 Productization
@@ -227,7 +244,7 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 
 ---
 
-### Session 2 — 2026-03-22 (Phase 4 Productization: Ticket 4 + Custom Scenario)
+### Session 2 -2026-03-22 (Phase 4 Productization: Ticket 4 + Custom Scenario)
 
 **Work completed:**
 - Implemented Ticket 4: workspace lifecycle completion (regeneration, retry cleanup, delete UI)
@@ -242,10 +259,50 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 **Key decisions:**
 - `workspace_context` table (key-value, per-workspace DB) solves agent-context problem without changing BaseAgent ABC `execute()` signature
 - `scenario_description` stored in `config_json` only (no redundant column + ALTER TABLE)
-- Outage toggle guards existing `OUTAGE_START`/`OUTAGE_END` conditionals — no restructuring
+- Outage toggle guards existing `OUTAGE_START`/`OUTAGE_END` conditionals -no restructuring
 - Custom scenario uses `scenario="custom"` reusing existing fallback path in `create_workspace`
 
 **Next session priorities:**
 1. Add workspace deletion UI
 2. Add random company scenario option
 3. Start Phase 5 (Infrastructure & Polish)
+
+---
+
+### Session 3 -2026-03-22 (Phase 4 Completion)
+
+**Work completed:**
+- Active workspace cleanup on delete + trash icon UI (`9b4373b`)
+- Random company scenario option for one-click randomized workspace creation (`d1f3b3d`)
+- Workspace-scoped cache isolation for dashboard data integrity (`4f1ed9d`)
+- Phase 4 Productization fully complete
+
+---
+
+### Session 4 -2026-03-22 (Phase 5 Ticket 1)
+
+**Work completed:**
+- Frontend resilience layer: error boundaries, loading states, API error handling (`1349465`)
+- Phase 5 Infrastructure & Polish officially started
+
+---
+
+### Session 5 -2026-03-22 (Phase 5 Ticket 2)
+
+**Work completed:**
+- Backend error handling standardization across all route endpoints (`e75188c`)
+- Created `handle_errors` decorator (`backend/app/utils/error_handling.py`) -DRY try/except + structlog logging
+- Applied decorator to all 19 endpoints across 9 route files (overview, churn, sentiment, segments, customers, recommendations, agents, query, workspaces)
+- HTTPExceptions (4xx/409) pass through unchanged; unexpected exceptions → structlog + 500
+- Wired `setup_logging()` in app lifespan, added global exception handler in `main.py`
+- Fixed bare except in overview.py `_read_workspace_context` to log via structlog
+- Ticket 2.1: Fixed import ordering in overview.py (logger declaration was between import groups)
+- 12-section disciplined audit confirmed clean implementation before commit
+
+**Key decisions:**
+- Decorator pattern chosen over inline try/except to avoid re-indenting 19 function bodies
+- `functools.wraps` preserves function signatures for FastAPI dependency injection
+- Response shape `{"detail": "..."}` matches FastAPI's built-in HTTPException format -no frontend changes needed
+- Global exception handler is async (FastAPI requirement), decorator wrapper is sync (all endpoints are sync)
+
+**Next session:** Continue Phase 5 roadmap
