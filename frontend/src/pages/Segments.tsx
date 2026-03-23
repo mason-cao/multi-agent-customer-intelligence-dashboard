@@ -1,4 +1,4 @@
-import { PieChart, Users, DollarSign, Activity, AlertTriangle } from 'lucide-react';
+import { Users, DollarSign, Activity, AlertTriangle } from 'lucide-react';
 import PageHeader from '../components/shared/PageHeader';
 import Card from '../components/shared/Card';
 import { useSegmentSummary } from '../api/hooks';

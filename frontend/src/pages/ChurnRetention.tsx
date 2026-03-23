@@ -1,4 +1,4 @@
-import { TrendingDown, AlertTriangle, BarChart3 } from 'lucide-react';
+import { AlertTriangle, BarChart3 } from 'lucide-react';
 import PageHeader from '../components/shared/PageHeader';
 import Card from '../components/shared/Card';
 import {

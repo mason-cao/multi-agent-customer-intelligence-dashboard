@@ -1,6 +1,7 @@
 import { Outlet, useLocation, Navigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import ErrorBoundary from '../ErrorBoundary';
 import { useActiveWorkspace } from '../../contexts/WorkspaceContext';
 
 export default function Layout() {
@@ -27,9 +28,11 @@ export default function Layout() {
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
         <main className="flex-1 overflow-y-auto p-8">
-          <div key={location.pathname} className="animate-fade-in-up">
-            <Outlet />
-          </div>
+          <ErrorBoundary key={location.pathname}>
+            <div className="animate-fade-in-up">
+              <Outlet />
+            </div>
+          </ErrorBoundary>
         </main>
       </div>
     </div>
