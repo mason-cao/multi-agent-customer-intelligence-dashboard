@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from sqlalchemy import text as sql_text
+
 from app.db.database import get_db
 from app.models.anomaly import Anomaly
 from app.models.churn_prediction import ChurnPrediction
@@ -14,6 +16,15 @@ from app.models.sentiment_result import SentimentResult
 from app.schemas.overview import KpiCard, NarrativeResponse, OverviewKpis
 
 router = APIRouter(prefix="/api/overview", tags=["overview"])
+
+
+def _read_workspace_context(db: Session) -> dict:
+    """Read workspace_context key-value pairs, returning empty dict on failure."""
+    try:
+        rows = db.execute(sql_text("SELECT key, value FROM workspace_context")).fetchall()
+        return {r[0]: r[1] for r in rows}
+    except Exception:
+        return {}
 
 
 def _fmt_currency(amount: float) -> str:
@@ -164,8 +175,17 @@ def get_narrative(db: Session = Depends(get_db)):
     else:
         highlights.append("No anomalies detected in the current analysis window")
 
+    # Include scenario description if available
+    ws_ctx = _read_workspace_context(db)
+    scenario_desc = ws_ctx.get("scenario_description", "")
+    company_name = ws_ctx.get("company_name", "the platform")
+
+    prefix = ""
+    if scenario_desc:
+        prefix = f"{scenario_desc} "
+
     summary = (
-        f"Across {total:,} active customers, the platform shows a {churn_pct:.1f}% "
+        f"{prefix}Across {total:,} active customers, {company_name} shows a {churn_pct:.1f}% "
         f"average churn probability with {sentiment_label} overall sentiment. "
         f"{high_risk} accounts are flagged as high or critical risk."
     )

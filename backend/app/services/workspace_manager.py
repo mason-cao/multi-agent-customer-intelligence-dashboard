@@ -2,8 +2,7 @@
 Workspace lifecycle management.
 
 Handles workspace CRUD and scenario resolution. Data generation and
-pipeline execution are handled separately by workspace_generator.py
-(to be created in a later ticket).
+pipeline execution are handled separately by workspace_generator.py.
 """
 
 import json
@@ -87,6 +86,9 @@ def create_workspace(
     industry: Optional[str] = None,
     customer_count: Optional[int] = None,
     seed: Optional[int] = None,
+    churn_rate: Optional[float] = None,
+    include_outage: Optional[bool] = None,
+    scenario_description: Optional[str] = None,
 ) -> Workspace:
     """Create a new workspace record in the metadata database."""
     ensure_workspace_dirs()
@@ -97,15 +99,17 @@ def create_workspace(
         company_name = defaults["company_name"]
         resolved_industry = industry or defaults["industry"]
         resolved_count = customer_count or defaults["customer_count"]
-        resolved_churn = defaults["churn_rate"]
+        resolved_churn = churn_rate if churn_rate is not None else defaults["churn_rate"]
         resolved_profile = defaults["profile"]
+        resolved_outage = include_outage if include_outage is not None else True
     else:
         # Custom scenario
         company_name = name
         resolved_industry = industry or "Technology"
         resolved_count = customer_count or 2000
-        resolved_churn = 0.14
+        resolved_churn = churn_rate if churn_rate is not None else 0.14
         resolved_profile = "custom"
+        resolved_outage = include_outage if include_outage is not None else True
 
     workspace = Workspace(
         id=uuid.uuid4().hex[:12],
@@ -125,6 +129,8 @@ def create_workspace(
             "churn_rate": resolved_churn,
             "profile": resolved_profile,
             "seed": seed,
+            "include_outage": resolved_outage,
+            "scenario_description": scenario_description or "",
         }),
     )
 
@@ -136,6 +142,32 @@ def create_workspace(
         return workspace
     finally:
         db.close()
+
+
+def prepare_for_regeneration(workspace_id: str) -> bool:
+    """Reset a workspace for regeneration by deleting its stale database.
+
+    Returns False if the workspace doesn't exist.
+    """
+    ws = get_workspace(workspace_id)
+    if not ws:
+        return False
+
+    # Delete the old workspace database file
+    db_path = get_workspace_db_path(workspace_id)
+    if db_path.exists():
+        db_path.unlink()
+
+    # Reset progress fields
+    update_workspace_status(
+        workspace_id,
+        status="generating",
+        current_stage="Initializing workspace",
+        stage_index=0,
+        total_stages=14,
+        error_message="",
+    )
+    return True
 
 
 def update_workspace_status(

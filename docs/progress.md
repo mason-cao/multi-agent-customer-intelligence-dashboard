@@ -5,9 +5,9 @@
 ## Current Status
 
 **Branch:** `main`
-**HEAD:** `48232ed` — Workspace setup flow + workspace-aware dashboard entry
+**HEAD:** `c67aa86` — Workspace lifecycle completion + custom scenario mode
 **Working tree:** Clean
-**Current phase:** Phase 4 (Productization) — in progress. Tickets 1–3.1 committed.
+**Current phase:** Phase 4 (Productization) — near completion. Tickets 1–4 committed.
 ---
 
 ## Phase Summary
@@ -17,7 +17,7 @@
 | 1 | Agent Buildout | Complete | 8 agents implemented and committed |
 | 2 | Validation & Hardening | Complete | Full-system hardening pass, pipeline runner |
 | 3 | Integration | Complete | All 8 pages wired to real backend data |
-| **4** | **Productization** | **In Progress** | Tickets 1–3.1 committed; Tickets 4/5 next |
+| **4** | **Productization** | **Near Complete** | Tickets 1–4 committed; deletion + random scenario remaining |
 | 5 | Infrastructure & Polish | Planned | Orchestrator, ChromaDB, tests |
 | 6 | Deployment & Presentation | Planned | Railway + Vercel, demo prep |
 
@@ -122,8 +122,21 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 - All 8 dashboard route files automatically workspace-aware (zero route changes needed)
 - Fallback to global DB when header absent or workspace DB doesn't exist
 
+### Ticket 4 — Workspace Lifecycle Completion + Custom Scenario Mode (`c67aa86`)
+- Regeneration flow: ready workspaces can re-run full pipeline with stale DB cleanup
+- Retry corruption fix: workspace `.db` deleted before re-generation
+- Delete UI with confirmation dialog and `useDeleteWorkspace` hook
+- Custom scenario mode with 5 user-configurable controls (customer count, churn rate, industry, outage toggle, scenario description)
+- `include_outage` parameter added to `generate_dataset`/`generate_tickets`/`generate_feedback`
+- `workspace_context` key-value table for agent scenario metadata access
+- Scenario description wired into NarrativeAgent and overview route
+- `churn_rate`, `include_outage`, `scenario_description` added to workspace schema
+- Workspace `.db` files excluded from git tracking via `.gitignore`
+
 ### Remaining Phase 4 Work
-- Ticket 4 / 5 — to be defined and implemented in next session
+- Add workspace deletion UI (frontend delete flow)
+- Add random company scenario option
+- Then start Phase 5
 ---
 
 ## What Is Not Built Yet
@@ -181,10 +194,9 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 
 ## Next Steps
 
-1. **Create and implement Ticket 4 / 5** for Phase 4 Productization
-2. **Complete Phase 4** — remaining productization work
-4. After Phase 4: orchestrator, ChromaDB, tests (Phase 5)
-5. After Phase 5: deployment, demo prep (Phase 6)
+1. **Add workspace deletion** — frontend delete flow for workspace management
+2. **Add random company scenario option** — one-click randomized workspace creation
+3. **Start Phase 5** — Infrastructure & Polish (orchestrator, ChromaDB, tests)
 
 ### Do Not Do Yet
 - Do not add orchestration before Phase 5
@@ -198,7 +210,7 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 
 ## Session Log
 
-### Session — 2026-03-22 (Phase 4 Productization)
+### Session 1 — 2026-03-22 (Phase 4 Productization: Tickets 1–3.1)
 
 **Work completed:**
 - Implemented and committed Tickets 1, 2, 3, and 3.1 for Phase 4 Productization
@@ -213,7 +225,27 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 - Product framing firmly established: workspace-based synthetic-data application, NOT a static dashboard
 - Platform rename to **Luminosity Intelligence** decided for next session
 
+---
+
+### Session 2 — 2026-03-22 (Phase 4 Productization: Ticket 4 + Custom Scenario)
+
+**Work completed:**
+- Implemented Ticket 4: workspace lifecycle completion (regeneration, retry cleanup, delete UI)
+- Implemented custom scenario mode with 5 user-configurable controls
+- Added `include_outage` parameter to data generation pipeline
+- Added `workspace_context` key-value table for agent scenario metadata
+- Wired scenario description into NarrativeAgent and overview route
+- Fixed git push blocker: excluded workspace `.db` files from tracking (one was 199MB)
+- Comprehensive Phase 4 audit (17-section) confirming architecture integrity
+- Committed as `c67aa86`
+
+**Key decisions:**
+- `workspace_context` table (key-value, per-workspace DB) solves agent-context problem without changing BaseAgent ABC `execute()` signature
+- `scenario_description` stored in `config_json` only (no redundant column + ALTER TABLE)
+- Outage toggle guards existing `OUTAGE_START`/`OUTAGE_END` conditionals — no restructuring
+- Custom scenario uses `scenario="custom"` reusing existing fallback path in `create_workspace`
+
 **Next session priorities:**
-1. Rename platform to Luminosity Intelligence
-2. Create Ticket 4 / 5 for Phase 4
-3. Continue Phase 4 implementation
+1. Add workspace deletion UI
+2. Add random company scenario option
+3. Start Phase 5 (Infrastructure & Polish)

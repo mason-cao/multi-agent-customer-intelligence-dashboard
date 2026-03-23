@@ -14,6 +14,8 @@ import {
   ChevronLeft,
   RefreshCw,
   Play,
+  Trash2,
+  Sliders,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useActiveWorkspace } from '../contexts/WorkspaceContext';
@@ -22,8 +24,16 @@ import {
   useScenarios,
   useCreateWorkspace,
   useGenerateWorkspace,
+  useDeleteWorkspace,
 } from '../api/workspaces';
-import type { Workspace, Scenario } from '../types/workspace';
+import type { Workspace, Scenario, CreateWorkspaceInput } from '../types/workspace';
+
+// ── Constants ────────────────────────────────────────────
+
+const INDUSTRIES = [
+  'Technology', 'Healthcare', 'Finance', 'Retail',
+  'Manufacturing', 'Education', 'Media', 'Logistics',
+];
 
 // ── Scenario visual config ──────────────────────────────
 
@@ -64,6 +74,13 @@ const SCENARIO_META: Record<string, ScenarioMeta> = {
     border: 'border-purple-200',
     bar: 'bg-purple-500',
   },
+  custom: {
+    icon: Sliders,
+    accent: 'text-indigo-600',
+    bg: 'bg-indigo-50',
+    border: 'border-indigo-200',
+    bar: 'bg-indigo-500',
+  },
 };
 
 const DEFAULT_META: ScenarioMeta = {
@@ -82,7 +99,7 @@ function getMeta(scenario: string): ScenarioMeta {
 
 export default function WorkspaceHub() {
   const navigate = useNavigate();
-  const { setActiveWorkspace } = useActiveWorkspace();
+  const { activeWorkspace, setActiveWorkspace, clearWorkspace } = useActiveWorkspace();
   const { data: list, isLoading } = useWorkspaces();
   const { data: scenarios } = useScenarios();
 
@@ -90,9 +107,18 @@ export default function WorkspaceHub() {
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
   const [workspaceName, setWorkspaceName] = useState('');
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Workspace | null>(null);
+
+  // Custom scenario state
+  const [customCount, setCustomCount] = useState(2000);
+  const [customChurn, setCustomChurn] = useState(0.14);
+  const [customIndustry, setCustomIndustry] = useState('Technology');
+  const [customOutage, setCustomOutage] = useState(true);
+  const [customDescription, setCustomDescription] = useState('');
 
   const createMutation = useCreateWorkspace();
   const generateMutation = useGenerateWorkspace();
+  const deleteMutation = useDeleteWorkspace();
 
   const workspaces = list?.workspaces ?? [];
   const isSubmitting = createMutation.isPending || generateMutation.isPending;
@@ -112,21 +138,38 @@ export default function WorkspaceHub() {
 
   function handleSelectScenario(key: string) {
     setSelectedScenario(key);
-    const scenario = scenarios?.find((s) => s.key === key);
-    if (scenario) setWorkspaceName(scenario.company_name);
+    if (key === 'custom') {
+      setWorkspaceName('');
+    } else {
+      const scenario = scenarios?.find((s) => s.key === key);
+      if (scenario) setWorkspaceName(scenario.company_name);
+    }
   }
 
   async function handleCreate() {
     if (!selectedScenario || isSubmitting) return;
-    const scenario = scenarios?.find((s) => s.key === selectedScenario);
-    const name =
-      workspaceName.trim() || scenario?.company_name || 'My Workspace';
+
+    let body: CreateWorkspaceInput;
+
+    if (selectedScenario === 'custom') {
+      const name = workspaceName.trim() || 'My Company';
+      body = {
+        name,
+        scenario: 'custom',
+        industry: customIndustry,
+        customer_count: customCount,
+        churn_rate: customChurn,
+        include_outage: customOutage,
+        scenario_description: customDescription.trim() || undefined,
+      };
+    } else {
+      const scenario = scenarios?.find((s) => s.key === selectedScenario);
+      const name = workspaceName.trim() || scenario?.company_name || 'My Workspace';
+      body = { name, scenario: selectedScenario };
+    }
 
     try {
-      const ws = await createMutation.mutateAsync({
-        name,
-        scenario: selectedScenario,
-      });
+      const ws = await createMutation.mutateAsync(body);
       setPendingId(ws.id);
       setView('list');
       setSelectedScenario(null);
@@ -156,10 +199,31 @@ export default function WorkspaceHub() {
     }
   }
 
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    try {
+      const deletedId = deleteTarget.id;
+      await deleteMutation.mutateAsync(deletedId);
+      setDeleteTarget(null);
+
+      // If we just deleted the active workspace, clear it
+      if (activeWorkspace?.id === deletedId) {
+        clearWorkspace();
+      }
+    } catch {
+      // Error handled by mutation state
+    }
+  }
+
   function openCreateView() {
     setView('create');
     setSelectedScenario(null);
     setWorkspaceName('');
+    setCustomCount(2000);
+    setCustomChurn(0.14);
+    setCustomIndustry('Technology');
+    setCustomOutage(true);
+    setCustomDescription('');
     createMutation.reset();
   }
 
@@ -193,8 +257,18 @@ export default function WorkspaceHub() {
             workspaceName={workspaceName}
             isSubmitting={isSubmitting}
             error={createMutation.isError}
+            customCount={customCount}
+            customChurn={customChurn}
+            customIndustry={customIndustry}
+            customOutage={customOutage}
+            customDescription={customDescription}
             onSelectScenario={handleSelectScenario}
             onChangeName={setWorkspaceName}
+            onChangeCount={setCustomCount}
+            onChangeChurn={setCustomChurn}
+            onChangeIndustry={setCustomIndustry}
+            onChangeOutage={setCustomOutage}
+            onChangeDescription={setCustomDescription}
             onCreate={handleCreate}
             onBack={() => setView('list')}
           />
@@ -205,10 +279,56 @@ export default function WorkspaceHub() {
             pendingId={pendingId}
             onEnter={handleEnter}
             onGenerate={handleGenerate}
+            onDelete={setDeleteTarget}
             onCreateNew={openCreateView}
           />
         )}
       </div>
+
+      {/* ── Delete Confirmation Modal ───────────────────── */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-50">
+                <Trash2 className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Delete workspace
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Are you sure you want to delete{' '}
+                  <span className="font-medium text-slate-700">
+                    {deleteTarget.company_name}
+                  </span>
+                  ? This will permanently remove all generated data.
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleteMutation.isPending}
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleteMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -221,6 +341,7 @@ function ListView({
   pendingId,
   onEnter,
   onGenerate,
+  onDelete,
   onCreateNew,
 }: {
   workspaces: Workspace[];
@@ -228,6 +349,7 @@ function ListView({
   pendingId: string | null;
   onEnter: (ws: Workspace) => void;
   onGenerate: (ws: Workspace) => void;
+  onDelete: (ws: Workspace) => void;
   onCreateNew: () => void;
 }) {
   return (
@@ -278,6 +400,7 @@ function ListView({
               isPending={ws.id === pendingId}
               onEnter={() => onEnter(ws)}
               onGenerate={() => onGenerate(ws)}
+              onDelete={() => onDelete(ws)}
             />
           ))}
 
@@ -308,12 +431,14 @@ function WorkspaceCard({
   isPending,
   onEnter,
   onGenerate,
+  onDelete,
 }: {
   workspace: Workspace;
   index: number;
   isPending: boolean;
   onEnter: () => void;
   onGenerate: () => void;
+  onDelete: () => void;
 }) {
   const meta = getMeta(ws.scenario);
   const Icon = meta.icon;
@@ -342,12 +467,25 @@ function WorkspaceCard({
               {ws.customer_count.toLocaleString()} customers
             </p>
           </div>
+          {/* Delete button — hidden during generation */}
+          {ws.status !== 'generating' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-slate-300 transition hover:bg-red-50 hover:text-red-500"
+              title="Delete workspace"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          )}
         </div>
 
         {/* Status content */}
         <div className="mt-4">
           {ws.status === 'ready' && (
-            <ReadyStatus ws={ws} onEnter={onEnter} />
+            <ReadyStatus ws={ws} onEnter={onEnter} onRegenerate={onGenerate} />
           )}
           {ws.status === 'generating' && (
             <GeneratingStatus ws={ws} isPending={isPending} />
@@ -369,9 +507,11 @@ function WorkspaceCard({
 function ReadyStatus({
   ws,
   onEnter,
+  onRegenerate,
 }: {
   ws: Workspace;
   onEnter: () => void;
+  onRegenerate: () => void;
 }) {
   return (
     <>
@@ -387,13 +527,22 @@ function ReadyStatus({
           year: 'numeric',
         })}
       </p>
-      <button
-        onClick={onEnter}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm shadow-emerald-200 transition-all duration-200 hover:bg-emerald-700 hover:shadow-md active:scale-[0.98]"
-      >
-        Enter Dashboard
-        <ArrowRight className="h-3.5 w-3.5" />
-      </button>
+      <div className="mt-4 flex gap-2">
+        <button
+          onClick={onEnter}
+          className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm shadow-emerald-200 transition-all duration-200 hover:bg-emerald-700 hover:shadow-md active:scale-[0.98]"
+        >
+          Enter Dashboard
+          <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={onRegenerate}
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+          title="Regenerate data"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </>
   );
 }
@@ -495,8 +644,18 @@ function CreateView({
   workspaceName,
   isSubmitting,
   error,
+  customCount,
+  customChurn,
+  customIndustry,
+  customOutage,
+  customDescription,
   onSelectScenario,
   onChangeName,
+  onChangeCount,
+  onChangeChurn,
+  onChangeIndustry,
+  onChangeOutage,
+  onChangeDescription,
   onCreate,
   onBack,
 }: {
@@ -505,11 +664,23 @@ function CreateView({
   workspaceName: string;
   isSubmitting: boolean;
   error: boolean;
+  customCount: number;
+  customChurn: number;
+  customIndustry: string;
+  customOutage: boolean;
+  customDescription: string;
   onSelectScenario: (key: string) => void;
   onChangeName: (name: string) => void;
+  onChangeCount: (n: number) => void;
+  onChangeChurn: (n: number) => void;
+  onChangeIndustry: (s: string) => void;
+  onChangeOutage: (b: boolean) => void;
+  onChangeDescription: (s: string) => void;
   onCreate: () => void;
   onBack: () => void;
 }) {
+  const isCustom = selectedScenario === 'custom';
+
   return (
     <div className="animate-fade-in-up">
       {/* Back */}
@@ -541,10 +712,188 @@ function CreateView({
             onSelect={() => onSelectScenario(scenario.key)}
           />
         ))}
+
+        {/* Custom scenario card */}
+        <button
+          onClick={() => onSelectScenario('custom')}
+          className={`animate-fade-in-up stagger-${scenarios.length + 1} group rounded-xl border-2 p-6 text-left transition-all duration-200 ${
+            isCustom
+              ? 'border-indigo-200 bg-indigo-50 shadow-sm'
+              : 'border-slate-200/60 bg-white hover:-translate-y-0.5 hover:shadow-md'
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
+                isCustom ? 'bg-indigo-50' : 'bg-slate-100 group-hover:bg-slate-200/60'
+              }`}
+            >
+              <Sliders
+                className={`h-5 w-5 ${isCustom ? 'text-indigo-600' : 'text-slate-500'}`}
+              />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-slate-900">
+                Build Your Own
+              </h3>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Custom configuration
+              </p>
+              <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
+                Configure customer count, churn rate, industry, and more to
+                create a tailored scenario for your analysis.
+              </p>
+            </div>
+          </div>
+          {isCustom && (
+            <div className="mt-3 flex items-center gap-1.5 text-xs font-medium text-indigo-600">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Selected
+            </div>
+          )}
+        </button>
       </div>
 
-      {/* Name input — appears after scenario selection */}
-      {selectedScenario && (
+      {/* Custom scenario controls */}
+      {isCustom && (
+        <div className="mt-8 animate-fade-in space-y-5 rounded-xl border border-indigo-100 bg-indigo-50/30 p-6">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
+            Custom Configuration
+          </h3>
+
+          {/* Company name */}
+          <div>
+            <label className="block text-xs font-medium text-slate-600">
+              Company Name
+            </label>
+            <input
+              type="text"
+              value={workspaceName}
+              onChange={(e) => onChangeName(e.target.value)}
+              placeholder="My Company"
+              className="mt-1.5 w-full max-w-md rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+
+          {/* Customer count slider */}
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-slate-600">
+                Customer Count
+              </label>
+              <span className="text-xs font-semibold text-indigo-600">
+                {customCount.toLocaleString()}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={100}
+              max={10000}
+              step={100}
+              value={customCount}
+              onChange={(e) => onChangeCount(Number(e.target.value))}
+              className="mt-2 w-full max-w-md accent-indigo-600"
+            />
+            <div className="mt-1 flex max-w-md justify-between text-[10px] text-slate-400">
+              <span>100</span>
+              <span>10,000</span>
+            </div>
+          </div>
+
+          {/* Churn rate slider */}
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-slate-600">
+                Churn Rate
+              </label>
+              <span className="text-xs font-semibold text-indigo-600">
+                {Math.round(customChurn * 100)}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min={5}
+              max={30}
+              step={1}
+              value={Math.round(customChurn * 100)}
+              onChange={(e) => onChangeChurn(Number(e.target.value) / 100)}
+              className="mt-2 w-full max-w-md accent-indigo-600"
+            />
+            <div className="mt-1 flex max-w-md justify-between text-[10px] text-slate-400">
+              <span>5%</span>
+              <span>30%</span>
+            </div>
+          </div>
+
+          {/* Industry dropdown */}
+          <div>
+            <label className="block text-xs font-medium text-slate-600">
+              Primary Industry
+            </label>
+            <select
+              value={customIndustry}
+              onChange={(e) => onChangeIndustry(e.target.value)}
+              className="mt-1.5 w-full max-w-md rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+            >
+              {INDUSTRIES.map((ind) => (
+                <option key={ind} value={ind}>
+                  {ind}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Outage toggle */}
+          <div className="flex items-center justify-between max-w-md">
+            <div>
+              <label className="text-xs font-medium text-slate-600">
+                Include Q3 Service Outage
+              </label>
+              <p className="mt-0.5 text-[11px] text-slate-400">
+                Simulates spike in tickets and negative feedback Aug-Sep 2024
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onChangeOutage(!customOutage)}
+              className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors ${
+                customOutage ? 'bg-indigo-600' : 'bg-slate-200'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                  customOutage ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Scenario description */}
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-slate-600">
+                Scenario Description
+                <span className="ml-1 font-normal text-slate-400">(optional)</span>
+              </label>
+              <span className="text-[10px] text-slate-400">
+                {customDescription.length}/500
+              </span>
+            </div>
+            <textarea
+              value={customDescription}
+              onChange={(e) => {
+                if (e.target.value.length <= 500) onChangeDescription(e.target.value);
+              }}
+              placeholder="Describe the business scenario for this workspace..."
+              rows={3}
+              className="mt-1.5 w-full max-w-md rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Name input — appears for archetype scenarios (not custom, which has its own) */}
+      {selectedScenario && !isCustom && (
         <div className="mt-8 animate-fade-in">
           <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400">
             Workspace Name
@@ -574,7 +923,11 @@ function CreateView({
         <button
           onClick={onCreate}
           disabled={!selectedScenario || isSubmitting}
-          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm shadow-emerald-200 transition-all duration-200 hover:bg-emerald-700 hover:shadow-md hover:shadow-emerald-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-emerald-600 disabled:hover:shadow-sm disabled:active:scale-100"
+          className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 ${
+            isCustom
+              ? 'bg-indigo-600 shadow-indigo-200 hover:bg-indigo-700 hover:shadow-indigo-200 disabled:hover:bg-indigo-600'
+              : 'bg-emerald-600 shadow-emerald-200 hover:bg-emerald-700 hover:shadow-emerald-200 disabled:hover:bg-emerald-600'
+          }`}
         >
           {isSubmitting ? (
             <>

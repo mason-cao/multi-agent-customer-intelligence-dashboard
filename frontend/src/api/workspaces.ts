@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from './client';
-import type { Workspace, WorkspaceListResponse, Scenario } from '../types/workspace';
+import type { Workspace, WorkspaceListResponse, Scenario, CreateWorkspaceInput } from '../types/workspace';
 
 export function useWorkspaces() {
   return useQuery<WorkspaceListResponse>({
@@ -44,7 +44,7 @@ export function useScenarios() {
 
 export function useCreateWorkspace() {
   const queryClient = useQueryClient();
-  return useMutation<Workspace, Error, { name: string; scenario: string }>({
+  return useMutation<Workspace, Error, CreateWorkspaceInput>({
     mutationFn: async (body) => {
       const { data } = await api.post('/workspaces', body);
       return data;
@@ -64,6 +64,18 @@ export function useGenerateWorkspace() {
     },
     onSuccess: (_, workspaceId) => {
       queryClient.invalidateQueries({ queryKey: ['workspaces', workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+    },
+  });
+}
+
+export function useDeleteWorkspace() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: async (workspaceId) => {
+      await api.delete(`/workspaces/${workspaceId}`);
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workspaces'] });
     },
   });

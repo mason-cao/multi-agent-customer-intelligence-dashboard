@@ -14,6 +14,7 @@ from app.services.workspace_manager import (
     delete_workspace,
     get_workspace,
     list_workspaces,
+    prepare_for_regeneration,
 )
 
 router = APIRouter(prefix="/api/workspaces", tags=["workspaces"])
@@ -55,6 +56,9 @@ def create_new_workspace(body: WorkspaceCreate):
         industry=body.industry,
         customer_count=body.customer_count,
         seed=body.seed,
+        churn_rate=body.churn_rate,
+        include_outage=body.include_outage,
+        scenario_description=body.scenario_description,
     )
     return WorkspaceResponse.model_validate(ws)
 
@@ -72,17 +76,16 @@ def get_workspace_detail(workspace_id: str):
 def trigger_generation(workspace_id: str):
     """Start workspace data generation and agent pipeline.
 
-    Returns 202 Accepted immediately. The frontend should poll
-    GET /api/workspaces/{id} to track progress via status,
-    current_stage, stage_index, and total_stages fields.
+    Accepts 'created', 'failed', or 'ready' status. For 'ready' and
+    'failed' workspaces, the old database is deleted before regeneration.
     """
     ws = get_workspace(workspace_id)
     if not ws:
         raise HTTPException(status_code=404, detail="Workspace not found")
-    if ws.status not in ("created", "failed"):
+    if ws.status not in ("created", "failed", "ready"):
         raise HTTPException(
             status_code=409,
-            detail=f"Workspace is '{ws.status}' — generation can only start from 'created' or 'failed' state",
+            detail=f"Workspace is '{ws.status}' — generation can only start from 'created', 'failed', or 'ready' state",
         )
 
     from app.services.workspace_generator import start_generation
@@ -97,5 +100,13 @@ def trigger_generation(workspace_id: str):
 @router.delete("/{workspace_id}", status_code=204)
 def remove_workspace(workspace_id: str):
     """Delete a workspace and its database file."""
+    ws = get_workspace(workspace_id)
+    if not ws:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    if ws.status == "generating":
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete a workspace while generation is in progress",
+        )
     if not delete_workspace(workspace_id):
         raise HTTPException(status_code=404, detail="Workspace not found")

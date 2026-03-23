@@ -4,12 +4,12 @@
 
 ## 1. Current State
 
-**Luminosity Intelligence** is a workspace-based customer intelligence platform. Users create workspaces, select company scenarios, generate realistic synthetic data, and explore AI-driven insights through an executive dashboard. Eight AI agents process workspace data through a dependency-ordered pipeline.
+**Luminosity Intelligence** is a workspace-based customer intelligence platform. Users create workspaces, select company scenarios (or configure custom ones), generate realistic synthetic data, and explore AI-driven insights through an executive dashboard. Eight AI agents process workspace data through a dependency-ordered pipeline.
 
 High school capstone project. All data is synthetic by design — no real integrations.
 
 **Branch:** `main`
-**HEAD:** `48232ed` — Workspace setup flow + workspace-aware dashboard entry
+**HEAD:** `c67aa86` — Workspace lifecycle completion + custom scenario mode
 **Working tree:** Clean
 
 ---
@@ -21,7 +21,7 @@ High school capstone project. All data is synthetic by design — no real integr
 | 1 — Agent Buildout | Complete |
 | 2 — Validation & Hardening | Complete |
 | 3 — Integration | Complete |
-| **4 — Productization** | **In progress — Tickets 1–3.1 committed** |
+| **4 — Productization** | **Near complete — Tickets 1–4 committed** |
 | 5 — Infrastructure & Polish | Planned |
 | 6 — Deployment & Presentation | Planned |
 
@@ -29,26 +29,22 @@ High school capstone project. All data is synthetic by design — no real integr
 
 ## 3. What Was Done This Session
 
-### Ticket 1 — Workspace Metadata Model (`9a4ef00`)
-- Workspace ORM model, metadata SQLite DB, CRUD API, 4 scenario archetypes
-- Pydantic schemas, workspace router mounted in main.py
+### Ticket 4 — Workspace Lifecycle Completion + Custom Scenario (`c67aa86`)
+- Regeneration flow: ready workspaces can re-run the full pipeline with stale DB cleanup
+- Retry corruption fix: workspace `.db` deleted before re-generation
+- Delete UI with confirmation dialog and `useDeleteWorkspace` hook
+- Custom scenario mode with 5 user-configurable controls (customer count slider, churn rate slider, industry dropdown, outage toggle, scenario description textarea)
+- `include_outage` parameter added to `generate_dataset`, `generate_tickets`, `generate_feedback`
+- `workspace_context` key-value table for agent scenario metadata access (uses `Base`, not `WorkspaceBase`)
+- Scenario description wired into NarrativeAgent and overview route
+- `churn_rate`, `include_outage`, `scenario_description` added to workspace schema
 
-### Ticket 2 — Workspace Generation Pipeline (`a3baee5`)
-- Background thread orchestration, 14-stage progress tracking
-- Parameterized data generator, per-workspace SQLite isolation
+### Git Fix
+- Workspace `.db` files (up to 199MB) excluded from git tracking via `.gitignore` update
+- Amended commit to remove large files, enabling push to GitHub
 
-### Ticket 3 — Frontend Workspace Hub & Dashboard Entry (`48232ed`)
-- WorkspaceHub page with list/create views, scenario cards, progress polling
-- WorkspaceContext with localStorage persistence, optimistic fallback
-- Layout guard, header with active workspace info, auto-redirect on ready
-
-### Ticket 3.1 — Workspace-Scoped DB Routing (`48232ed`)
-- Axios interceptor sends X-Workspace-ID header from localStorage
-- Backend `get_db` routes to workspace DB when header present
-- All 8 dashboard routes automatically workspace-aware
-
-### Audits
-- Strict audit of each ticket. Ticket 3 audit identified dashboard-entry limitation (routes reading global DB). Resolved by Ticket 3.1.
+### Phase 4 Audit
+- 17-section comprehensive audit confirming architecture integrity, scope compliance, and no Phase 5 leakage
 
 ---
 
@@ -56,8 +52,9 @@ High school capstone project. All data is synthetic by design — no real integr
 
 **The next session must do the following in order:**
 
-1. **Create Ticket 4 / 5** for remaining Phase 4 Productization work
-2. **Implement Ticket 4 / 5** — continue Phase 4
+1. **Add workspace deletion** — ensure the frontend delete flow works end-to-end
+2. **Add random company scenario option** — one-click randomized workspace creation
+3. **Start Phase 5** — Infrastructure & Polish (DAG orchestrator, ChromaDB, tests)
 
 ---
 
@@ -66,16 +63,17 @@ High school capstone project. All data is synthetic by design — no real integr
 - **8 agents** in `backend/app/agents/` — all inheriting BaseAgent ABC
 - **8 route files** in `backend/app/routes/` + workspace routes — 12+ endpoints
 - **9 pages** in `frontend/src/pages/` — 8 dashboard + WorkspaceHub
-- **Workspace infrastructure**: metadata DB, per-workspace SQLite, generation pipeline, context/state, layout guard, DB routing
+- **Workspace infrastructure**: metadata DB, per-workspace SQLite, generation pipeline, context/state, layout guard, DB routing, lifecycle management (create/generate/regenerate/delete)
+- **Custom scenario support**: 5 configurable controls, `workspace_context` table for agent access
 - **Pipeline runner** at `scripts/run_pipeline.py`
-- **Data generator** at `scripts/generate_data.py` (parameterized)
+- **Data generator** at `scripts/generate_data.py` (parameterized with `include_outage`)
 - **17 ORM models**, Pydantic schemas, mock-first LLM client
 
 ---
 
 ## 6. What Does NOT Exist Yet
 
-- Remaining Phase 4 tickets (4/5) — to be defined
+- Random company scenario option (next session)
 - DAG-based orchestrator (Phase 5)
 - ChromaDB vector search (Phase 5)
 - Automated tests (Phase 5)
@@ -87,13 +85,13 @@ High school capstone project. All data is synthetic by design — no real integr
 
 ## 7. Constraints
 
-- Follow phase plan in order — complete Phase 4 before moving to 5
+- Follow phase plan in order — finish Phase 4 closeout before Phase 5
 - Mock-first: all agents must work with zero API keys
 - No LangChain — custom orchestration is intentional
 - All agents use DELETE+INSERT write pattern
 - Pipeline order: Behavior → Segmentation → Sentiment → Churn → Recommendation → Narrative → Audit → Query
 - Do NOT describe the project as a "static dashboard"
-- Do NOT add features from later phases
+- Do NOT add features from later phases prematurely
 - Do NOT add real data ingestion or third-party connectors
 - Do NOT add auth/accounts
 - Do NOT add stretch features (D3 graphs, cohort heatmaps, PDF export, dark mode)
@@ -105,13 +103,14 @@ High school capstone project. All data is synthetic by design — no real integr
 ```
 Resuming Luminosity Intelligence capstone project.
 
-State: Phases 1–3 complete. Phase 4 Productization in progress — Tickets 1–3.1 committed on main at HEAD 48232ed. Working tree clean.
+State: Phases 1–3 complete. Phase 4 Productization near complete — Tickets 1–4 committed on main at HEAD c67aa86. Working tree clean.
 
-Product model: Workspace-based synthetic-data intelligence platform. Users create workspaces, select scenarios, generate synthetic data, and explore AI-driven insights. Data is synthetic by design.
+Product model: Workspace-based synthetic-data intelligence platform. Users create workspaces, select scenarios or configure custom ones, generate synthetic data, and explore AI-driven insights. Data is synthetic by design.
 
 Next session sequence:
-1. Create Ticket 4 / 5 for Phase 4
-2. Implement remaining Phase 4 work
+1. Add workspace deletion UI
+2. Add random company scenario option
+3. Start Phase 5 (Infrastructure & Polish)
 
-Do not skip phases. Do not add Phase 5/6 features. Do not add real data ingestion. Do not describe as a static dashboard.
+Do not skip phases. Do not add Phase 5/6 features prematurely. Do not add real data ingestion. Do not describe as a static dashboard.
 ```

@@ -15,6 +15,7 @@ from app.models.executive_summary import ExecutiveSummary
 from app.models.agent_run import AgentRun
 from app.models.audit_result import AuditResult
 from app.models.query_result import QueryResult
+from app.models.workspace_context import WorkspaceContext
 
 __all__ = [
     "Customer",
@@ -34,4 +35,5 @@ __all__ = [
     "AgentRun",
     "AuditResult",
     "QueryResult",
+    "WorkspaceContext",
 ]

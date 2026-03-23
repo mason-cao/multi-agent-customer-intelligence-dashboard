@@ -165,6 +165,15 @@ def _aggregate_metrics(engine) -> Dict[str, Any]:
     """Aggregate all upstream tables into a single stats dictionary."""
     s: Dict[str, Any] = {}
 
+    # ── Workspace context (scenario description, company name) ────
+    try:
+        ctx = pd.read_sql(text("SELECT key, value FROM workspace_context"), engine)
+        ws_ctx = dict(zip(ctx["key"], ctx["value"]))
+    except Exception:
+        ws_ctx = {}
+    s["company_name"] = ws_ctx.get("company_name", "the platform")
+    s["scenario_description"] = ws_ctx.get("scenario_description", "")
+
     # ── Customer base ─────────────────────────────────────────────
     cf = pd.read_sql(
         text(
@@ -621,9 +630,13 @@ def _build_executive_overview(
 ) -> Tuple[str, str]:
     title = "Executive Overview"
 
+    company = s.get("company_name", "the platform")
+    scenario_desc = s.get("scenario_description", "")
+    intro = f"{scenario_desc} " if scenario_desc else ""
+
     para1 = (
-        f"Across {s['total_customers']:,} active customers generating "
-        f"{s['total_revenue_fmt']} in cumulative revenue, the platform "
+        f"{intro}Across {s['total_customers']:,} active customers generating "
+        f"{s['total_revenue_fmt']} in cumulative revenue, {company} "
         f"identifies {s['high_risk_count']:,} customers "
         f"({s['high_risk_pct']:.1f}%) at high or critical churn risk. "
         f"Average customer sentiment is {s['sentiment_label']} "

@@ -14,14 +14,14 @@ Workspace-based customer intelligence platform. Users create workspaces, generat
 | 1 | Agent Buildout | Complete |
 | 2 | Validation & Hardening | Complete |
 | 3 | Integration | Complete |
-| **4** | **Productization** | **In Progress — Tickets 1–3.1 committed** |
+| **4** | **Productization** | **Near complete — Tickets 1–4 committed** |
 | 5 | Infrastructure & Polish | Planned |
 | 6 | Deployment & Presentation | Planned |
 
 ### Phase 4 — Productization (Current)
 Transforms the system from a developer-run pipeline into a user-facing application.
 
-**Completed (Tickets 1–3.1):**
+**Completed (Tickets 1–4):**
 - Workspace metadata model, CRUD API, 4 scenario archetypes
 - Background generation pipeline with 14-stage progress tracking
 - Per-workspace SQLite isolation (`data/workspaces/{id}.db`)
@@ -29,19 +29,17 @@ Transforms the system from a developer-run pipeline into a user-facing applicati
 - WorkspaceContext with localStorage persistence, optimistic fallback
 - Layout guard redirecting to workspace hub when no active workspace
 - Workspace-scoped DB routing via X-Workspace-ID header
+- Workspace lifecycle: regeneration, retry cleanup, delete endpoint
+- Custom scenario mode with 5 user-configurable controls
+- `workspace_context` key-value table for agent scenario metadata
+- Scenario description wired into NarrativeAgent and overview route
 
-**Remaining:** Ticket 4 / 5 to be defined and implemented next session.
-
-### Phase 5 — Infrastructure & Polish
-DAG-based agent orchestrator, ChromaDB vector search for NL queries, automated tests, code cleanup.
-
-### Phase 6 — Deployment & Presentation
-Railway (backend) + Vercel (frontend) deployment, demo mode, presentation preparation.
+**Remaining:** Add workspace deletion UI, add random company scenario option, then start Phase 5.
 
 ## Current State
 
 **Branch:** `main`
-**HEAD:** `48232ed`
+**HEAD:** `c67aa86`
 
 ## Tech Stack
 - **Frontend**: React 19 + Vite 8 + TypeScript + Tailwind CSS 4 + TanStack Query + Lucide React
@@ -59,7 +57,6 @@ Railway (backend) + Vercel (frontend) deployment, demo mode, presentation prepar
 - **Agents**: All inherit from `BaseAgent` ABC with `run()`, `validate_output()`, `execute()`, `save_run()`
 - **Write pattern**: All agents use DELETE+INSERT (not `to_sql("replace")`) to preserve ORM constraints
 - **Imports**: Group stdlib → third-party → local. No star imports.
-- **Error handling**: Agents use retry + fallback pattern. API returns proper HTTP status codes.
 - **No LangChain**: Custom orchestration is intentional
 - **Mock-first**: Every agent must work with zero API keys. LLMClient auto-selects mock → anthropic → openai.
 
@@ -92,8 +89,9 @@ Railway (backend) + Vercel (frontend) deployment, demo mode, presentation prepar
 - Demo must work offline from cached agent outputs.
 
 ## Next Session — Required Actions
-1. **Create Ticket 4 / 5** for remaining Phase 4 Productization work
-2. **Implement Tickets 4 / 5**
+1. **Add workspace deletion** — frontend delete flow for workspace management
+2. **Add random company scenario option** — one-click randomized workspace creation
+3. **Start Phase 5** — Infrastructure & Polish
 
 ## Scope Constraints
 

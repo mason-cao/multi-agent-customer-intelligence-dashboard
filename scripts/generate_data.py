@@ -305,7 +305,7 @@ def generate_subscriptions(
 # Support tickets
 # ---------------------------------------------------------------------------
 def generate_tickets(
-    customers: pd.DataFrame, rng: np.random.Generator
+    customers: pd.DataFrame, rng: np.random.Generator, include_outage: bool = True
 ) -> pd.DataFrame:
     rows = []
     for _, c in customers.iterrows():
@@ -326,7 +326,7 @@ def generate_tickets(
             created = signup + timedelta(days=int(rng.uniform(0, active_days)))
 
             # During outage, more technical/bug tickets
-            if OUTAGE_START <= created <= OUTAGE_END:
+            if include_outage and OUTAGE_START <= created <= OUTAGE_END:
                 cat_weights = [0.10, 0.35, 0.05, 0.35, 0.05, 0.10]
             elif is_churned and (end - created).days < 30:
                 # Near-churn: more cancellation/billing
@@ -340,7 +340,7 @@ def generate_tickets(
 
             priority_weights = (
                 [0.10, 0.25, 0.35, 0.30]
-                if OUTAGE_START <= created <= OUTAGE_END
+                if include_outage and OUTAGE_START <= created <= OUTAGE_END
                 else [0.30, 0.35, 0.25, 0.10]
             )
 
@@ -374,7 +374,7 @@ def generate_tickets(
 # Feedback
 # ---------------------------------------------------------------------------
 def generate_feedback(
-    customers: pd.DataFrame, rng: np.random.Generator
+    customers: pd.DataFrame, rng: np.random.Generator, include_outage: bool = True
 ) -> pd.DataFrame:
     rows = []
     for _, c in customers.iterrows():
@@ -395,7 +395,7 @@ def generate_feedback(
             submitted = signup + timedelta(days=int(rng.uniform(0, active_days)))
 
             # Sentiment influenced by outage window and churn status
-            if OUTAGE_START <= submitted <= OUTAGE_END:
+            if include_outage and OUTAGE_START <= submitted <= OUTAGE_END:
                 sentiment_bucket = rng.choice(
                     ["positive", "neutral", "negative"], p=[0.15, 0.25, 0.60]
                 )
@@ -553,6 +553,7 @@ def generate_dataset(
     primary_industry: str = None,
     seed: int = 42,
     on_stage=None,
+    include_outage: bool = True,
 ) -> dict:
     """Generate a complete synthetic dataset into target_engine.
 
@@ -563,6 +564,7 @@ def generate_dataset(
         primary_industry: If set, weights industry distribution toward this value.
         seed: Random seed for reproducibility.
         on_stage: Optional callback(index, name) called before each stage.
+        include_outage: If True, simulates a Q3 2024 service outage.
 
     Returns:
         Dict mapping table names to row counts.
@@ -588,10 +590,10 @@ def generate_dataset(
     events = generate_events(customers, rng)
 
     _stage(5, "Generating support tickets")
-    tickets = generate_tickets(customers, rng)
+    tickets = generate_tickets(customers, rng, include_outage=include_outage)
 
     _stage(6, "Generating customer feedback")
-    feedback = generate_feedback(customers, rng)
+    feedback = generate_feedback(customers, rng, include_outage=include_outage)
 
     _stage(7, "Loading marketing campaigns")
     campaigns = generate_campaigns(rng)

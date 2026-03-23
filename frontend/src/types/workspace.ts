@@ -28,3 +28,14 @@ export interface Scenario {
   churn_rate: number;
   profile: string;
 }
+
+export interface CreateWorkspaceInput {
+  name: string;
+  scenario: string;
+  industry?: string;
+  customer_count?: number;
+  seed?: number;
+  churn_rate?: number;
+  include_outage?: boolean;
+  scenario_description?: string;
+}

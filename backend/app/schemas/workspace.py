@@ -3,15 +3,18 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class WorkspaceCreate(BaseModel):
     name: str
     scenario: str  # "velocity_saas" | "atlas_enterprise" | "beacon_analytics" | "meridian_data" | "custom"
     industry: Optional[str] = None
-    customer_count: Optional[int] = None
+    customer_count: Optional[int] = Field(default=None, ge=100, le=10000)
     seed: Optional[int] = None
+    churn_rate: Optional[float] = Field(default=None, ge=0.05, le=0.30)
+    include_outage: Optional[bool] = None
+    scenario_description: Optional[str] = Field(default=None, max_length=500)
 
 
 class WorkspaceResponse(BaseModel):

@@ -20,10 +20,12 @@ from sqlalchemy.orm import sessionmaker
 
 from app.db.workspace_db import (
     ensure_workspace_dirs,
+    get_workspace_db_path,
     get_workspace_engine,
 )
 from app.services.workspace_manager import (
     get_workspace,
+    prepare_for_regeneration,
     update_workspace_status,
 )
 
@@ -58,16 +60,21 @@ def start_generation(workspace_id: str) -> bool:
     ws = get_workspace(workspace_id)
     if not ws:
         return False
-    if ws.status not in ("created", "failed"):
+    if ws.status not in ("created", "failed", "ready"):
         return False
 
-    # Mark generating before thread starts (prevents duplicate triggers)
-    update_workspace_status(
-        workspace_id, "generating",
-        current_stage="Initializing workspace",
-        stage_index=0,
-        total_stages=TOTAL_STAGES,
-    )
+    # For failed/ready workspaces, delete stale DB and reset progress
+    if ws.status in ("failed", "ready"):
+        if not prepare_for_regeneration(workspace_id):
+            return False
+    else:
+        # Fresh workspace — just mark as generating
+        update_workspace_status(
+            workspace_id, "generating",
+            current_stage="Initializing workspace",
+            stage_index=0,
+            total_stages=TOTAL_STAGES,
+        )
 
     thread = threading.Thread(
         target=_run_generation,
@@ -116,7 +123,11 @@ def _run_generation(workspace_id: str):
             primary_industry=config.get("industry"),
             seed=seed,
             on_stage=on_data_stage,
+            include_outage=config.get("include_outage", True),
         )
+
+        # ── Write workspace context for agents/routes ──────────────
+        _write_workspace_context(ws_engine, config)
 
         # ── Phase 2: Agent Pipeline (stages 8-14) ─────────────────
         WsSession = sessionmaker(bind=ws_engine)
@@ -160,3 +171,24 @@ def _run_generation(workspace_id: str):
             workspace_id, "failed",
             error_message=error_msg,
         )
+
+
+def _write_workspace_context(engine, config: dict):
+    """Write scenario metadata to the workspace_context table."""
+    from sqlalchemy import text
+
+    context_rows = {
+        "company_name": config.get("company_name", ""),
+        "scenario": config.get("scenario", ""),
+        "scenario_description": config.get("scenario_description", ""),
+        "industry": config.get("industry", ""),
+        "profile": config.get("profile", ""),
+    }
+
+    with engine.begin() as conn:
+        conn.execute(text("DELETE FROM workspace_context"))
+        for key, value in context_rows.items():
+            conn.execute(
+                text("INSERT INTO workspace_context (key, value) VALUES (:k, :v)"),
+                {"k": key, "v": value},
+            )
