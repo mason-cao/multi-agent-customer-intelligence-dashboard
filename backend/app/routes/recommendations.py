@@ -3,12 +3,14 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
+from app.utils.error_handling import handle_errors
 from app.models.recommendation import Recommendation
 
 router = APIRouter(prefix="/api/recommendations", tags=["recommendations"])
 
 
 @router.get("/summary")
+@handle_errors("get_recommendation_summary")
 def get_recommendation_summary(db: Session = Depends(get_db)):
     """Aggregate recommendation stats: distributions by action, category, priority, etc."""
     total = db.query(func.count(Recommendation.recommendation_id)).scalar() or 0
@@ -53,6 +55,7 @@ def get_recommendation_summary(db: Session = Depends(get_db)):
 
 
 @router.get("/top")
+@handle_errors("get_top_recommendations")
 def get_top_recommendations(
     db: Session = Depends(get_db),
     limit: int = Query(20, ge=1, le=100),

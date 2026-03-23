@@ -1,9 +1,13 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+import structlog
 
 from app.db.database import Base, engine
+from app.utils.logging import setup_logging
 from app.routes.agents import router as agents_router
 from app.routes.workspaces import router as workspaces_router
 from app.routes.churn import router as churn_router
@@ -14,8 +18,13 @@ from app.routes.recommendations import router as recommendations_router
 from app.routes.segments import router as segments_router
 from app.routes.sentiment import router as sentiment_router
 
+logger = structlog.get_logger(__name__)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    setup_logging()
+
     # Ensure all ORM-defined tables exist with proper constraints
     import app.models  # noqa: F401 — register all models with Base
     Base.metadata.create_all(bind=engine)
@@ -56,3 +65,15 @@ app.include_router(workspaces_router)
 @app.get("/api/health")
 async def health_check():
     return {"status": "healthy", "version": "0.1.0"}
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Safety net for any exception not caught by route-level handling."""
+    logger.exception(
+        "unhandled_exception", path=request.url.path, method=request.method
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )

@@ -5,12 +5,14 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
+from app.utils.error_handling import handle_errors
 from app.models.sentiment_result import SentimentResult
 
 router = APIRouter(prefix="/api/sentiment", tags=["sentiment"])
 
 
 @router.get("/summary")
+@handle_errors("get_sentiment_summary")
 def get_sentiment_summary(db: Session = Depends(get_db)):
     """Sentiment distribution, average score, and top topics."""
     # Label distribution

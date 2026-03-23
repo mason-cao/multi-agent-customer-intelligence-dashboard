@@ -5,6 +5,7 @@ from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
+from app.utils.error_handling import handle_errors
 from app.models.churn_prediction import ChurnPrediction
 from app.models.customer import Customer
 from app.models.subscription import Subscription
@@ -13,6 +14,7 @@ router = APIRouter(prefix="/api/churn", tags=["churn"])
 
 
 @router.get("/distribution")
+@handle_errors("get_churn_distribution")
 def get_churn_distribution(db: Session = Depends(get_db)):
     """Risk tier counts and MRR at risk per tier."""
     # Subquery: per-customer total MRR
@@ -54,6 +56,7 @@ def get_churn_distribution(db: Session = Depends(get_db)):
 
 
 @router.get("/at-risk")
+@handle_errors("get_at_risk_customers")
 def get_at_risk_customers(
     db: Session = Depends(get_db),
     limit: int = Query(20, ge=1, le=100),
@@ -106,6 +109,7 @@ def get_at_risk_customers(
 
 
 @router.get("/feature-importance")
+@handle_errors("get_feature_importance")
 def get_feature_importance(db: Session = Depends(get_db)):
     """Observed feature importance from top_risk_factors across all predictions."""
     rows = (

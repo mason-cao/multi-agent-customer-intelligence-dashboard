@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+import structlog
 from fastapi import APIRouter, Depends
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -7,6 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text as sql_text
 
 from app.db.database import get_db
+from app.utils.error_handling import handle_errors
 from app.models.anomaly import Anomaly
 from app.models.churn_prediction import ChurnPrediction
 from app.models.customer import Customer
@@ -14,6 +16,8 @@ from app.models.customer_feature import CustomerFeature
 from app.models.order import Order
 from app.models.sentiment_result import SentimentResult
 from app.schemas.overview import KpiCard, NarrativeResponse, OverviewKpis
+
+logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/api/overview", tags=["overview"])
 
@@ -24,6 +28,7 @@ def _read_workspace_context(db: Session) -> dict:
         rows = db.execute(sql_text("SELECT key, value FROM workspace_context")).fetchall()
         return {r[0]: r[1] for r in rows}
     except Exception:
+        logger.warning("workspace_context_read_failed", exc_info=True)
         return {}
 
 
@@ -36,6 +41,7 @@ def _fmt_currency(amount: float) -> str:
 
 
 @router.get("/kpis", response_model=OverviewKpis)
+@handle_errors("get_overview_kpis")
 def get_overview_kpis(db: Session = Depends(get_db)):
     # --- Total customers ---
     total_customers = db.query(func.count(Customer.customer_id)).scalar() or 0
@@ -126,6 +132,7 @@ def get_overview_kpis(db: Session = Depends(get_db)):
 
 
 @router.get("/narrative", response_model=NarrativeResponse)
+@handle_errors("get_narrative")
 def get_narrative(db: Session = Depends(get_db)):
     # Gather summary stats for narrative generation
     total = db.query(func.count(Customer.customer_id)).scalar() or 0

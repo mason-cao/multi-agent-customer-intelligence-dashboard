@@ -3,6 +3,7 @@ from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
+from app.utils.error_handling import handle_errors
 from app.models.agent_run import AgentRun
 from app.models.audit_result import AuditResult
 
@@ -10,6 +11,7 @@ router = APIRouter(prefix="/api/agents", tags=["agents"])
 
 
 @router.get("/summary")
+@handle_errors("get_agents_summary")
 def get_agents_summary(db: Session = Depends(get_db)):
     """Combined audit summary and agent run history."""
     # Audit summary

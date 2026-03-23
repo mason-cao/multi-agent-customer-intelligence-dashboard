@@ -2,6 +2,8 @@
 
 from fastapi import APIRouter, HTTPException
 
+from app.utils.error_handling import handle_errors
+
 from app.schemas.workspace import (
     ScenarioResponse,
     WorkspaceCreate,
@@ -21,6 +23,7 @@ router = APIRouter(prefix="/api/workspaces", tags=["workspaces"])
 
 
 @router.get("/scenarios", response_model=list[ScenarioResponse])
+@handle_errors("get_scenarios")
 def get_scenarios():
     """Return available company scenario archetypes."""
     return [
@@ -38,6 +41,7 @@ def get_scenarios():
 
 
 @router.get("", response_model=WorkspaceListResponse)
+@handle_errors("list_all_workspaces")
 def list_all_workspaces():
     """List all workspaces ordered by creation date."""
     workspaces = list_workspaces()
@@ -48,6 +52,7 @@ def list_all_workspaces():
 
 
 @router.post("", response_model=WorkspaceResponse, status_code=201)
+@handle_errors("create_new_workspace")
 def create_new_workspace(body: WorkspaceCreate):
     """Create a new workspace with the given scenario configuration."""
     ws = create_workspace(
@@ -64,6 +69,7 @@ def create_new_workspace(body: WorkspaceCreate):
 
 
 @router.get("/{workspace_id}", response_model=WorkspaceResponse)
+@handle_errors("get_workspace_detail")
 def get_workspace_detail(workspace_id: str):
     """Get workspace details including generation progress."""
     ws = get_workspace(workspace_id)
@@ -73,6 +79,7 @@ def get_workspace_detail(workspace_id: str):
 
 
 @router.post("/{workspace_id}/generate", status_code=202)
+@handle_errors("trigger_generation")
 def trigger_generation(workspace_id: str):
     """Start workspace data generation and agent pipeline.
 
@@ -98,6 +105,7 @@ def trigger_generation(workspace_id: str):
 
 
 @router.delete("/{workspace_id}", status_code=204)
+@handle_errors("remove_workspace")
 def remove_workspace(workspace_id: str):
     """Delete a workspace and its database file."""
     ws = get_workspace(workspace_id)

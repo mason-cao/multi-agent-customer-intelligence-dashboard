@@ -3,6 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
+from app.utils.error_handling import handle_errors
 from app.models.churn_prediction import ChurnPrediction
 from app.models.customer_feature import CustomerFeature
 from app.models.customer_segment import CustomerSegment
@@ -11,6 +12,7 @@ router = APIRouter(prefix="/api/segments", tags=["segments"])
 
 
 @router.get("/summary")
+@handle_errors("get_segment_summary")
 def get_segment_summary(db: Session = Depends(get_db)):
     """Return per-segment stats: count, avg revenue, engagement, churn risk."""
     rows = (
