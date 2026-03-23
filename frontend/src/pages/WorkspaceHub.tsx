@@ -16,6 +16,7 @@ import {
   Play,
   Trash2,
   Sliders,
+  Sparkles,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useActiveWorkspace } from '../contexts/WorkspaceContext';
@@ -80,6 +81,13 @@ const SCENARIO_META: Record<string, ScenarioMeta> = {
     bg: 'bg-indigo-50',
     border: 'border-indigo-200',
     bar: 'bg-indigo-500',
+  },
+  random: {
+    icon: Sparkles,
+    accent: 'text-rose-600',
+    bg: 'bg-rose-50',
+    border: 'border-rose-200',
+    bar: 'bg-rose-500',
   },
 };
 
@@ -146,6 +154,24 @@ export default function WorkspaceHub() {
     }
   }
 
+  async function handleCreateAndGenerate(body: CreateWorkspaceInput) {
+    try {
+      const ws = await createMutation.mutateAsync(body);
+      setPendingId(ws.id);
+      setView('list');
+      setSelectedScenario(null);
+      setWorkspaceName('');
+
+      try {
+        await generateMutation.mutateAsync(ws.id);
+      } catch {
+        // Generate failed after create — workspace appears in list as "created"
+      }
+    } catch {
+      // Create failed — stay on create view, error shown via mutation state
+    }
+  }
+
   async function handleCreate() {
     if (!selectedScenario || isSubmitting) return;
 
@@ -168,21 +194,12 @@ export default function WorkspaceHub() {
       body = { name, scenario: selectedScenario };
     }
 
-    try {
-      const ws = await createMutation.mutateAsync(body);
-      setPendingId(ws.id);
-      setView('list');
-      setSelectedScenario(null);
-      setWorkspaceName('');
+    await handleCreateAndGenerate(body);
+  }
 
-      try {
-        await generateMutation.mutateAsync(ws.id);
-      } catch {
-        // Generate failed after create — workspace appears in list as "created"
-      }
-    } catch {
-      // Create failed — stay on create view, error shown via mutation state
-    }
+  async function handleRandomCreate() {
+    if (isSubmitting) return;
+    await handleCreateAndGenerate({ name: 'Random', scenario: 'random' });
   }
 
   function handleEnter(ws: Workspace) {
@@ -270,6 +287,7 @@ export default function WorkspaceHub() {
             onChangeOutage={setCustomOutage}
             onChangeDescription={setCustomDescription}
             onCreate={handleCreate}
+            onRandomCreate={handleRandomCreate}
             onBack={() => setView('list')}
           />
         ) : (
@@ -657,6 +675,7 @@ function CreateView({
   onChangeOutage,
   onChangeDescription,
   onCreate,
+  onRandomCreate,
   onBack,
 }: {
   scenarios: Scenario[];
@@ -677,6 +696,7 @@ function CreateView({
   onChangeOutage: (b: boolean) => void;
   onChangeDescription: (s: string) => void;
   onCreate: () => void;
+  onRandomCreate: () => void;
   onBack: () => void;
 }) {
   const isCustom = selectedScenario === 'custom';
@@ -751,6 +771,31 @@ function CreateView({
               Selected
             </div>
           )}
+        </button>
+
+        {/* Surprise Me card — immediate create+generate */}
+        <button
+          onClick={onRandomCreate}
+          disabled={isSubmitting}
+          className={`animate-fade-in-up stagger-${scenarios.length + 2} group rounded-xl border-2 border-slate-200/60 bg-white p-6 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50`}
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 group-hover:bg-rose-100">
+              <Sparkles className="h-5 w-5 text-rose-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-slate-900">
+                Surprise Me
+              </h3>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Random company
+              </p>
+              <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
+                Generate a random company with varied size, industry, churn
+                profile, and business story. Great for quick demos.
+              </p>
+            </div>
+          </div>
         </button>
       </div>
 

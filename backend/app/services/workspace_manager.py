@@ -6,6 +6,7 @@ pipeline execution are handled separately by workspace_generator.py.
 """
 
 import json
+import random
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
@@ -57,6 +58,50 @@ SCENARIOS = {
 }
 
 
+_RANDOM_PREFIXES = [
+    "Nova", "Apex", "Crest", "Pulse", "Summit",
+    "Orbit", "Forge", "Helix", "Prism", "Vantage",
+    "Nimbus", "Cipher", "Ember", "Lumen", "Zenith",
+]
+_RANDOM_SUFFIXES = [
+    "Labs", "Systems", "Solutions", "Group", "Technologies",
+    "Analytics", "Networks", "Digital", "Dynamics", "Platforms",
+]
+_RANDOM_INDUSTRIES = [
+    "Technology", "Healthcare", "Finance", "Retail",
+    "Manufacturing", "Education", "Media", "Logistics",
+]
+
+
+def generate_random_scenario() -> dict:
+    """Generate a bounded random company scenario configuration."""
+    rng = random.Random()
+    company_name = f"{rng.choice(_RANDOM_PREFIXES)} {rng.choice(_RANDOM_SUFFIXES)}"
+    industry = rng.choice(_RANDOM_INDUSTRIES)
+    customer_count = rng.choice([300, 500, 800, 1000, 1500, 2000, 3000, 4000, 5000, 6000])
+    churn_rate = round(rng.uniform(0.06, 0.25), 2)
+    include_outage = rng.choice([True, False])
+    seed = rng.randint(1, 99999)
+
+    # Pick a profile label based on churn rate
+    if churn_rate <= 0.10:
+        profile = "healthy_growth"
+    elif churn_rate <= 0.18:
+        profile = "mixed_health"
+    else:
+        profile = "churn_crisis"
+
+    return {
+        "company_name": company_name,
+        "industry": industry,
+        "customer_count": customer_count,
+        "churn_rate": churn_rate,
+        "include_outage": include_outage,
+        "profile": profile,
+        "seed": seed,
+    }
+
+
 def init_metadata_db():
     """Create the workspace metadata tables."""
     WorkspaceBase.metadata.create_all(bind=metadata_engine)
@@ -94,7 +139,16 @@ def create_workspace(
     ensure_workspace_dirs()
 
     # Resolve scenario defaults
-    if scenario in SCENARIOS:
+    if scenario == "random":
+        rand = generate_random_scenario()
+        company_name = rand["company_name"]
+        resolved_industry = rand["industry"]
+        resolved_count = rand["customer_count"]
+        resolved_churn = rand["churn_rate"]
+        resolved_profile = rand["profile"]
+        resolved_outage = rand["include_outage"]
+        seed = seed or rand["seed"]
+    elif scenario in SCENARIOS:
         defaults = SCENARIOS[scenario]
         company_name = defaults["company_name"]
         resolved_industry = industry or defaults["industry"]
