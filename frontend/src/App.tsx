@@ -11,6 +11,7 @@ import SentimentSupport from './pages/SentimentSupport';
 import Recommendations from './pages/Recommendations';
 import AgentAudit from './pages/AgentAudit';
 import AskAnything from './pages/AskAnything';
+import NotFound from './pages/NotFound';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,6 +40,7 @@ export default function App() {
               <Route path="/agents" element={<AgentAudit />} />
               <Route path="/ask" element={<AskAnything />} />
             </Route>
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </WorkspaceProvider>
       </BrowserRouter>

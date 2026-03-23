@@ -1,6 +1,7 @@
-import { Users, DollarSign, Activity, AlertTriangle } from 'lucide-react';
+import { Users, DollarSign, Activity, AlertTriangle, Layers } from 'lucide-react';
 import PageHeader from '../components/shared/PageHeader';
 import Card from '../components/shared/Card';
+import EmptyState from '../components/shared/EmptyState';
 import { useSegmentSummary } from '../api/hooks';
 import { SEGMENT_COLORS } from '../utils/colors';
 import { formatCurrency, formatPercent } from '../utils/formatters';
@@ -44,11 +45,11 @@ export default function Segments() {
           </p>
         </Card>
       ) : !segments || segments.length === 0 ? (
-        <Card>
-          <p className="text-sm text-slate-500">
-            No segment data available. Run the segmentation agent to generate results.
-          </p>
-        </Card>
+        <EmptyState
+          icon={Layers}
+          title="No segment data available"
+          description="Customer segments will appear here once the segmentation agent has analyzed this workspace's customer base."
+        />
       ) : (
         <>
           {/* Distribution bar */}

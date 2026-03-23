@@ -1,6 +1,7 @@
 import { ShieldCheck, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
 import PageHeader from '../components/shared/PageHeader';
 import Card from '../components/shared/Card';
+import EmptyState from '../components/shared/EmptyState';
 import { useAgentsSummary } from '../api/hooks';
 
 function Skeleton({ className = '' }: { className?: string }) {
@@ -26,13 +27,19 @@ export default function AgentAudit() {
           </div>
           <Card><Skeleton className="h-64 w-full" /></Card>
         </div>
-      ) : isError || !data ? (
+      ) : isError ? (
         <Card className="border-red-100 bg-red-50/40">
           <p className="flex items-center gap-2 text-sm text-red-600">
             <AlertTriangle className="h-4 w-4" />
             Failed to load audit data.
           </p>
         </Card>
+      ) : !data ? (
+        <EmptyState
+          icon={ShieldCheck}
+          title="No audit data available"
+          description="Audit results and agent run history will appear here once the intelligence pipeline has completed for this workspace."
+        />
       ) : (
         <>
           {/* Audit KPIs */}
@@ -129,44 +136,52 @@ export default function AgentAudit() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.runs.map((r) => (
-                      <tr
-                        key={r.id}
-                        className="border-b border-slate-50 last:border-0"
-                      >
-                        <td className="py-2.5 font-medium capitalize text-slate-700">
-                          {r.agent_name}
-                        </td>
-                        <td className="py-2.5">
-                          {r.status === 'completed' ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
-                              <CheckCircle className="h-3.5 w-3.5" />
-                              Completed
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-xs font-medium text-red-500">
-                              <XCircle className="h-3.5 w-3.5" />
-                              {r.status}
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-2.5 text-right text-slate-600">
-                          {r.duration_ms != null
-                            ? r.duration_ms >= 1000
-                              ? `${(r.duration_ms / 1000).toFixed(1)}s`
-                              : `${r.duration_ms}ms`
-                            : '—'}
-                        </td>
-                        <td className="py-2.5 text-right text-slate-600">
-                          {r.tokens_used ?? 0}
-                        </td>
-                        <td className="py-2.5 text-xs text-slate-400">
-                          {r.completed_at
-                            ? new Date(r.completed_at).toLocaleString()
-                            : '—'}
+                    {data.runs.length ? (
+                      data.runs.map((r) => (
+                        <tr
+                          key={r.id}
+                          className="border-b border-slate-50 last:border-0"
+                        >
+                          <td className="py-2.5 font-medium capitalize text-slate-700">
+                            {r.agent_name}
+                          </td>
+                          <td className="py-2.5">
+                            {r.status === 'completed' ? (
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
+                                <CheckCircle className="h-3.5 w-3.5" />
+                                Completed
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-red-500">
+                                <XCircle className="h-3.5 w-3.5" />
+                                {r.status}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2.5 text-right text-slate-600">
+                            {r.duration_ms != null
+                              ? r.duration_ms >= 1000
+                                ? `${(r.duration_ms / 1000).toFixed(1)}s`
+                                : `${r.duration_ms}ms`
+                              : '—'}
+                          </td>
+                          <td className="py-2.5 text-right text-slate-600">
+                            {r.tokens_used ?? 0}
+                          </td>
+                          <td className="py-2.5 text-xs text-slate-400">
+                            {r.completed_at
+                              ? new Date(r.completed_at).toLocaleString()
+                              : '—'}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-sm text-slate-400">
+                          No agent runs recorded
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -193,42 +208,50 @@ export default function AgentAudit() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.checks.map((c) => (
-                    <tr
-                      key={c.audit_id}
-                      className="border-b border-slate-50 last:border-0"
-                    >
-                      <td className="py-2 text-xs font-medium text-slate-600 capitalize">
-                        {c.check_category}
-                      </td>
-                      <td className="py-2 text-xs text-slate-700">
-                        {c.check_name}
-                      </td>
-                      <td className="py-2">
-                        <span
-                          className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                            c.severity === 'critical'
-                              ? 'bg-red-50 text-red-600'
-                              : c.severity === 'warning'
-                                ? 'bg-amber-50 text-amber-600'
-                                : 'bg-slate-50 text-slate-500'
-                          }`}
-                        >
-                          {c.severity}
-                        </span>
-                      </td>
-                      <td className="py-2">
-                        {c.passed ? (
-                          <CheckCircle className="h-4 w-4 text-emerald-500" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-red-500" />
-                        )}
-                      </td>
-                      <td className="max-w-sm truncate py-2 text-xs text-slate-500">
-                        {c.audit_message}
+                  {data.checks.length ? (
+                    data.checks.map((c) => (
+                      <tr
+                        key={c.audit_id}
+                        className="border-b border-slate-50 last:border-0"
+                      >
+                        <td className="py-2 text-xs font-medium text-slate-600 capitalize">
+                          {c.check_category}
+                        </td>
+                        <td className="py-2 text-xs text-slate-700">
+                          {c.check_name}
+                        </td>
+                        <td className="py-2">
+                          <span
+                            className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                              c.severity === 'critical'
+                                ? 'bg-red-50 text-red-600'
+                                : c.severity === 'warning'
+                                  ? 'bg-amber-50 text-amber-600'
+                                  : 'bg-slate-50 text-slate-500'
+                            }`}
+                          >
+                            {c.severity}
+                          </span>
+                        </td>
+                        <td className="py-2">
+                          {c.passed ? (
+                            <CheckCircle className="h-4 w-4 text-emerald-500" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-red-500" />
+                          )}
+                        </td>
+                        <td className="max-w-sm truncate py-2 text-xs text-slate-500">
+                          {c.audit_message}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-sm text-slate-400">
+                        No audit checks recorded
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>

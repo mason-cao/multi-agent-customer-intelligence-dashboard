@@ -4,9 +4,11 @@ import {
   TrendingDown,
   AlertTriangle,
   CheckCircle,
+  BarChart3,
 } from 'lucide-react';
 import PageHeader from '../components/shared/PageHeader';
 import Card from '../components/shared/Card';
+import EmptyState from '../components/shared/EmptyState';
 import { useOverviewKpis, useOverviewNarrative } from '../api/hooks';
 import type { KpiData } from '../types';
 
@@ -94,9 +96,19 @@ export default function Overview() {
                   </p>
                 </Card>
               ))
-            : kpiList.map((kpi, i) => (
-                <KpiCard key={kpi.label} kpi={kpi} index={i} />
-              ))}
+            : kpiList.length === 0
+              ? (
+                <div className="col-span-full">
+                  <EmptyState
+                    icon={BarChart3}
+                    title="No metrics available"
+                    description="Executive KPIs will appear here once the intelligence pipeline has processed this workspace's data."
+                  />
+                </div>
+              )
+              : kpiList.map((kpi, i) => (
+                  <KpiCard key={kpi.label} kpi={kpi} index={i} />
+                ))}
       </div>
 
       {/* AI Narrative */}
@@ -153,8 +165,8 @@ export default function Overview() {
           </div>
         ) : (
           <p className="text-sm leading-relaxed text-slate-600">
-            Executive narrative will appear here once the analysis pipeline
-            has been run.
+            The AI-generated executive narrative will appear here once the
+            intelligence pipeline has processed this workspace.
           </p>
         )}
       </Card>

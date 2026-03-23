@@ -1,6 +1,7 @@
 import { MessageCircle, AlertTriangle, Hash } from 'lucide-react';
 import PageHeader from '../components/shared/PageHeader';
 import Card from '../components/shared/Card';
+import EmptyState from '../components/shared/EmptyState';
 import { useSentimentSummary } from '../api/hooks';
 import { SENTIMENT_COLORS } from '../utils/colors';
 
@@ -38,13 +39,19 @@ export default function SentimentSupport() {
           </div>
           <Card><Skeleton className="h-64 w-full" /></Card>
         </div>
-      ) : isError || !summary ? (
+      ) : isError ? (
         <Card className="border-red-100 bg-red-50/40">
           <p className="flex items-center gap-2 text-sm text-red-600">
             <AlertTriangle className="h-4 w-4" />
             Failed to load sentiment data.
           </p>
         </Card>
+      ) : !summary ? (
+        <EmptyState
+          icon={MessageCircle}
+          title="No sentiment data available"
+          description="Sentiment analysis and topic extraction will appear here once the sentiment agent has processed this workspace's feedback."
+        />
       ) : (
         <>
           {/* KPI row */}
@@ -168,44 +175,52 @@ export default function SentimentSupport() {
                     </tr>
                   </thead>
                   <tbody>
-                    {summary.topics.map((t) => {
-                      const barPct = Math.min(
-                        100,
-                        Math.max(0, ((t.avg_sentiment + 1) / 2) * 100)
-                      );
-                      return (
-                        <tr
-                          key={t.topic}
-                          className="border-b border-slate-50 last:border-0"
-                        >
-                          <td className="py-2.5 font-medium text-slate-700 capitalize">
-                            {t.topic.replace(/_/g, ' ')}
-                          </td>
-                          <td className="py-2.5 text-right text-slate-600">
-                            {t.count.toLocaleString()}
-                          </td>
-                          <td className="py-2.5 text-right">
-                            <span
-                              className="font-semibold"
-                              style={{ color: sentColor(t.avg_sentiment) }}
-                            >
-                              {t.avg_sentiment.toFixed(3)}
-                            </span>
-                          </td>
-                          <td className="py-2.5">
-                            <div className="h-2 w-24 rounded-full bg-slate-100">
-                              <div
-                                className="h-2 rounded-full transition-all"
-                                style={{
-                                  width: `${barPct}%`,
-                                  backgroundColor: sentColor(t.avg_sentiment),
-                                }}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {summary.topics.length ? (
+                      summary.topics.map((t) => {
+                        const barPct = Math.min(
+                          100,
+                          Math.max(0, ((t.avg_sentiment + 1) / 2) * 100)
+                        );
+                        return (
+                          <tr
+                            key={t.topic}
+                            className="border-b border-slate-50 last:border-0"
+                          >
+                            <td className="py-2.5 font-medium text-slate-700 capitalize">
+                              {t.topic.replace(/_/g, ' ')}
+                            </td>
+                            <td className="py-2.5 text-right text-slate-600">
+                              {t.count.toLocaleString()}
+                            </td>
+                            <td className="py-2.5 text-right">
+                              <span
+                                className="font-semibold"
+                                style={{ color: sentColor(t.avg_sentiment) }}
+                              >
+                                {t.avg_sentiment.toFixed(3)}
+                              </span>
+                            </td>
+                            <td className="py-2.5">
+                              <div className="h-2 w-24 rounded-full bg-slate-100">
+                                <div
+                                  className="h-2 rounded-full transition-all"
+                                  style={{
+                                    width: `${barPct}%`,
+                                    backgroundColor: sentColor(t.avg_sentiment),
+                                  }}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="py-8 text-center text-sm text-slate-400">
+                          No topics extracted from feedback
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

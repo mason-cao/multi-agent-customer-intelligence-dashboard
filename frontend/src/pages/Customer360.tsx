@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Users, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import PageHeader from '../components/shared/PageHeader';
 import Card from '../components/shared/Card';
+import EmptyState from '../components/shared/EmptyState';
 import { useCustomers } from '../api/hooks';
 import { SEGMENT_COLORS, RISK_COLORS } from '../utils/colors';
 import { formatCurrency } from '../utils/formatters';
@@ -41,6 +42,12 @@ export default function Customer360() {
             Failed to load customer data.
           </p>
         </Card>
+      ) : data.customers.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title="No customer profiles found"
+          description="Customer profiles will appear here once the intelligence pipeline has processed this workspace's data."
+        />
       ) : (
         <>
           {/* Summary bar */}

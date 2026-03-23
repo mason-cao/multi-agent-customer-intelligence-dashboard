@@ -1,6 +1,7 @@
 import { Lightbulb, AlertTriangle, ArrowUpRight } from 'lucide-react';
 import PageHeader from '../components/shared/PageHeader';
 import Card from '../components/shared/Card';
+import EmptyState from '../components/shared/EmptyState';
 import {
   useRecommendationSummary,
   useTopRecommendations,
@@ -18,10 +19,11 @@ function Skeleton({ className = '' }: { className?: string }) {
 }
 
 export default function Recommendations() {
-  const { data: summary, isLoading: sumLoading } = useRecommendationSummary();
-  const { data: topRecs, isLoading: recLoading } = useTopRecommendations(15);
+  const { data: summary, isLoading: sumLoading, isError: sumError } = useRecommendationSummary();
+  const { data: topRecs, isLoading: recLoading, isError: recError } = useTopRecommendations(15);
 
   const isLoading = sumLoading || recLoading;
+  const isError = sumError || recError;
 
   // Sort action distribution by count desc for the bar chart
   const actionEntries = summary
@@ -46,13 +48,19 @@ export default function Recommendations() {
           </div>
           <Card><Skeleton className="h-64 w-full" /></Card>
         </div>
-      ) : !summary ? (
+      ) : isError ? (
         <Card className="border-red-100 bg-red-50/40">
           <p className="flex items-center gap-2 text-sm text-red-600">
             <AlertTriangle className="h-4 w-4" />
-            Failed to load recommendations.
+            Failed to load recommendation data.
           </p>
         </Card>
+      ) : !summary ? (
+        <EmptyState
+          icon={Lightbulb}
+          title="No recommendations generated"
+          description="AI-generated action recommendations will appear here once the recommendation agent has analyzed this workspace's customer data."
+        />
       ) : (
         <>
           {/* Summary KPIs */}
@@ -141,36 +149,44 @@ export default function Recommendations() {
                     </tr>
                   </thead>
                   <tbody>
-                    {topRecs?.map((r) => (
-                      <tr
-                        key={r.recommendation_id}
-                        className="border-b border-slate-50 last:border-0"
-                      >
-                        <td className="py-2.5 font-medium text-slate-700">
-                          {r.action_label}
-                        </td>
-                        <td className="py-2.5">
-                          <span
-                            className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
-                            style={{
-                              backgroundColor:
-                                CATEGORY_COLORS[r.action_category] ?? '#6b7280',
-                            }}
-                          >
-                            {r.action_category}
-                          </span>
-                        </td>
-                        <td className="py-2.5 text-xs text-slate-500">
-                          {r.primary_driver}
-                        </td>
-                        <td className="py-2.5 text-right text-sm font-semibold text-slate-700">
-                          {r.urgency_score.toFixed(1)}
-                        </td>
-                        <td className="py-2.5 text-xs text-slate-500">
-                          {r.target_timeframe}
+                    {topRecs?.length ? (
+                      topRecs.map((r) => (
+                        <tr
+                          key={r.recommendation_id}
+                          className="border-b border-slate-50 last:border-0"
+                        >
+                          <td className="py-2.5 font-medium text-slate-700">
+                            {r.action_label}
+                          </td>
+                          <td className="py-2.5">
+                            <span
+                              className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
+                              style={{
+                                backgroundColor:
+                                  CATEGORY_COLORS[r.action_category] ?? '#6b7280',
+                              }}
+                            >
+                              {r.action_category}
+                            </span>
+                          </td>
+                          <td className="py-2.5 text-xs text-slate-500">
+                            {r.primary_driver}
+                          </td>
+                          <td className="py-2.5 text-right text-sm font-semibold text-slate-700">
+                            {r.urgency_score.toFixed(1)}
+                          </td>
+                          <td className="py-2.5 text-xs text-slate-500">
+                            {r.target_timeframe}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-sm text-slate-400">
+                          No priority recommendations available
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
