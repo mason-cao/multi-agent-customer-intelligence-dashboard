@@ -5,9 +5,9 @@
 ## Current Status
 
 **Branch:** `main`
-**HEAD:** `e75188c` -Standardize backend error handling
+**HEAD:** `c8bae3d` -Add test infrastructure with pytest conftest and backend smoke tests
 **Working tree:** Clean
-**Current phase:** Phase 5 (Infrastructure & Polish) -Tickets 1–2 committed.
+**Current phase:** Phase 5 (Infrastructure & Polish) -Tickets 1–4 committed.
 ---
 
 ## Phase Summary
@@ -18,7 +18,7 @@
 | 2 | Validation & Hardening | Complete | Full-system hardening pass, pipeline runner |
 | 3 | Integration | Complete | All 8 pages wired to real backend data |
 | 4 | Productization | Complete | Workspace model, generation pipeline, hub UI, DB routing, lifecycle, custom scenarios |
-| **5** | **Infrastructure & Polish** | **In Progress** | Tickets 1–2 committed (frontend resilience, backend error handling) |
+| **5** | **Infrastructure & Polish** | **In Progress** | Tickets 1–4 committed (frontend resilience, backend error handling, dashboard empty states, test infrastructure) |
 | 6 | Deployment & Presentation | Planned | Railway + Vercel, demo prep |
 
 ---
@@ -155,8 +155,19 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 - Ticket 2.1: Fixed import ordering in overview.py
 - 12-section disciplined audit confirmed clean implementation
 
+### Ticket 3 -Dashboard Empty States + 404 Route (`263ea95`)
+- Added empty-state components to all 8 dashboard pages for pre-generation UX
+- Added catch-all 404 route for unmatched URLs
+
+### Ticket 4 -Test Infrastructure: Conftest + Backend Smoke Tests (`c8bae3d`)
+- Full pytest infrastructure with DB isolation via module-level attribute patching
+- `conftest.py`: 3 fixtures (test_data_dir, test_app, client) patching 10 module-level attributes across 3 modules
+- 10 smoke tests across 3 files: test_health.py (1), test_scenarios.py (3), test_workspaces.py (6)
+- Key discovery: `workspace_manager.py` captures `MetadataSession` at import time — must patch both source and consumer modules
+- All 10 tests pass in 0.23s with full DB isolation (production data/ untouched)
+
 ### Remaining Phase 5 Work
-- Ticket 3+ not yet defined -continue roadmap
+- Ticket 5+ not yet defined -continue roadmap
 ---
 
 ## What Is Not Built Yet
@@ -164,7 +175,7 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 ### Phase 5 -Infrastructure & Polish
 - DAG-based agent orchestrator for parallel execution
 - ChromaDB vector store for NL query semantic search
-- Automated tests (pytest backend, Vitest frontend)
+- Frontend tests (Vitest)
 - Code cleanup and documentation
 
 ### Phase 6 -Deployment & Presentation
@@ -306,3 +317,21 @@ Continue Phase 5 -Infrastructure & Polish. Follow the roadmap.
 - Global exception handler is async (FastAPI requirement), decorator wrapper is sync (all endpoints are sync)
 
 **Next session:** Continue Phase 5 roadmap
+
+---
+
+### Session 6 -2026-03-23 (Phase 5 Tickets 3–4)
+
+**Work completed:**
+- Ticket 3: Dashboard empty states for all 8 pages + catch-all 404 route (`263ea95`)
+- Ticket 4: Test infrastructure — full pytest conftest with DB isolation + 10 backend smoke tests (`c8bae3d`)
+- conftest.py patches 10 module-level attributes across database.py, workspace_db.py, and workspace_manager.py
+- Tests cover: health endpoint, scenario listing/validation, workspace CRUD lifecycle (create, get, list, delete, random scenario)
+- Solved import-time capture problem: `workspace_manager.py` captures `MetadataSession` at import, requiring dual-module patching
+
+**Key decisions:**
+- Direct module attribute patching (not monkeypatch) for session-scoped DB isolation
+- `httpx.ASGITransport` for full ASGI stack testing without spawning a server
+- Session-scoped fixtures for DB setup, function-scoped for HTTP client (test isolation)
+
+**Next session:** Audit Ticket 4, then continue Phase 5 roadmap
