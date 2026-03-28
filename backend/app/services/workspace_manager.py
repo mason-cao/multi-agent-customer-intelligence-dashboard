@@ -103,8 +103,16 @@ def generate_random_scenario() -> dict:
 
 
 def init_metadata_db():
-    """Create the workspace metadata tables."""
+    """Create the workspace metadata tables (with column migrations)."""
     WorkspaceBase.metadata.create_all(bind=metadata_engine)
+    # Migration: add generation_started_at if missing (existing DBs)
+    from sqlalchemy import inspect, text
+    columns = [c['name'] for c in inspect(metadata_engine).get_columns('workspaces')]
+    if 'generation_started_at' not in columns:
+        with metadata_engine.begin() as conn:
+            conn.execute(text(
+                'ALTER TABLE workspaces ADD COLUMN generation_started_at DATETIME'
+            ))
 
 
 def list_workspaces() -> list[Workspace]:
@@ -239,6 +247,8 @@ def update_workspace_status(
         if not ws:
             return None
         ws.status = status
+        if status == "generating":
+            ws.generation_started_at = datetime.now(timezone.utc)
         if current_stage is not None:
             ws.current_stage = current_stage
         if stage_index is not None:

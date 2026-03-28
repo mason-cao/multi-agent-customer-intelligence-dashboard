@@ -11,7 +11,9 @@ export interface Workspace {
   total_stages: number | null;
   created_at: string;
   completed_at: string | null;
+  generation_started_at: string | null;
   error_message: string | null;
+  user_message: string | null;
 }
 
 export interface WorkspaceListResponse {

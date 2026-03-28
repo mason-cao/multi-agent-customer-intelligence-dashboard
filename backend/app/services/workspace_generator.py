@@ -14,6 +14,7 @@ import importlib
 import json
 import sys
 import threading
+import time
 from pathlib import Path
 
 from sqlalchemy.orm import sessionmaker
@@ -37,6 +38,7 @@ if SCRIPTS_DIR not in sys.path:
 
 # ── Constants ──────────────────────────────────────────────────
 TOTAL_STAGES = 14
+GENERATION_TIMEOUT_SECONDS = 300  # 5 minutes
 
 PIPELINE = [
     ("BehaviorAgent", "app.agents.behavior_agent", "BehaviorAgent"),
@@ -92,6 +94,14 @@ def _run_generation(workspace_id: str):
     stage so the frontend can poll for progress.
     """
     try:
+        gen_start = time.monotonic()
+
+        def _check_timeout():
+            if time.monotonic() - gen_start > GENERATION_TIMEOUT_SECONDS:
+                raise TimeoutError(
+                    f"Generation exceeded {GENERATION_TIMEOUT_SECONDS}s limit"
+                )
+
         ws = get_workspace(workspace_id)
         if not ws:
             return
@@ -99,6 +109,7 @@ def _run_generation(workspace_id: str):
         config = json.loads(ws.config_json) if ws.config_json else {}
 
         # ── Phase 1: Synthetic Data Generation (stages 1-7) ────────
+        _check_timeout()
         ensure_workspace_dirs()
         ws_engine = get_workspace_engine(workspace_id)
 
@@ -133,6 +144,7 @@ def _run_generation(workspace_id: str):
         WsSession = sessionmaker(bind=ws_engine)
 
         for i, (label, module_path, class_name) in enumerate(PIPELINE):
+            _check_timeout()
             # Stages 8-13: individual agents, stage 14: finalize
             if i <= 5:
                 stage_name = f"Running {label}"
@@ -163,6 +175,10 @@ def _run_generation(workspace_id: str):
                 db.close()
 
         # ── Done ───────────────────────────────────────────────────
+        # Guard: if poll-side timeout already marked this failed, don't override
+        ws_final = get_workspace(workspace_id)
+        if ws_final and ws_final.status == "failed":
+            return
         update_workspace_status(workspace_id, "ready")
 
     except Exception as e:

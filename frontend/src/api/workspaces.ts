@@ -65,6 +65,13 @@ export function useGenerateWorkspace() {
     onSuccess: (_, workspaceId) => {
       queryClient.invalidateQueries({ queryKey: ['workspaces', workspaceId] });
       queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+      // Clear stale dashboard data from the previous generation
+      queryClient.removeQueries({
+        predicate: (query) => {
+          const key = query.queryKey[0] as string;
+          return key !== 'workspaces' && key !== 'health';
+        },
+      });
     },
   });
 }

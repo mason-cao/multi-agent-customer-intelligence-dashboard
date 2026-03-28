@@ -46,24 +46,24 @@ export function useHealthCheck() {
 export function useOverviewKpis() {
   const { activeWorkspace } = useActiveWorkspace();
   return useQuery<OverviewKpis>({
-    queryKey: ['overview', 'kpis', activeWorkspace?.id],
+    queryKey: ['overview', 'kpis', activeWorkspace?.id, activeWorkspace?.completed_at],
     queryFn: async () => {
       const { data } = await api.get('/overview/kpis');
       return data;
     },
-    enabled: !!activeWorkspace,
+    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
   });
 }
 
 export function useOverviewNarrative() {
   const { activeWorkspace } = useActiveWorkspace();
   return useQuery<NarrativeResponse>({
-    queryKey: ['overview', 'narrative', activeWorkspace?.id],
+    queryKey: ['overview', 'narrative', activeWorkspace?.id, activeWorkspace?.completed_at],
     queryFn: async () => {
       const { data } = await api.get('/overview/narrative');
       return data;
     },
-    enabled: !!activeWorkspace,
+    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
   });
 }
 
@@ -72,12 +72,12 @@ export function useOverviewNarrative() {
 export function useSegmentSummary() {
   const { activeWorkspace } = useActiveWorkspace();
   return useQuery<SegmentSummary[]>({
-    queryKey: ['segments', 'summary', activeWorkspace?.id],
+    queryKey: ['segments', 'summary', activeWorkspace?.id, activeWorkspace?.completed_at],
     queryFn: async () => {
       const { data } = await api.get('/segments/summary');
       return data;
     },
-    enabled: !!activeWorkspace,
+    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
   });
 }
 
@@ -86,36 +86,36 @@ export function useSegmentSummary() {
 export function useChurnDistribution() {
   const { activeWorkspace } = useActiveWorkspace();
   return useQuery<ChurnDistribution[]>({
-    queryKey: ['churn', 'distribution', activeWorkspace?.id],
+    queryKey: ['churn', 'distribution', activeWorkspace?.id, activeWorkspace?.completed_at],
     queryFn: async () => {
       const { data } = await api.get('/churn/distribution');
       return data;
     },
-    enabled: !!activeWorkspace,
+    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
   });
 }
 
 export function useAtRiskCustomers(limit = 20) {
   const { activeWorkspace } = useActiveWorkspace();
   return useQuery<AtRiskCustomer[]>({
-    queryKey: ['churn', 'at-risk', limit, activeWorkspace?.id],
+    queryKey: ['churn', 'at-risk', limit, activeWorkspace?.id, activeWorkspace?.completed_at],
     queryFn: async () => {
       const { data } = await api.get(`/churn/at-risk?limit=${limit}`);
       return data;
     },
-    enabled: !!activeWorkspace,
+    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
   });
 }
 
 export function useFeatureImportance() {
   const { activeWorkspace } = useActiveWorkspace();
   return useQuery<FeatureImportance[]>({
-    queryKey: ['churn', 'feature-importance', activeWorkspace?.id],
+    queryKey: ['churn', 'feature-importance', activeWorkspace?.id, activeWorkspace?.completed_at],
     queryFn: async () => {
       const { data } = await api.get('/churn/feature-importance');
       return data;
     },
-    enabled: !!activeWorkspace,
+    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
   });
 }
 
@@ -124,24 +124,24 @@ export function useFeatureImportance() {
 export function useRecommendationSummary() {
   const { activeWorkspace } = useActiveWorkspace();
   return useQuery<RecommendationSummary>({
-    queryKey: ['recommendations', 'summary', activeWorkspace?.id],
+    queryKey: ['recommendations', 'summary', activeWorkspace?.id, activeWorkspace?.completed_at],
     queryFn: async () => {
       const { data } = await api.get('/recommendations/summary');
       return data;
     },
-    enabled: !!activeWorkspace,
+    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
   });
 }
 
 export function useTopRecommendations(limit = 20) {
   const { activeWorkspace } = useActiveWorkspace();
   return useQuery<RecommendationItem[]>({
-    queryKey: ['recommendations', 'top', limit, activeWorkspace?.id],
+    queryKey: ['recommendations', 'top', limit, activeWorkspace?.id, activeWorkspace?.completed_at],
     queryFn: async () => {
       const { data } = await api.get(`/recommendations/top?limit=${limit}`);
       return data;
     },
-    enabled: !!activeWorkspace,
+    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
   });
 }
 
@@ -150,12 +150,12 @@ export function useTopRecommendations(limit = 20) {
 export function useSentimentSummary() {
   const { activeWorkspace } = useActiveWorkspace();
   return useQuery<SentimentSummary>({
-    queryKey: ['sentiment', 'summary', activeWorkspace?.id],
+    queryKey: ['sentiment', 'summary', activeWorkspace?.id, activeWorkspace?.completed_at],
     queryFn: async () => {
       const { data } = await api.get('/sentiment/summary');
       return data;
     },
-    enabled: !!activeWorkspace,
+    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
   });
 }
 
@@ -164,12 +164,12 @@ export function useSentimentSummary() {
 export function useAgentsSummary() {
   const { activeWorkspace } = useActiveWorkspace();
   return useQuery<AgentsSummary>({
-    queryKey: ['agents', 'summary', activeWorkspace?.id],
+    queryKey: ['agents', 'summary', activeWorkspace?.id, activeWorkspace?.completed_at],
     queryFn: async () => {
       const { data } = await api.get('/agents/summary');
       return data;
     },
-    enabled: !!activeWorkspace,
+    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
   });
 }
 
@@ -178,12 +178,12 @@ export function useAgentsSummary() {
 export function useCustomers(limit = 50, offset = 0) {
   const { activeWorkspace } = useActiveWorkspace();
   return useQuery<CustomerListResponse>({
-    queryKey: ['customers', limit, offset, activeWorkspace?.id],
+    queryKey: ['customers', limit, offset, activeWorkspace?.id, activeWorkspace?.completed_at],
     queryFn: async () => {
       const { data } = await api.get(`/customers?limit=${limit}&offset=${offset}`);
       return data;
     },
-    enabled: !!activeWorkspace,
+    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
   });
 }
 

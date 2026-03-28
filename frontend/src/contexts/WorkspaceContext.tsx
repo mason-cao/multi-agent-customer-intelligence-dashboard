@@ -52,19 +52,27 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
   }, [isError, storedId]);
 
+  const PRESERVED_KEYS = new Set(['workspaces', 'health']);
+
+  const clearDashboardCache = useCallback(() => {
+    queryClient.removeQueries({
+      predicate: (query) => !PRESERVED_KEYS.has(query.queryKey[0] as string),
+    });
+  }, [queryClient]);
+
   const setActiveWorkspace = useCallback((ws: Workspace) => {
-    queryClient.removeQueries();
+    clearDashboardCache();
     setStoredId(ws.id);
     setLocalWorkspace(ws);
     localStorage.setItem(STORAGE_KEY, ws.id);
-  }, [queryClient]);
+  }, [clearDashboardCache]);
 
   const clearWorkspace = useCallback(() => {
-    queryClient.removeQueries();
+    clearDashboardCache();
     setStoredId(null);
     setLocalWorkspace(null);
     localStorage.removeItem(STORAGE_KEY);
-  }, [queryClient]);
+  }, [clearDashboardCache]);
 
   return (
     <WorkspaceContext.Provider

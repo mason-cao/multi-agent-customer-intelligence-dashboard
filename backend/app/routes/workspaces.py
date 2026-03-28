@@ -1,5 +1,7 @@
 """Workspace management API routes."""
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, HTTPException
 
 from app.utils.error_handling import handle_errors
@@ -17,6 +19,7 @@ from app.services.workspace_manager import (
     get_workspace,
     list_workspaces,
     prepare_for_regeneration,
+    update_workspace_status,
 )
 
 router = APIRouter(prefix="/api/workspaces", tags=["workspaces"])
@@ -74,7 +77,26 @@ def get_workspace_detail(workspace_id: str):
     """Get workspace details including generation progress."""
     ws = get_workspace(workspace_id)
     if not ws:
-        raise HTTPException(status_code=404, detail="Workspace not found")
+        raise HTTPException(status_code=404, detail="This workspace doesn't exist.")
+
+    # Detect timed-out generation on poll
+    if ws.status == "generating":
+        from app.services.workspace_generator import GENERATION_TIMEOUT_SECONDS
+        if not ws.generation_started_at:
+            update_workspace_status(
+                workspace_id, "failed",
+                error_message="Timeout: generation state is stale (missing start time)",
+            )
+            ws = get_workspace(workspace_id)
+        else:
+            elapsed = (datetime.now(timezone.utc) - ws.generation_started_at).total_seconds()
+            if elapsed > GENERATION_TIMEOUT_SECONDS:
+                update_workspace_status(
+                    workspace_id, "failed",
+                    error_message=f"Timeout: generation exceeded {GENERATION_TIMEOUT_SECONDS}s limit after {int(elapsed)}s",
+                )
+                ws = get_workspace(workspace_id)
+
     return WorkspaceResponse.model_validate(ws)
 
 
@@ -88,18 +110,18 @@ def trigger_generation(workspace_id: str):
     """
     ws = get_workspace(workspace_id)
     if not ws:
-        raise HTTPException(status_code=404, detail="Workspace not found")
+        raise HTTPException(status_code=404, detail="This workspace doesn't exist.")
     if ws.status not in ("created", "failed", "ready"):
         raise HTTPException(
             status_code=409,
-            detail=f"Workspace is '{ws.status}' — generation can only start from 'created', 'failed', or 'ready' state",
+            detail="This workspace is already being set up.",
         )
 
     from app.services.workspace_generator import start_generation
 
     started = start_generation(workspace_id)
     if not started:
-        raise HTTPException(status_code=500, detail="Failed to start generation")
+        raise HTTPException(status_code=500, detail="We couldn't start the setup process. Try again.")
 
     return {"status": "generating", "workspace_id": workspace_id}
 
@@ -110,11 +132,11 @@ def remove_workspace(workspace_id: str):
     """Delete a workspace and its database file."""
     ws = get_workspace(workspace_id)
     if not ws:
-        raise HTTPException(status_code=404, detail="Workspace not found")
+        raise HTTPException(status_code=404, detail="This workspace doesn't exist.")
     if ws.status == "generating":
         raise HTTPException(
             status_code=409,
-            detail="Cannot delete a workspace while generation is in progress",
+            detail="This workspace can't be deleted while it's being set up.",
         )
     if not delete_workspace(workspace_id):
-        raise HTTPException(status_code=404, detail="Workspace not found")
+        raise HTTPException(status_code=404, detail="This workspace doesn't exist.")

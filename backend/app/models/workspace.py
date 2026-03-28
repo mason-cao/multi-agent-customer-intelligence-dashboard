@@ -25,6 +25,7 @@ class Workspace(WorkspaceBase):
     total_stages = Column(Integer, nullable=True)
     created_at = Column(DateTime, nullable=False)
     completed_at = Column(DateTime, nullable=True)
+    generation_started_at = Column(DateTime, nullable=True)
     seed = Column(Integer, nullable=True)
     config_json = Column(Text, nullable=True)
     error_message = Column(Text, nullable=True)

@@ -652,11 +652,9 @@ function FailedStatus({
         <AlertTriangle className="h-3.5 w-3.5" />
         Generation failed
       </p>
-      {ws.error_message && (
-        <p className="mt-1 line-clamp-2 text-[11px] text-[rgba(255,255,255,0.5)]">
-          {ws.error_message}
-        </p>
-      )}
+      <p className="mt-1 line-clamp-2 text-[11px] text-[rgba(255,255,255,0.5)]">
+        {ws.user_message || 'This workspace failed to set up. You can try again.'}
+      </p>
       <button
         onClick={onRetry}
         className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--color-danger)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#ef4444]"
