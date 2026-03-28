@@ -15,7 +15,7 @@ Workspace-based customer intelligence platform. Users create workspaces, generat
 | 2 | Validation & Hardening | Complete |
 | 3 | Integration | Complete |
 | 4 | Productization | Complete |
-| **5** | **Infrastructure & Polish** | **In Progress — Tickets 1–4 committed** |
+| **5** | **Infrastructure & Polish** | **In Progress — Tickets 1–5.1 done, Ticket 6 remaining** |
 | 6 | Deployment & Presentation | Planned |
 
 ### Phase 5 — Infrastructure & Polish (Current)
@@ -23,37 +23,49 @@ Reliability, consistency, and maintainability improvements. No new features.
 
 **Completed:**
 - Ticket 1: Frontend resilience layer — error boundaries, loading states, API error handling
-- Ticket 2: Backend error handling standardization — `handle_errors` decorator on all 19 endpoints, structlog integration
+- Ticket 2: Backend error handling standardization — `handle_errors` decorator on all 19 endpoints, structlog
 - Ticket 3: Dashboard empty states for all 8 pages + catch-all 404 route
 - Ticket 4: Test infrastructure — pytest conftest with full DB isolation + 10 backend smoke tests
+- Ticket 5: Workspace lifecycle hardening — generation timeout, human-readable errors, stale cache invalidation
+- Ticket 5.1: Corrective fixes — timestamp transition guard, timeout prefix match, cleanup
 
-**Next:** Audit Ticket 4, then continue Phase 5 roadmap (Ticket 5+).
+**Next:** Implement Ticket 6 — Code consistency pass (final planned Phase 5 ticket).
 
 ## Current State
 
 **Branch:** `main`
-**HEAD:** `c8bae3d`
+**HEAD:** `03ae2e1`
+**Uncommitted:** Cinematic glassmorphism UI overhaul + Ticket 5/5.1 changes
+
+## UI/Design Baseline
+
+**Cinematic premium glassmorphism** — established direction, preserve unless intentionally changed:
+- Deep blue / indigo / violet gradient palette
+- Premium layered shell (6 ambient orbs + vignette overlay)
+- 4-tier glass panel system (`.glass`, `.glass-surface`, `.glass-elevated`, `.glass-strong`)
+- Geist Sans (UI) + Geist Mono (data/numbers) typography
+- Recharts for all data visualizations
+- `.btn-primary` / `.btn-secondary` button classes
+- `.shimmer` skeleton animations
 
 ## Tech Stack
-- **Frontend**: React 19 + Vite 8 + TypeScript + Tailwind CSS 4 + TanStack Query + Lucide React
+- **Frontend**: React 19 + Vite 8 + TypeScript + Tailwind CSS 4 + TanStack Query + Recharts + Lucide React
 - **Backend**: FastAPI + SQLAlchemy + Pydantic + Python 3.11.9
 - **Database**: SQLite — global `data/nexus.db` + per-workspace `data/workspaces/{id}.db`
 - **LLMs**: Mock-first (zero API keys) → Claude 3.5 Sonnet → GPT-4o-mini
 - **ML**: scikit-learn (GradientBoosting), SHAP, pandas, numpy
-- **Data Gen**: Faker + numpy (`scripts/`)
 - **Testing**: pytest + pytest-asyncio + httpx (ASGI transport)
 - **Deploy**: Railway (backend) + Vercel (frontend) — not yet configured
 
 ## Code Style & Conventions
-- **Python**: snake_case, type hints, Pydantic models for all API schemas, SQLAlchemy ORM models
-- **TypeScript**: camelCase for variables/functions, PascalCase for components/types
+- **Python**: snake_case, type hints, Pydantic models for API schemas, SQLAlchemy ORM models
+- **TypeScript**: camelCase variables/functions, PascalCase components/types
 - **API**: RESTful, all routes under `/api/`, JSON responses, `{"detail": "..."}` error shape
-- **Agents**: All inherit from `BaseAgent` ABC with `run()`, `validate_output()`, `execute()`, `save_run()`
-- **Write pattern**: All agents use DELETE+INSERT (not `to_sql("replace")`) to preserve ORM constraints
+- **Agents**: All inherit `BaseAgent` ABC with `run()`, `validate_output()`, `execute()`, `save_run()`
+- **Write pattern**: All agents use DELETE+INSERT (not `to_sql("replace")`)
 - **Error handling**: All route endpoints use `@handle_errors("endpoint_name")` decorator
 - **Imports**: Group stdlib → third-party → local. No star imports.
-- **No LangChain**: Custom orchestration is intentional
-- **Mock-first**: Every agent must work with zero API keys. LLMClient auto-selects mock → anthropic → openai.
+- **Mock-first**: Every agent must work with zero API keys.
 
 ## Key Directories
 - `backend/app/agents/` — 8 agents + BaseAgent ABC
@@ -62,12 +74,9 @@ Reliability, consistency, and maintainability improvements. No new features.
 - `backend/app/schemas/` — Pydantic schemas + workspace schemas
 - `backend/app/services/` — LLM client, feature engine, workspace generator/manager
 - `backend/app/utils/` — error_handling.py, logging.py
-- `backend/app/db/` — database.py (workspace-aware get_db), workspace_db.py
 - `backend/tests/` — conftest.py, test_health.py, test_scenarios.py, test_workspaces.py
 - `frontend/src/pages/` — 8 dashboard pages + WorkspaceHub
-- `frontend/src/contexts/` — WorkspaceContext
-- `frontend/src/api/` — Axios client (with workspace header), hooks, workspace hooks
-- `scripts/` — Data generation (parameterized), pipeline runner
+- `frontend/src/components/charts/` — GlassTooltip, chartTheme, barrel export
 
 ## Pipeline Order
 1. BehaviorAgent → `customer_features`
@@ -85,8 +94,11 @@ Reliability, consistency, and maintainability improvements. No new features.
 - Demo must work offline from cached agent outputs.
 
 ## Next Session
-1. **Audit Ticket 4** (test infrastructure implementation)
-2. **Continue Phase 5 roadmap** — define and implement Ticket 5+
+1. **Commit** uncommitted work (UI overhaul + Ticket 5/5.1)
+2. **Implement Ticket 6** — Code consistency pass (response shapes, CORS, README)
+3. **Audit Ticket 6**
+4. **Determine whether Phase 5 is complete**
+5. If Phase 5 closed, move to Phase 6 (Deployment & Presentation)
 
 ## Scope Constraints
 
@@ -97,11 +109,12 @@ Reliability, consistency, and maintainability improvements. No new features.
 - Maintain the BaseAgent ABC pattern for any agent changes
 - Use DELETE+INSERT write pattern for all database writes
 - Use `@handle_errors` decorator on all new route endpoints
+- Preserve the cinematic glassmorphism UI direction
 
 ### Do Not
 - Create new agents beyond the 8 implemented
 - Add real data ingestion or third-party connectors (not in scope)
-- Add stretch features (D3 graphs, cohort heatmaps, PDF export, dark mode)
+- Add stretch features (D3 graphs, cohort heatmaps, PDF export)
 - Skip phases or reorder the phase plan
 - Describe the project as a "static dashboard"
 - Add auth/accounts infrastructure (out of scope)

@@ -5,9 +5,9 @@
 ## Current Status
 
 **Branch:** `main`
-**HEAD:** `c8bae3d` -Add test infrastructure with pytest conftest and backend smoke tests
-**Working tree:** Clean
-**Current phase:** Phase 5 (Infrastructure & Polish) -Tickets 1–4 committed.
+**HEAD:** `03ae2e1` -Session handoff
+**Working tree:** Uncommitted changes (UI overhaul + Ticket 5/5.1)
+**Current phase:** Phase 5 (Infrastructure & Polish) -Tickets 1–4 committed; Tickets 5, 5.1, and UI overhaul uncommitted.
 ---
 
 ## Phase Summary
@@ -18,7 +18,7 @@
 | 2 | Validation & Hardening | Complete | Full-system hardening pass, pipeline runner |
 | 3 | Integration | Complete | All 8 pages wired to real backend data |
 | 4 | Productization | Complete | Workspace model, generation pipeline, hub UI, DB routing, lifecycle, custom scenarios |
-| **5** | **Infrastructure & Polish** | **In Progress** | Tickets 1–4 committed (frontend resilience, backend error handling, dashboard empty states, test infrastructure) |
+| **5** | **Infrastructure & Polish** | **In Progress** | Tickets 1–4 committed; Tickets 5, 5.1 implemented (uncommitted); Ticket 6 remaining |
 | 6 | Deployment & Presentation | Planned | Railway + Vercel, demo prep |
 
 ---
@@ -166,8 +166,27 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 - Key discovery: `workspace_manager.py` captures `MetadataSession` at import time — must patch both source and consumer modules
 - All 10 tests pass in 0.23s with full DB isolation (production data/ untouched)
 
+### Ticket 5 — Workspace Lifecycle Hardening (uncommitted)
+- Generation timeout: dual-detection (poll-time in route + stage-boundary `_check_timeout()` in generator thread)
+- `generation_started_at` column on Workspace model with SQLite ALTER TABLE migration
+- Human-readable `user_message` computed field via Pydantic `@computed_field` (maps error patterns to friendly strings)
+- Stale cache invalidation: `completed_at` in all TanStack Query keys, `status === 'ready'` guards on 11 dashboard hooks
+- Scoped `removeQueries` with predicate preserving workspace/health caches
+- Race condition guard: generator checks status before marking `ready`
+- `GENERATION_TIMEOUT_SECONDS = 300` (5 minutes)
+
+### Ticket 5.1 — Corrective Fixes (uncommitted)
+- Fixed `generation_started_at` reset on every stage update (only set on transition TO `"generating"`)
+- Fixed timeout prefix mismatch (`startswith("Timeout")` now matches both `"Timeout:"` and `"TimeoutError:"`)
+- Removed unused `prepare_for_regeneration` import from workspace routes
+- Hoisted `PRESERVED_KEYS` to module level in `WorkspaceContext.tsx`
+- All 10 backend tests pass
+
 ### Remaining Phase 5 Work
-- Ticket 5+ not yet defined -continue roadmap
+- **Ticket 6 — Code consistency pass** (final planned Phase 5 ticket):
+  - Response shape standardization
+  - CORS config cleanup
+  - README update
 ---
 
 ## What Is Not Built Yet
@@ -393,3 +412,52 @@ Continue Phase 5 -Infrastructure & Polish. Follow the roadmap.
 **Status:** All changes uncommitted. Build verified clean. No backend changes (frontend-only redesign).
 
 **Next session:** Commit the UI overhaul, then continue Phase 5 roadmap
+
+---
+
+### Session 8 — 2026-03-28 (Phase 5 Tickets 5 + 5.1)
+
+**Work completed (all uncommitted on `main`):**
+- Ticket 5: Workspace lifecycle hardening — generation timeout detection, human-readable error messages, stale cache invalidation
+- Ticket 5 audit: systematic review of all 10 modified files against ticket spec, identified 2 bugs + 2 cleanups
+- Ticket 5.1: Corrective fixes for all 4 issues found during audit
+
+**Ticket 5 details:**
+- Dual timeout detection: poll-time in `get_workspace_detail` route + stage-boundary `_check_timeout()` in generator thread using `time.monotonic()`
+- New `generation_started_at` column on Workspace model with SQLite ALTER TABLE migration in `init_metadata_db()`
+- Computed `user_message` field on `WorkspaceResponse` via Pydantic `@computed_field` — maps error patterns to user-friendly strings
+- All 11 dashboard TanStack Query hooks updated with `completed_at` in query keys + `status === 'ready'` guards
+- Scoped cache clearing via predicate-based `removeQueries` (preserves workspace/health caches)
+- Race condition guard in generator: checks workspace status before marking `ready`
+- Frontend: `WorkspaceHub.tsx` shows `user_message` on failed workspace cards
+
+**Ticket 5.1 fixes:**
+1. `workspace_manager.py`: `generation_started_at` only set on transition TO `"generating"`, not every stage update
+2. `workspace.py` schema: `startswith("Timeout")` matches both `"Timeout:"` and `"TimeoutError:"`
+3. `workspaces.py` routes: removed unused `prepare_for_regeneration` import
+4. `WorkspaceContext.tsx`: hoisted `PRESERVED_KEYS` to module level
+
+**Files modified (10 total):**
+- `backend/app/models/workspace.py` — added `generation_started_at` column
+- `backend/app/schemas/workspace.py` — added `user_message` computed field
+- `backend/app/services/workspace_manager.py` — migration + status transition guard
+- `backend/app/services/workspace_generator.py` — timeout constant, `_check_timeout()`, race guard
+- `backend/app/routes/workspaces.py` — poll-time timeout detection, friendly HTTPException messages
+- `frontend/src/types/workspace.ts` — added `generation_started_at`, `error_message`, `user_message`
+- `frontend/src/api/hooks.ts` — `completed_at` in query keys, `status === 'ready'` guards
+- `frontend/src/api/workspaces.ts` — scoped cache clearing in `useGenerateWorkspace`
+- `frontend/src/contexts/WorkspaceContext.tsx` — scoped cache clearing, module-level `PRESERVED_KEYS`
+- `frontend/src/pages/WorkspaceHub.tsx` — `user_message` display on failed cards
+
+**All 10 backend tests pass.**
+
+**Key decisions:**
+- Dual timeout detection chosen over watchdog threads or queue-based approaches for simplicity
+- `user_message` as Pydantic computed field keeps technical `error_message` for debugging while showing friendly text to users
+- `completed_at` in query keys provides automatic cache invalidation on regeneration without manual cache management
+
+**Next session:**
+1. Commit UI overhaul + Ticket 5/5.1 changes
+2. Implement Ticket 6 — Code consistency pass (final Phase 5 ticket)
+3. Audit Ticket 6
+4. Determine whether Phase 5 is complete
