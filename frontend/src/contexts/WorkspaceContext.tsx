@@ -24,6 +24,8 @@ export function useActiveWorkspace() {
   return useContext(WorkspaceContext);
 }
 
+const PRESERVED_KEYS = new Set(['workspaces', 'health']);
+
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [storedId, setStoredId] = useState<string | null>(() => {
@@ -51,8 +53,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem(STORAGE_KEY);
     }
   }, [isError, storedId]);
-
-  const PRESERVED_KEYS = new Set(['workspaces', 'health']);
 
   const clearDashboardCache = useCallback(() => {
     queryClient.removeQueries({

@@ -246,8 +246,9 @@ def update_workspace_status(
         ws = db.query(Workspace).filter(Workspace.id == workspace_id).first()
         if not ws:
             return None
+        old_status = ws.status
         ws.status = status
-        if status == "generating":
+        if status == "generating" and old_status != "generating":
             ws.generation_started_at = datetime.now(timezone.utc)
         if current_stage is not None:
             ws.current_stage = current_stage

@@ -42,7 +42,7 @@ class WorkspaceResponse(BaseModel):
         if self.status != "failed" or not self.error_message:
             return None
         msg = self.error_message
-        if msg.startswith("Timeout:"):
+        if msg.startswith("Timeout"):
             return "This workspace took too long to set up. You can try again."
         if "generate_data" in msg or "generate_dataset" in msg:
             return "Something went wrong while generating company data. You can try again."

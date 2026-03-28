@@ -18,7 +18,6 @@ from app.services.workspace_manager import (
     delete_workspace,
     get_workspace,
     list_workspaces,
-    prepare_for_regeneration,
     update_workspace_status,
 )
 
