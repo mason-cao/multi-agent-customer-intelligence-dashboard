@@ -12,7 +12,7 @@ export default function LoadingSpinner({ size = 'md' }: LoadingSpinnerProps) {
   return (
     <div className="flex items-center justify-center py-12">
       <div
-        className={`animate-spin rounded-full border-slate-200 border-t-emerald-600 ${sizes[size]}`}
+        className={`animate-spin rounded-full border-[rgba(255,255,255,0.08)] border-t-[var(--color-primary-400)] ${sizes[size]}`}
       />
     </div>
   );

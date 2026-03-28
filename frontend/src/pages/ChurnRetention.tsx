@@ -1,4 +1,13 @@
 import { AlertTriangle, BarChart3, TrendingDown } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import PageHeader from '../components/shared/PageHeader';
 import Card from '../components/shared/Card';
 import EmptyState from '../components/shared/EmptyState';
@@ -9,9 +18,18 @@ import {
 } from '../api/hooks';
 import { RISK_COLORS } from '../utils/colors';
 import { formatCurrency } from '../utils/formatters';
+import { AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE } from '../components/charts';
 
 function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`rounded bg-slate-200 animate-pulse ${className}`} />;
+  return <div className={`rounded-md shimmer ${className}`} />;
+}
+
+/** Convert a hex color like #f87171 to an rgba string at a given alpha. */
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
 }
 
 export default function ChurnRetention() {
@@ -23,7 +41,11 @@ export default function ChurnRetention() {
   const isError = distError || riskError || featError;
   const isEmpty = !distribution?.length && !atRisk?.length && !features?.length;
   const totalCustomers = distribution?.reduce((s, d) => s + d.count, 0) ?? 0;
-  const maxImportance = features?.[0]?.importance ?? 1;
+
+  const chartData = features?.slice(0, 8).map((f) => ({
+    feature: f.feature,
+    importance: f.importance,
+  })) ?? [];
 
   return (
     <div>
@@ -42,8 +64,8 @@ export default function ChurnRetention() {
           <Card><Skeleton className="h-64 w-full" /></Card>
         </div>
       ) : isError ? (
-        <Card className="border-red-100 bg-red-50/40">
-          <p className="flex items-center gap-2 text-sm text-red-600">
+        <Card className="border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.1)]">
+          <p className="flex items-center gap-2 text-sm text-[rgba(248,113,113,0.9)]">
             <AlertTriangle className="h-4 w-4" />
             Failed to load churn analysis data.
           </p>
@@ -70,14 +92,14 @@ export default function ChurnRetention() {
                       className="h-2.5 w-2.5 rounded-full"
                       style={{ backgroundColor: RISK_COLORS[colorKey] ?? '#6b7280' }}
                     />
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
                       {tier.risk_tier}
                     </p>
                   </div>
-                  <p className="mt-2 text-3xl font-bold text-slate-900">
+                  <p className="mt-2 font-mono text-3xl font-bold text-white">
                     {tier.count.toLocaleString()}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-[rgba(255,255,255,0.7)]">
                     {pct}% of customers · {formatCurrency(tier.mrr_at_risk)} MRR
                   </p>
                 </Card>
@@ -89,15 +111,15 @@ export default function ChurnRetention() {
             {/* Top at-risk customers */}
             <Card className="xl:col-span-2">
               <div className="mb-4 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-red-500" />
-                <h3 className="text-sm font-semibold text-slate-700">
+                <AlertTriangle className="h-4 w-4 text-[rgba(248,113,113,0.9)]" />
+                <h3 className="text-sm font-semibold text-white">
                   Highest-Risk Customers
                 </h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-slate-100 text-xs text-slate-400">
+                    <tr className="border-b border-[rgba(255,255,255,0.08)] text-xs text-[rgba(255,255,255,0.45)]">
                       <th className="pb-2 font-medium">Customer</th>
                       <th className="pb-2 font-medium">Company</th>
                       <th className="pb-2 font-medium text-right">Churn %</th>
@@ -107,37 +129,40 @@ export default function ChurnRetention() {
                   </thead>
                   <tbody>
                     {atRisk?.length ? (
-                      atRisk.map((c) => (
-                        <tr
-                          key={c.customer_id}
-                          className="border-b border-slate-50 last:border-0"
-                        >
-                          <td className="py-2.5 font-medium text-slate-700">
-                            {c.name}
-                          </td>
-                          <td className="py-2.5 text-slate-500">{c.company}</td>
-                          <td className="py-2.5 text-right">
-                            <span
-                              className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold text-white"
-                              style={{
-                                backgroundColor:
-                                  RISK_COLORS[c.risk_tier.toLowerCase()] ?? '#6b7280',
-                              }}
-                            >
-                              {(c.churn_probability * 100).toFixed(1)}%
-                            </span>
-                          </td>
-                          <td className="py-2.5 text-right text-slate-600">
-                            {formatCurrency(c.mrr)}
-                          </td>
-                          <td className="py-2.5 text-xs text-slate-500">
-                            {c.top_risk_factor}
-                          </td>
-                        </tr>
-                      ))
+                      atRisk.map((c) => {
+                        const riskColor = RISK_COLORS[c.risk_tier.toLowerCase()] ?? '#6b7280';
+                        return (
+                          <tr
+                            key={c.customer_id}
+                            className="border-b border-[rgba(255,255,255,0.06)] last:border-0 transition-colors hover:bg-[rgba(255,255,255,0.04)]"
+                          >
+                            <td className="py-2.5 font-medium text-white">
+                              {c.name}
+                            </td>
+                            <td className="py-2.5 text-[rgba(255,255,255,0.6)]">{c.company}</td>
+                            <td className="py-2.5 text-right">
+                              <span
+                                className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold font-mono"
+                                style={{
+                                  backgroundColor: hexToRgba(riskColor, 0.15),
+                                  color: riskColor,
+                                }}
+                              >
+                                {(c.churn_probability * 100).toFixed(1)}%
+                              </span>
+                            </td>
+                            <td className="py-2.5 text-right font-mono text-[rgba(255,255,255,0.7)]">
+                              {formatCurrency(c.mrr)}
+                            </td>
+                            <td className="py-2.5 text-xs text-[rgba(255,255,255,0.7)]">
+                              {c.top_risk_factor}
+                            </td>
+                          </tr>
+                        );
+                      })
                     ) : (
                       <tr>
-                        <td colSpan={5} className="py-8 text-center text-sm text-slate-400">
+                        <td colSpan={5} className="py-8 text-center text-sm text-[rgba(255,255,255,0.45)]">
                           No at-risk customers identified
                         </td>
                       </tr>
@@ -147,45 +172,57 @@ export default function ChurnRetention() {
               </div>
             </Card>
 
-            {/* Feature importance */}
+            {/* Feature importance — Recharts horizontal bar chart */}
             <Card>
               <div className="mb-4 flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-emerald-600" />
-                <h3 className="text-sm font-semibold text-slate-700">
+                <BarChart3 className="h-4 w-4 text-[#818cf8]" />
+                <h3 className="text-sm font-semibold text-white">
                   Top Churn Drivers
                 </h3>
               </div>
-              <div className="space-y-3">
-                {features?.length ? (
-                  features.slice(0, 8).map((f) => {
-                    const widthPct = maxImportance > 0
-                      ? (f.importance / maxImportance) * 100
-                      : 0;
-                    return (
-                      <div key={f.feature}>
-                        <div className="mb-1 flex items-center justify-between text-xs">
-                          <span className="font-medium text-slate-600 capitalize">
-                            {f.feature}
-                          </span>
-                          <span className="text-slate-400">
-                            {f.importance.toFixed(3)}
-                          </span>
-                        </div>
-                        <div className="h-2 w-full rounded-full bg-slate-100">
-                          <div
-                            className="h-2 rounded-full bg-emerald-500 transition-all"
-                            style={{ width: `${widthPct}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p className="py-8 text-center text-sm text-slate-400">
-                    No feature importance data available
-                  </p>
-                )}
-              </div>
+              {chartData.length ? (
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart
+                    layout="vertical"
+                    data={chartData}
+                    margin={{ top: 4, right: 20, bottom: 4, left: 8 }}
+                  >
+                    <CartesianGrid {...GRID_STYLE} horizontal={false} />
+                    <XAxis
+                      type="number"
+                      {...AXIS_STYLE}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="feature"
+                      width={110}
+                      {...AXIS_STYLE}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip
+                      {...TOOLTIP_STYLE}
+                      formatter={(value: unknown) =>
+                        typeof value === 'number'
+                          ? [`${(value * 100).toFixed(1)}%`, 'Importance']
+                          : [String(value), 'Importance']
+                      }
+                    />
+                    <Bar
+                      dataKey="importance"
+                      fill="#818cf8"
+                      radius={[0, 4, 4, 0]}
+                      barSize={20}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="py-8 text-center text-sm text-[rgba(255,255,255,0.45)]">
+                  No feature importance data available
+                </p>
+              )}
             </Card>
           </div>
         </>

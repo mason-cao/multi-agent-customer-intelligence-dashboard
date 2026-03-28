@@ -2,15 +2,15 @@ interface CardProps {
   children: React.ReactNode;
   className?: string;
   hover?: boolean;
+  variant?: 'default' | 'elevated';
 }
 
-export default function Card({ children, className = '', hover = false }: CardProps) {
+export default function Card({ children, className = '', hover = false, variant = 'default' }: CardProps) {
+  const base = variant === 'elevated' ? 'glass-elevated' : 'glass';
   return (
     <div
-      className={`rounded-xl border border-slate-200/60 bg-white p-6 shadow-sm ${
-        hover
-          ? 'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md'
-          : ''
+      className={`${base} p-6 ${
+        hover ? 'glass-hover' : ''
       } ${className}`}
     >
       {children}

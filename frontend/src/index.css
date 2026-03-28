@@ -1,30 +1,411 @@
 @import "tailwindcss";
 
-/* ── Design System Tokens ──────────────────────────────────────── */
+/* ── Font Imports ────────────────────────────────────────────── */
 
-@theme {
-  --color-primary-50: #ecfdf5;
-  --color-primary-100: #d1fae5;
-  --color-primary-200: #a7f3d0;
-  --color-primary-500: #10b981;
-  --color-primary-600: #059669;
-  --color-primary-700: #047857;
+@font-face {
+  font-family: 'Geist Sans';
+  src: url('/node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
 }
 
-/* ── Base Styles ───────────────────────────────────────────────── */
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── Design System Tokens ────────────────────────────────────── */
+
+@theme {
+  /* Background — ultra-deep for maximum panel contrast */
+  --color-bg-start: #030712;
+  --color-bg-mid: #0a0f1f;
+  --color-bg-end: #110d25;
+
+  /* Primary accent (indigo) */
+  --color-primary-400: #818cf8;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+
+  /* Semantic */
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+
+  /* Glass — dark-tinted translucent fills with subtle edge definition */
+  --color-glass-bg: rgba(12, 16, 36, 0.55);
+  --color-glass-bg-hover: rgba(12, 16, 36, 0.65);
+  --color-glass-border: rgba(255, 255, 255, 0.10);
+  --color-glass-border-hover: rgba(255, 255, 255, 0.18);
+
+  /* Text hierarchy — tuned for deep background contrast */
+  --color-text-primary: rgba(255, 255, 255, 0.95);
+  --color-text-secondary: rgba(255, 255, 255, 0.60);
+  --color-text-tertiary: rgba(255, 255, 255, 0.38);
+  --color-text-accent: #a5b4fc;
+}
+
+/* ── Base ─────────────────────────────────────────────────────── */
 
 body {
   margin: 0;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Geist Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(135deg, var(--color-bg-start) 0%, var(--color-bg-mid) 50%, var(--color-bg-end) 100%);
+  color: var(--color-text-primary);
 }
 
 #root {
   min-height: 100vh;
 }
 
-/* ── Keyframe Animations ───────────────────────────────────────── */
+/* ── Focus & Interaction ──────────────────────────────────────── */
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--color-primary-400);
+  outline-offset: 2px;
+}
+
+button, a, [role="button"], label[for],
+input[type="checkbox"], input[type="radio"], select {
+  cursor: pointer;
+}
+
+button {
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Glass System — Tiered Surface Hierarchy ──────────────────── */
+
+/* Base glass panel — standard content containers */
+.glass {
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-radius: 1rem;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.10),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.04),
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+/* Interactive glass cards — hover lift with accent glow */
+.glass-hover {
+  transition: all 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+.glass-hover:hover {
+  background: var(--color-glass-bg-hover);
+  border-color: var(--color-glass-border-hover);
+  transform: translateY(-3px);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 20px 60px rgba(0, 0, 0, 0.3),
+    0 0 30px rgba(129, 140, 248, 0.10);
+}
+
+/* Shell surfaces — sidebar, header, navigation */
+.glass-surface {
+  background: rgba(8, 12, 28, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(32px) saturate(1.3);
+  -webkit-backdrop-filter: blur(32px) saturate(1.3);
+}
+
+/* Elevated panels — KPIs, hero cards, important content */
+.glass-elevated {
+  background: rgba(12, 16, 36, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  border-radius: 1rem;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.05),
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    0 16px 48px rgba(0, 0, 0, 0.25),
+    0 0 40px rgba(129, 140, 248, 0.08);
+}
+
+/* Modal / overlay panels */
+.glass-strong {
+  background: rgba(8, 12, 28, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(32px) saturate(1.4);
+  -webkit-backdrop-filter: blur(32px) saturate(1.4);
+  border-radius: 1rem;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.10),
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Form inputs */
+.glass-input {
+  background: rgba(12, 16, 36, 0.60);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 0.75rem;
+  color: var(--color-text-primary);
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.glass-input::placeholder {
+  color: var(--color-text-tertiary);
+}
+.glass-input:focus {
+  outline: none;
+  border-color: rgba(129, 140, 248, 0.50);
+  box-shadow:
+    0 0 0 3px rgba(129, 140, 248, 0.12),
+    0 0 16px rgba(129, 140, 248, 0.08),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  background: rgba(12, 16, 36, 0.75);
+}
+
+/* ── Button System ────────────────────────────────────────────── */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+  background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600));
+  border: 1px solid rgba(129, 140, 248, 0.25);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow:
+    0 0 24px rgba(99, 102, 241, 0.25),
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18);
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--color-primary-400), var(--color-primary-500));
+  box-shadow:
+    0 0 40px rgba(99, 102, 241, 0.35),
+    0 4px 20px rgba(99, 102, 241, 0.25),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+}
+.btn-primary:active {
+  transform: scale(0.98) translateY(0);
+}
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-secondary:hover {
+  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.btn-secondary:active {
+  transform: scale(0.98);
+}
+
+/* ── Background System ────────────────────────────────────────── */
+
+.bg-app-gradient {
+  background: linear-gradient(135deg, var(--color-bg-start) 0%, var(--color-bg-mid) 50%, var(--color-bg-end) 100%);
+  min-height: 100vh;
+}
+
+/* ── Ambient Orbs — 6 varied-color atmospheric lights ──────────── */
+
+.bg-orbs {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  will-change: transform;
+}
+
+.bg-orb--1 {
+  width: 800px;
+  height: 800px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.70) 0%, transparent 70%);
+  top: -15%;
+  left: -10%;
+  animation: orb-drift-1 25s ease-in-out infinite;
+}
+
+.bg-orb--2 {
+  width: 650px;
+  height: 650px;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.55) 0%, transparent 70%);
+  top: 35%;
+  right: -12%;
+  animation: orb-drift-2 30s ease-in-out infinite;
+}
+
+.bg-orb--3 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.35) 0%, transparent 70%);
+  bottom: -8%;
+  left: 20%;
+  animation: orb-drift-3 28s ease-in-out infinite;
+}
+
+.bg-orb--4 {
+  width: 450px;
+  height: 450px;
+  background: radial-gradient(circle, rgba(129, 140, 248, 0.50) 0%, transparent 70%);
+  top: 12%;
+  left: 42%;
+  animation: orb-drift-4 22s ease-in-out infinite;
+}
+
+.bg-orb--5 {
+  width: 550px;
+  height: 550px;
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.22) 0%, transparent 70%);
+  top: -8%;
+  right: 12%;
+  animation: orb-drift-5 26s ease-in-out infinite;
+}
+
+.bg-orb--6 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(96, 165, 250, 0.30) 0%, transparent 70%);
+  bottom: 12%;
+  right: 5%;
+  animation: orb-drift-6 24s ease-in-out infinite;
+}
+
+/* Vignette — cinematic edge darkening for depth and focus */
+.bg-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse 75% 65% at 50% 50%,
+    transparent 30%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+}
+
+@keyframes orb-drift-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(50px, 30px) scale(1.05); }
+  66% { transform: translate(-20px, 50px) scale(0.98); }
+}
+@keyframes orb-drift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-40px, -25px) scale(1.03); }
+  66% { transform: translate(30px, -40px) scale(0.97); }
+}
+@keyframes orb-drift-3 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(50px, -40px); }
+}
+@keyframes orb-drift-4 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-35px, 25px) scale(1.04); }
+}
+@keyframes orb-drift-5 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-30px, 40px); }
+}
+@keyframes orb-drift-6 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(25px, -30px); }
+}
+
+/* ── Typography ──────────────────────────────────────────────── */
+
+.font-mono {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+}
+
+/* ── Glow Effects ────────────────────────────────────────────── */
+
+.glow-primary {
+  box-shadow: 0 0 24px rgba(129, 140, 248, 0.12);
+}
+
+.glow-success {
+  box-shadow: 0 0 24px rgba(52, 211, 153, 0.12);
+}
+
+/* Hero stat numbers — subtle luminous text */
+.text-hero {
+  color: rgba(255, 255, 255, 0.97);
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.08);
+}
+
+/* Glass-aware divider — light top edge + shadow below for depth */
+.glass-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08) 30%, rgba(255, 255, 255, 0.08) 70%, transparent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Shimmer Skeleton ────────────────────────────────────────── */
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.07) 50%,
+    rgba(255, 255, 255, 0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+  border-radius: 0.5rem;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Keyframe Animations ─────────────────────────────────────── */
 
 @keyframes fade-in {
   from { opacity: 0; }
@@ -39,7 +420,7 @@ body {
 @keyframes fade-in-up {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -47,19 +428,42 @@ body {
   }
 }
 
-/* ── Animation Utilities ───────────────────────────────────────── */
+/* ── Animation Utilities ─────────────────────────────────────── */
 
 .animate-fade-in-up {
-  animation: fade-in-up 0.4s ease-out both;
+  animation: fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .animate-fade-in {
-  animation: fade-in 0.3s ease-out both;
+  animation: fade-in 0.4s ease-out both;
 }
 
-/* Staggered entrance delays for card grids */
-.stagger-1 { animation-delay: 0.05s; }
-.stagger-2 { animation-delay: 0.10s; }
-.stagger-3 { animation-delay: 0.15s; }
-.stagger-4 { animation-delay: 0.20s; }
-.stagger-5 { animation-delay: 0.25s; }
+/* Staggered entrance delays — 80ms rhythm for cinematic pacing */
+.stagger-1 { animation-delay: 0.08s; }
+.stagger-2 { animation-delay: 0.16s; }
+.stagger-3 { animation-delay: 0.24s; }
+.stagger-4 { animation-delay: 0.32s; }
+.stagger-5 { animation-delay: 0.40s; }
+.stagger-6 { animation-delay: 0.48s; }
+
+/* ── Reduced Motion ──────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-fade-in {
+    animation: none !important;
+  }
+  .glass-hover:hover {
+    transform: none;
+  }
+  .bg-orb {
+    animation: none !important;
+  }
+  .shimmer {
+    animation: none !important;
+  }
+  .btn-primary:hover,
+  .btn-secondary:hover {
+    transform: none;
+  }
+}

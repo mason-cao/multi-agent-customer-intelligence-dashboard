@@ -9,8 +9,19 @@ import { formatCurrency } from '../utils/formatters';
 
 const PAGE_SIZE = 25;
 
+const RISK_BG: Record<string, string> = {
+  low: 'rgba(52,211,153,0.15)',
+  medium: 'rgba(251,191,36,0.15)',
+  high: 'rgba(251,146,60,0.15)',
+  critical: 'rgba(248,113,113,0.15)',
+};
+
 function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`rounded bg-slate-200 animate-pulse ${className}`} />;
+  return (
+    <div
+      className={`rounded-md shimmer ${className}`}
+    />
+  );
 }
 
 export default function Customer360() {
@@ -36,8 +47,8 @@ export default function Customer360() {
           </div>
         </Card>
       ) : isError || !data ? (
-        <Card className="border-red-100 bg-red-50/40">
-          <p className="flex items-center gap-2 text-sm text-red-600">
+        <Card className="border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.1)]">
+          <p className="flex items-center gap-2 text-sm text-[rgba(248,113,113,0.9)]">
             <AlertTriangle className="h-4 w-4" />
             Failed to load customer data.
           </p>
@@ -54,8 +65,8 @@ export default function Customer360() {
           <Card className="mb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-emerald-600" />
-                <span className="text-sm font-semibold text-slate-700">
+                <Users className="h-4 w-4 text-[var(--color-primary-400)]" />
+                <span className="text-sm font-semibold text-white">
                   {data.total.toLocaleString()} customers
                 </span>
               </div>
@@ -63,17 +74,17 @@ export default function Customer360() {
                 <button
                   onClick={() => setPage(Math.max(0, page - 1))}
                   disabled={page === 0}
-                  className="rounded-lg border border-slate-200 p-1.5 text-slate-400 transition hover:bg-slate-50 disabled:opacity-30"
+                  className="rounded-lg border border-[rgba(255,255,255,0.15)] p-1.5 text-[rgba(255,255,255,0.5)] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-[rgba(255,255,255,0.8)] disabled:opacity-30"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-[rgba(255,255,255,0.45)] font-mono">
                   Page {page + 1} of {totalPages}
                 </span>
                 <button
                   onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
                   disabled={page >= totalPages - 1}
-                  className="rounded-lg border border-slate-200 p-1.5 text-slate-400 transition hover:bg-slate-50 disabled:opacity-30"
+                  className="rounded-lg border border-[rgba(255,255,255,0.15)] p-1.5 text-[rgba(255,255,255,0.5)] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-[rgba(255,255,255,0.8)] disabled:opacity-30"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -86,7 +97,7 @@ export default function Customer360() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-slate-100 text-xs text-slate-400">
+                  <tr className="border-b border-[rgba(255,255,255,0.08)] text-xs text-[rgba(255,255,255,0.45)]">
                     <th className="pb-2 font-medium">Name</th>
                     <th className="pb-2 font-medium">Company</th>
                     <th className="pb-2 font-medium">Plan</th>
@@ -102,14 +113,16 @@ export default function Customer360() {
                   {data.customers.map((c) => (
                     <tr
                       key={c.customer_id}
-                      className="border-b border-slate-50 last:border-0 transition-colors hover:bg-slate-50/50"
+                      className="border-b border-[rgba(255,255,255,0.06)] last:border-0 transition-colors hover:bg-[rgba(255,255,255,0.04)]"
                     >
-                      <td className="py-2.5 font-medium text-slate-700">
+                      <td className="py-2.5 font-medium text-white">
                         {c.name}
                       </td>
-                      <td className="py-2.5 text-slate-500">{c.company}</td>
+                      <td className="py-2.5 text-[rgba(255,255,255,0.6)]">
+                        {c.company}
+                      </td>
                       <td className="py-2.5">
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-500">
+                        <span className="rounded-full bg-[rgba(255,255,255,0.1)] px-2 py-0.5 text-[10px] font-semibold uppercase text-[rgba(255,255,255,0.6)]">
                           {c.plan_tier}
                         </span>
                       </td>
@@ -123,23 +136,33 @@ export default function Customer360() {
                                   SEGMENT_COLORS[c.segment_name] ?? '#6b7280',
                               }}
                             />
-                            <span className="text-slate-600">{c.segment_name}</span>
+                            <span
+                              style={{
+                                color:
+                                  SEGMENT_COLORS[c.segment_name] ??
+                                  'rgba(255,255,255,0.6)',
+                              }}
+                            >
+                              {c.segment_name}
+                            </span>
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-300">—</span>
+                          <span className="text-xs text-[rgba(255,255,255,0.25)]">
+                            —
+                          </span>
                         )}
                       </td>
-                      <td className="py-2.5 text-right text-slate-600">
+                      <td className="py-2.5 text-right font-mono text-[rgba(255,255,255,0.7)]">
                         {c.total_revenue != null
                           ? formatCurrency(c.total_revenue)
                           : '—'}
                       </td>
-                      <td className="py-2.5 text-right text-slate-600">
+                      <td className="py-2.5 text-right font-mono text-[rgba(255,255,255,0.7)]">
                         {c.engagement_score != null
                           ? c.engagement_score.toFixed(2)
                           : '—'}
                       </td>
-                      <td className="py-2.5 text-right text-slate-600">
+                      <td className="py-2.5 text-right font-mono text-[rgba(255,255,255,0.7)]">
                         {c.churn_probability != null
                           ? `${(c.churn_probability * 100).toFixed(1)}%`
                           : '—'}
@@ -147,35 +170,43 @@ export default function Customer360() {
                       <td className="py-2.5">
                         {c.risk_tier ? (
                           <span
-                            className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
+                            className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold"
                             style={{
                               backgroundColor:
-                                RISK_COLORS[c.risk_tier.toLowerCase()] ?? '#6b7280',
+                                RISK_BG[c.risk_tier.toLowerCase()] ??
+                                'rgba(255,255,255,0.1)',
+                              color:
+                                RISK_COLORS[c.risk_tier.toLowerCase()] ??
+                                'rgba(255,255,255,0.6)',
                             }}
                           >
                             {c.risk_tier}
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-300">—</span>
+                          <span className="text-xs text-[rgba(255,255,255,0.25)]">
+                            —
+                          </span>
                         )}
                       </td>
                       <td className="py-2.5 text-right">
                         {c.avg_sentiment != null ? (
                           <span
-                            className="font-semibold"
+                            className="font-mono font-semibold"
                             style={{
                               color:
                                 c.avg_sentiment > 0.2
-                                  ? '#10b981'
+                                  ? '#34d399'
                                   : c.avg_sentiment > -0.2
-                                    ? '#9ca3af'
-                                    : '#ef4444',
+                                    ? 'rgba(255,255,255,0.45)'
+                                    : '#f87171',
                             }}
                           >
                             {c.avg_sentiment.toFixed(2)}
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-300">—</span>
+                          <span className="text-xs text-[rgba(255,255,255,0.25)]">
+                            —
+                          </span>
                         )}
                       </td>
                     </tr>

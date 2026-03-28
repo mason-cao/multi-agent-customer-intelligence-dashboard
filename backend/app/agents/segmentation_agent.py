@@ -112,6 +112,15 @@ class SegmentationAgent(BaseAgent):
         )
         self._logger.info("loaded_features", rows=len(df))
 
+        if df.empty:
+            return {
+                "status": "failed",
+                "rows_affected": 0,
+                "tokens_used": 0,
+                "model_used": None,
+                "error": "customer_features table is empty — BehaviorAgent may have failed",
+            }
+
         # Step 2 — Compute percentile thresholds from the data
         thresholds = _compute_thresholds(df)
         self._logger.info(

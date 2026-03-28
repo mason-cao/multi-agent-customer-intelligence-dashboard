@@ -49,7 +49,7 @@ export default function AskAnything() {
       {/* Query input */}
       <Card className="mb-6">
         <div className="flex items-center gap-3">
-          <Sparkles className="h-5 w-5 shrink-0 text-emerald-500" />
+          <Sparkles className="h-5 w-5 shrink-0 text-[var(--color-primary-400)]" />
           <input
             type="text"
             value={question}
@@ -57,12 +57,12 @@ export default function AskAnything() {
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit(question)}
             placeholder="Ask a question about your customers..."
             disabled={isPending}
-            className="flex-1 rounded-lg border border-slate-200 px-4 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-100 disabled:opacity-50"
+            className="glass-input flex-1 disabled:opacity-50"
           />
           <button
             onClick={() => handleSubmit(question)}
             disabled={isPending || !question.trim()}
-            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50"
+            className="btn-primary py-2.5 disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
           >
             {isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -76,7 +76,7 @@ export default function AskAnything() {
         {/* Example questions */}
         {history.length === 0 && (
           <div className="mt-4">
-            <p className="mb-2 text-[11px] font-medium text-slate-400">
+            <p className="mb-2 text-[11px] font-medium text-[rgba(255,255,255,0.45)]">
               Try one of these:
             </p>
             <div className="flex flex-wrap gap-2">
@@ -88,7 +88,7 @@ export default function AskAnything() {
                     handleSubmit(q);
                   }}
                   disabled={isPending}
-                  className="rounded-full border border-slate-200 px-3 py-1.5 text-[11px] text-slate-500 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50"
+                  className="rounded-full border border-[rgba(255,255,255,0.08)] px-3 py-1.5 text-[11px] text-[rgba(255,255,255,0.40)] transition-all duration-200 hover:border-[rgba(129,140,248,0.30)] hover:bg-[rgba(129,140,248,0.08)] hover:text-[var(--color-primary-400)] disabled:opacity-50"
                 >
                   {q}
                 </button>
@@ -104,23 +104,27 @@ export default function AskAnything() {
           {history.map((result, idx) => (
             <Card
               key={result.query_id || idx}
-              className={idx === 0 ? 'border-emerald-100 bg-emerald-50/30' : ''}
+              className={
+                idx === 0
+                  ? 'border-l-2 border-[var(--color-primary-400)]'
+                  : ''
+              }
             >
               <div className="mb-3 flex items-start justify-between gap-4">
-                <p className="text-sm font-medium text-slate-700">
+                <p className="text-sm font-medium text-white">
                   {result.original_question}
                 </p>
                 <div className="flex shrink-0 items-center gap-1.5">
                   {result.query_status === 'success' ? (
-                    <CheckCircle className="h-4 w-4 text-emerald-500" />
+                    <CheckCircle className="h-4 w-4 text-[var(--color-success)]" />
                   ) : (
-                    <AlertCircle className="h-4 w-4 text-amber-500" />
+                    <AlertCircle className="h-4 w-4 text-[var(--color-warning)]" />
                   )}
                   <span
-                    className={`text-[10px] font-semibold uppercase ${
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
                       result.query_status === 'success'
-                        ? 'text-emerald-600'
-                        : 'text-amber-600'
+                        ? 'bg-[rgba(52,211,153,0.15)] text-[var(--color-success)]'
+                        : 'bg-[rgba(251,191,36,0.15)] text-[var(--color-warning)]'
                     }`}
                   >
                     {result.query_status}
@@ -128,18 +132,18 @@ export default function AskAnything() {
                 </div>
               </div>
 
-              <p className="text-sm leading-relaxed text-slate-600">
+              <p className="text-sm leading-relaxed text-[rgba(255,255,255,0.7)]">
                 {result.answer_text}
               </p>
 
               {/* Metadata footer */}
-              <div className="mt-3 flex items-center gap-4 border-t border-slate-100 pt-3 text-[10px] text-slate-400">
+              <div className="mt-3 flex items-center gap-4 border-t border-[rgba(255,255,255,0.08)] pt-3 text-[10px] text-[rgba(255,255,255,0.35)]">
                 <span className="flex items-center gap-1">
                   <Sparkles className="h-3 w-3" />
                   {result.matched_intent.replace(/_/g, ' ')}
                 </span>
                 {result.execution_ms != null && (
-                  <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-1 font-mono">
                     <Clock className="h-3 w-3" />
                     {result.execution_ms}ms
                   </span>

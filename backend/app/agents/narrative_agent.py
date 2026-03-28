@@ -60,6 +60,16 @@ class NarrativeAgent(BaseAgent):
 
         # Step 1 -- Aggregate all metrics
         stats = _aggregate_metrics(engine)
+
+        if stats["total_customers"] == 0:
+            return {
+                "status": "failed",
+                "rows_affected": 0,
+                "tokens_used": 0,
+                "model_used": None,
+                "error": "No customer data available — upstream agents may have failed",
+            }
+
         self._logger.info(
             "metrics_aggregated",
             total_customers=stats["total_customers"],

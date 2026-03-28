@@ -30,24 +30,24 @@ const navigation: NavItem[] = [
 
 export default function Sidebar() {
   return (
-    <aside className="flex h-screen w-64 flex-col border-r border-slate-200 bg-white">
+    <aside className="glass-surface flex h-screen w-60 flex-col border-r border-[rgba(255,255,255,0.06)]">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2.5 border-b border-slate-200 px-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600">
-          <LayoutDashboard className="h-4 w-4 text-white" />
+      <div className="flex h-14 items-center gap-2.5 border-b border-[rgba(255,255,255,0.06)] px-5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--color-primary-400)] to-[var(--color-primary-600)] shadow-[0_0_12px_rgba(99,102,241,0.3)]">
+          <LayoutDashboard className="h-3.5 w-3.5 text-white" />
         </div>
         <div className="flex flex-col">
-          <span className="text-sm font-bold tracking-tight text-slate-900">
+          <span className="text-[13px] font-bold tracking-tight text-white">
             Luminosity
           </span>
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-emerald-600">
+          <span className="text-[9px] font-semibold uppercase tracking-[0.15em] text-[var(--color-text-accent)]">
             Intelligence
           </span>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-0.5 px-3 py-4">
+      <nav className="flex-1 space-y-0.5 px-3 pt-4">
         {navigation.map((item) => {
           const Icon = item.icon;
           return (
@@ -56,22 +56,22 @@ export default function Sidebar() {
               to={item.path}
               end={item.path === '/'}
               className={({ isActive }) =>
-                `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-150 ${
+                `group flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200 ${
                   isActive
-                    ? 'bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-100'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                    ? 'bg-[rgba(129,140,248,0.12)] text-white shadow-[inset_0_0_0_1px_rgba(129,140,248,0.15),0_0_12px_rgba(129,140,248,0.06)]'
+                    : 'text-[rgba(255,255,255,0.45)] hover:bg-[rgba(255,255,255,0.05)] hover:text-[rgba(255,255,255,0.80)]'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
                   <Icon
-                    className={`h-[18px] w-[18px] flex-shrink-0 transition-colors duration-150 ${
+                    className={`h-4 w-4 flex-shrink-0 transition-colors duration-200 ${
                       isActive
-                        ? 'text-emerald-600'
-                        : 'text-slate-400 group-hover:text-slate-600'
+                        ? 'text-[var(--color-primary-400)]'
+                        : 'text-[rgba(255,255,255,0.30)] group-hover:text-[rgba(255,255,255,0.55)]'
                     }`}
-                    strokeWidth={isActive ? 2.25 : 1.75}
+                    strokeWidth={isActive ? 2 : 1.5}
                   />
                   {item.name}
                 </>
@@ -82,10 +82,13 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-slate-100 px-5 py-4">
+      <div className="border-t border-[rgba(255,255,255,0.06)] px-5 py-3">
         <div className="flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          <p className="text-[11px] font-medium text-slate-400">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--color-success)] opacity-50" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
+          </span>
+          <p className="text-[10px] font-medium text-[rgba(255,255,255,0.30)]">
             System ready
           </p>
         </div>

@@ -335,3 +335,61 @@ Continue Phase 5 -Infrastructure & Polish. Follow the roadmap.
 - Session-scoped fixtures for DB setup, function-scoped for HTTP client (test isolation)
 
 **Next session:** Audit Ticket 4, then continue Phase 5 roadmap
+
+---
+
+### Session 7 — 2026-03-28 (Cinematic Glassmorphism UI Overhaul)
+
+**Work completed (all uncommitted on `main`):**
+- Complete visual redesign of the entire frontend to cinematic premium glassmorphism
+- 24 files changed (3 new, 21 modified), ~2,600 lines added / ~1,300 removed
+
+**Design foundation:**
+- Installed `geist` font package (Geist Sans + Geist Mono)
+- Rewrote `index.css` with full glassmorphism design system: 6-orb ambient background, vignette overlay, 4-tier glass panel system (`.glass`, `.glass-surface`, `.glass-elevated`, `.glass-strong`), button classes (`.btn-primary`, `.btn-secondary`), `.shimmer` skeleton animation, `.text-hero` luminous text, `.glass-divider`, cinematic motion keyframes with `prefers-reduced-motion` respect
+- Color palette: deep navy → indigo-950 → indigo-800 gradient; indigo-400 primary accent; brightened segment/risk/sentiment colors in `colors.ts` for dark background visibility
+
+**New chart infrastructure (`frontend/src/components/charts/`):**
+- `chartTheme.ts` — shared constants: `CHART_COLORS`, `AXIS_STYLE` (with explicit `tick` object for Recharts label styling), `GRID_STYLE`, `TOOLTIP_STYLE`, `areaGradientStops` helper
+- `GlassTooltip.tsx` — custom Recharts tooltip with dark glass styling
+- `index.ts` — barrel export
+
+**Layout shell & shared components:**
+- `Layout.tsx` → `bg-app-gradient` with 6 ambient orbs + vignette
+- `Sidebar.tsx` → dark translucent glass nav, indigo-400 active accent
+- `Header.tsx` → glass top bar, white text, success-tinted health badge
+- `Card.tsx` → glass utility classes, `variant` prop (`default`/`elevated`), `hover` prop
+- `EmptyState.tsx`, `PageHeader.tsx`, `LoadingSpinner.tsx`, `ErrorBoundary.tsx` → glass-themed
+
+**All 8 dashboard pages redesigned:**
+- Overview: Recharts sparklines on KPI cards, `text-hero` values, elevated variant, shimmer skeletons
+- Segments: Recharts PieChart donut + RadarChart, glass segment cards
+- ChurnRetention: Recharts horizontal BarChart for feature importance, glass risk cards + table
+- SentimentSupport: Recharts PieChart donut + BarChart for topics, glass styling
+- Recommendations: Recharts horizontal BarChart for action distribution, glass table
+- AgentAudit: Recharts stacked BarChart for checks, glass tables + severity badges
+- Customer360: Glass table + pagination styling
+- AskAnything: Glass input, `btn-primary` button, glass result cards
+
+**WorkspaceHub cinematic front door:**
+- 6-orb ambient background + vignette
+- Glass-surface header with gradient logo badge
+- "Command Center" hero typography with accent labels
+- Elevated workspace cards with hover lift and color glow accent bars
+- `btn-primary`/`btn-secondary` buttons throughout
+- Glass scenario cards, progress bar with gradient glow, shimmer loading states
+
+**NotFound page:** Orbs + vignette, glass icon container, `font-mono` 404, themed buttons
+
+**Bug fix:** Recharts axis labels rendering black — `fill` prop on `<XAxis>`/`<YAxis>` does not apply to tick text labels. Fixed by adding `tick: { fill: 'rgba(255,255,255,0.70)' }` object to `AXIS_STYLE`.
+
+**Key design decisions:**
+- Cinematic premium glassmorphism is now the established UI baseline
+- Deep blue/indigo/violet palette, Geist typography, Recharts everywhere
+- All skeleton animations use `.shimmer` (not `animate-pulse`)
+- All buttons use `.btn-primary`/`.btn-secondary` classes
+- Motion: `cubic-bezier(0.16, 1, 0.3, 1)`, 80ms stagger, 16px translateY entrance
+
+**Status:** All changes uncommitted. Build verified clean. No backend changes (frontend-only redesign).
+
+**Next session:** Commit the UI overhaul, then continue Phase 5 roadmap

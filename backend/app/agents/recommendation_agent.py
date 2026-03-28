@@ -145,6 +145,15 @@ class RecommendationAgent(BaseAgent):
         df = self._load_and_merge(engine)
         self._logger.info("merged_signals", customers=len(df))
 
+        if df.empty:
+            return {
+                "status": "failed",
+                "rows_affected": 0,
+                "tokens_used": 0,
+                "model_used": None,
+                "error": "No customer data after merge — upstream agents may have failed",
+            }
+
         # Step 2 -- Compute derived tiers and thresholds from the data
         thresholds = _compute_thresholds(df)
         df = _add_derived_columns(df, thresholds)

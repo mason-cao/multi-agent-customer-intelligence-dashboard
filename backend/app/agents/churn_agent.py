@@ -146,6 +146,16 @@ class ChurnAgent(BaseAgent):
         X, customer_ids = self._build_feature_matrix(
             features_df, segments_df, subs_df
         )
+
+        if len(customer_ids) == 0:
+            return {
+                "status": "failed",
+                "rows_affected": 0,
+                "tokens_used": 0,
+                "model_used": None,
+                "error": "No customers in feature matrix — upstream agents may have failed",
+            }
+
         y = (
             customers_df.set_index("customer_id")
             .loc[customer_ids, "is_churned"]

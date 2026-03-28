@@ -96,7 +96,8 @@ class BehaviorAgent(BaseAgent):
         }
         for col, default in fill_defaults.items():
             if col in features.columns:
-                features[col] = features[col].fillna(default)
+                if default is not None:
+                    features[col] = features[col].fillna(default)
             else:
                 features[col] = default
 

@@ -7,29 +7,29 @@ export default function Header() {
   const { activeWorkspace, clearWorkspace } = useActiveWorkspace();
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-8">
+    <header className="glass-surface flex h-14 items-center justify-between border-b border-[rgba(255,255,255,0.06)] px-8">
       <div>
-        <h1 className="text-lg font-semibold text-slate-800">
+        <h1 className="text-sm font-semibold text-white">
           {activeWorkspace?.company_name || 'Customer Intelligence Dashboard'}
         </h1>
         {activeWorkspace && (
-          <p className="text-xs text-slate-400">
+          <p className="text-[11px] text-[rgba(255,255,255,0.40)]">
             {activeWorkspace.industry} &middot;{' '}
-            {activeWorkspace.customer_count.toLocaleString()} customers
+            <span className="font-mono">{activeWorkspace.customer_count.toLocaleString()}</span> customers
           </p>
         )}
       </div>
       <div className="flex items-center gap-3">
-        <span className="flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
-          <Activity className="h-3.5 w-3.5" />
-          System Healthy
+        <span className="flex items-center gap-1.5 rounded-full border border-[rgba(52,211,153,0.20)] bg-[rgba(52,211,153,0.08)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-success)]">
+          <Activity className="h-3 w-3" />
+          Online
         </span>
         <button
           onClick={() => {
             clearWorkspace();
             navigate('/workspaces');
           }}
-          className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+          className="btn-secondary py-1 px-3 text-xs"
         >
           Workspaces
         </button>

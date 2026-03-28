@@ -40,63 +40,63 @@ const INDUSTRIES = [
 
 interface ScenarioMeta {
   icon: LucideIcon;
-  accent: string;
-  bg: string;
-  border: string;
-  bar: string;
+  accentHex: string;
+  iconBg: string;
+  accentText: string;
+  barGradient: string;
 }
 
 const SCENARIO_META: Record<string, ScenarioMeta> = {
   velocity_saas: {
     icon: Rocket,
-    accent: 'text-emerald-600',
-    bg: 'bg-emerald-50',
-    border: 'border-emerald-200',
-    bar: 'bg-emerald-500',
+    accentHex: '#34d399',
+    iconBg: 'bg-[rgba(52,211,153,0.12)]',
+    accentText: 'text-[#34d399]',
+    barGradient: 'from-[#34d399] to-[#6ee7b7]',
   },
   atlas_enterprise: {
     icon: Building2,
-    accent: 'text-blue-600',
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
-    bar: 'bg-blue-500',
+    accentHex: '#60a5fa',
+    iconBg: 'bg-[rgba(96,165,250,0.12)]',
+    accentText: 'text-[#60a5fa]',
+    barGradient: 'from-[#60a5fa] to-[#93c5fd]',
   },
   beacon_analytics: {
     icon: BarChart3,
-    accent: 'text-amber-600',
-    bg: 'bg-amber-50',
-    border: 'border-amber-200',
-    bar: 'bg-amber-500',
+    accentHex: '#fbbf24',
+    iconBg: 'bg-[rgba(251,191,36,0.12)]',
+    accentText: 'text-[#fbbf24]',
+    barGradient: 'from-[#fbbf24] to-[#fcd34d]',
   },
   meridian_data: {
     icon: Heart,
-    accent: 'text-purple-600',
-    bg: 'bg-purple-50',
-    border: 'border-purple-200',
-    bar: 'bg-purple-500',
+    accentHex: '#a78bfa',
+    iconBg: 'bg-[rgba(167,139,250,0.12)]',
+    accentText: 'text-[#a78bfa]',
+    barGradient: 'from-[#a78bfa] to-[#c4b5fd]',
   },
   custom: {
     icon: Sliders,
-    accent: 'text-indigo-600',
-    bg: 'bg-indigo-50',
-    border: 'border-indigo-200',
-    bar: 'bg-indigo-500',
+    accentHex: '#818cf8',
+    iconBg: 'bg-[rgba(129,140,248,0.12)]',
+    accentText: 'text-[#818cf8]',
+    barGradient: 'from-[#818cf8] to-[#a5b4fc]',
   },
   random: {
     icon: Sparkles,
-    accent: 'text-rose-600',
-    bg: 'bg-rose-50',
-    border: 'border-rose-200',
-    bar: 'bg-rose-500',
+    accentHex: '#f472b6',
+    iconBg: 'bg-[rgba(244,114,182,0.12)]',
+    accentText: 'text-[#f472b6]',
+    barGradient: 'from-[#f472b6] to-[#f9a8d4]',
   },
 };
 
 const DEFAULT_META: ScenarioMeta = {
   icon: Building2,
-  accent: 'text-slate-600',
-  bg: 'bg-slate-100',
-  border: 'border-slate-200',
-  bar: 'bg-slate-400',
+  accentHex: '#818cf8',
+  iconBg: 'bg-[rgba(129,140,248,0.12)]',
+  accentText: 'text-[#818cf8]',
+  barGradient: 'from-[#818cf8] to-[#a5b4fc]',
 };
 
 function getMeta(scenario: string): ScenarioMeta {
@@ -245,19 +245,30 @@ export default function WorkspaceHub() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="bg-app-gradient relative min-h-screen">
+      {/* ── Background System ────────────────────────────── */}
+      <div className="bg-orbs">
+        <div className="bg-orb bg-orb--1" />
+        <div className="bg-orb bg-orb--2" />
+        <div className="bg-orb bg-orb--3" />
+        <div className="bg-orb bg-orb--4" />
+        <div className="bg-orb bg-orb--5" />
+        <div className="bg-orb bg-orb--6" />
+      </div>
+      <div className="bg-vignette" />
+
       {/* ── Header ──────────────────────────────────────── */}
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex h-16 max-w-5xl items-center px-6">
+      <header className="glass-surface relative z-10 border-b border-[rgba(255,255,255,0.06)]">
+        <div className="mx-auto flex h-14 max-w-5xl items-center px-6">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600">
-              <LayoutDashboard className="h-4 w-4 text-white" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--color-primary-400)] to-[var(--color-primary-600)] shadow-[0_0_12px_rgba(99,102,241,0.3)]">
+              <LayoutDashboard className="h-3.5 w-3.5 text-white" />
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-bold tracking-tight text-slate-900">
+              <span className="text-[13px] font-bold tracking-tight text-white">
                 Luminosity
               </span>
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-emerald-600">
+              <span className="text-[9px] font-semibold uppercase tracking-[0.15em] text-[var(--color-text-accent)]">
                 Intelligence
               </span>
             </div>
@@ -266,7 +277,7 @@ export default function WorkspaceHub() {
       </header>
 
       {/* ── Content ─────────────────────────────────────── */}
-      <div className="mx-auto max-w-5xl px-6 py-12">
+      <div className="relative z-10 mx-auto max-w-5xl px-6 py-12">
         {view === 'create' ? (
           <CreateView
             scenarios={scenarios ?? []}
@@ -305,19 +316,19 @@ export default function WorkspaceHub() {
 
       {/* ── Delete Confirmation Modal ───────────────────── */}
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.6)] p-4 backdrop-blur-sm">
+          <div className="glass-strong w-full max-w-sm rounded-xl p-6">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-50">
-                <Trash2 className="h-5 w-5 text-red-600" />
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[rgba(248,113,113,0.15)]">
+                <Trash2 className="h-5 w-5 text-[var(--color-danger)]" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-slate-900">
+                <h3 className="text-sm font-semibold text-white">
                   Delete workspace
                 </h3>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-[rgba(255,255,255,0.5)]">
                   Are you sure you want to delete{' '}
-                  <span className="font-medium text-slate-700">
+                  <span className="font-medium text-[rgba(255,255,255,0.7)]">
                     {deleteTarget.company_name}
                   </span>
                   ? This will permanently remove all generated data.
@@ -327,14 +338,14 @@ export default function WorkspaceHub() {
             <div className="mt-5 flex gap-3">
               <button
                 onClick={() => setDeleteTarget(null)}
-                className="flex-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                className="btn-secondary flex-1"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleteMutation.isPending}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[var(--color-danger)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#ef4444] disabled:opacity-50"
               >
                 {deleteMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -372,37 +383,55 @@ function ListView({
 }) {
   return (
     <div className="animate-fade-in-up">
-      <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-primary-400)]">
+        Command Center
+      </p>
+      <h2 className="mt-2 text-3xl font-bold tracking-tight text-white">
         Workspaces
       </h2>
-      <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-500">
+      <p className="mt-3 max-w-xl text-sm leading-relaxed text-[rgba(255,255,255,0.40)]">
         Create demo company workspaces with realistic synthetic data. Each
         workspace runs an 8-agent AI pipeline that generates behavioral
         profiles, segments, churn predictions, and executive insights.
       </p>
 
       {isLoading ? (
-        <div className="mt-16 flex items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-slate-200 border-t-emerald-600" />
+        <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className={`glass-elevated animate-fade-in-up stagger-${i + 1} overflow-hidden rounded-xl`}>
+              <div className="h-1 shimmer" />
+              <div className="p-6 space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-lg shimmer" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-32 rounded shimmer" />
+                    <div className="h-3 w-24 rounded shimmer" />
+                  </div>
+                </div>
+                <div className="h-3 w-16 rounded shimmer" />
+                <div className="h-9 w-full rounded-lg shimmer" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : workspaces.length === 0 ? (
-        <div className="mt-12 flex flex-col items-center rounded-xl border border-dashed border-slate-200 bg-white/50 px-6 py-20">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50">
+        <div className="glass-elevated mt-12 flex flex-col items-center px-6 py-20">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[rgba(129,140,248,0.08)] ring-1 ring-[rgba(129,140,248,0.12)]">
             <LayoutDashboard
-              className="h-7 w-7 text-emerald-600"
+              className="h-7 w-7 text-[var(--color-primary-400)]"
               strokeWidth={1.5}
             />
           </div>
-          <h3 className="mt-5 text-sm font-semibold text-slate-700">
+          <h3 className="mt-5 text-sm font-semibold text-white">
             No workspaces yet
           </h3>
-          <p className="mt-1.5 max-w-sm text-center text-[13px] leading-relaxed text-slate-400">
+          <p className="mt-1.5 max-w-sm text-center text-[13px] leading-relaxed text-[rgba(255,255,255,0.38)]">
             Create your first workspace to generate realistic synthetic company
             data and explore AI-driven customer intelligence.
           </p>
           <button
             onClick={onCreateNew}
-            className="mt-6 flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm shadow-emerald-200 transition-all duration-200 hover:bg-emerald-700 hover:shadow-md hover:shadow-emerald-200 active:scale-[0.98]"
+            className="btn-primary mt-6"
           >
             <Plus className="h-4 w-4" />
             Create Your First Workspace
@@ -425,13 +454,13 @@ function ListView({
           {/* New workspace CTA card */}
           <button
             onClick={onCreateNew}
-            className={`animate-fade-in-up stagger-${Math.min(workspaces.length + 1, 5)} flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-white/50 p-6 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white hover:shadow-sm`}
+            className={`animate-fade-in-up stagger-${Math.min(workspaces.length + 1, 5)} group flex flex-col items-center justify-center rounded-xl border border-dashed border-[rgba(255,255,255,0.10)] p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-primary-400)] hover:bg-[rgba(129,140,248,0.06)] hover:shadow-[0_0_20px_rgba(129,140,248,0.08)]`}
             style={{ minHeight: '180px' }}
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
-              <Plus className="h-5 w-5 text-slate-400" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[rgba(255,255,255,0.04)] ring-1 ring-[rgba(255,255,255,0.08)] transition-all group-hover:bg-[rgba(129,140,248,0.10)] group-hover:ring-[rgba(129,140,248,0.20)]">
+              <Plus className="h-5 w-5 text-[rgba(255,255,255,0.30)] transition-colors group-hover:text-[var(--color-primary-400)]" />
             </div>
-            <p className="mt-3 text-sm font-medium text-slate-600">
+            <p className="mt-3 text-sm font-medium text-[rgba(255,255,255,0.30)] transition-colors group-hover:text-[var(--color-primary-400)]">
               New Workspace
             </p>
           </button>
@@ -463,26 +492,26 @@ function WorkspaceCard({
 
   return (
     <div
-      className={`animate-fade-in-up stagger-${Math.min(index + 1, 5)} overflow-hidden rounded-xl border border-slate-200/60 bg-white shadow-sm`}
+      className={`animate-fade-in-up stagger-${Math.min(index + 1, 5)} glass-elevated overflow-hidden transition-all duration-300 hover:-translate-y-0.5`}
     >
       {/* Colored accent bar */}
-      <div className={`h-1 ${meta.bar}`} />
+      <div className={`h-0.5 bg-gradient-to-r ${meta.barGradient}`} style={{ boxShadow: `0 1px 8px ${meta.accentHex}33` }} />
 
       <div className="p-6">
         {/* Header */}
         <div className="flex items-start gap-3">
           <div
-            className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${meta.bg}`}
+            className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${meta.iconBg}`}
           >
-            <Icon className={`h-[18px] w-[18px] ${meta.accent}`} />
+            <Icon className={`h-[18px] w-[18px] ${meta.accentText}`} />
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-sm font-semibold text-slate-900">
+            <h3 className="truncate text-sm font-semibold text-white">
               {ws.company_name}
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[rgba(255,255,255,0.5)]">
               {ws.industry} &middot;{' '}
-              {ws.customer_count.toLocaleString()} customers
+              <span className="font-mono">{ws.customer_count.toLocaleString()}</span> customers
             </p>
           </div>
           {/* Delete button — hidden during generation */}
@@ -492,7 +521,7 @@ function WorkspaceCard({
                 e.stopPropagation();
                 onDelete();
               }}
-              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-slate-300 transition hover:bg-red-50 hover:text-red-500"
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-[rgba(255,255,255,0.3)] transition hover:bg-[rgba(248,113,113,0.12)] hover:text-[var(--color-danger)]"
               title="Delete workspace"
             >
               <Trash2 className="h-3 w-3" />
@@ -533,11 +562,11 @@ function ReadyStatus({
 }) {
   return (
     <>
-      <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+      <p className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-success)]">
         <CheckCircle2 className="h-3.5 w-3.5" />
         Ready
       </p>
-      <p className="mt-1 text-[11px] text-slate-400">
+      <p className="mt-1 text-[11px] text-[rgba(255,255,255,0.5)]">
         Created{' '}
         {new Date(ws.created_at).toLocaleDateString('en-US', {
           month: 'short',
@@ -548,14 +577,14 @@ function ReadyStatus({
       <div className="mt-4 flex gap-2">
         <button
           onClick={onEnter}
-          className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm shadow-emerald-200 transition-all duration-200 hover:bg-emerald-700 hover:shadow-md active:scale-[0.98]"
+          className="btn-primary flex-1 py-2 text-sm"
         >
           Enter Dashboard
           <ArrowRight className="h-3.5 w-3.5" />
         </button>
         <button
           onClick={onRegenerate}
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+          className="btn-secondary flex h-9 w-9 items-center justify-center !px-0"
           title="Regenerate data"
         >
           <RefreshCw className="h-3.5 w-3.5" />
@@ -580,29 +609,29 @@ function GeneratingStatus({
   return (
     <>
       <div className="flex items-center gap-1.5">
-        <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
-        <p className="text-xs font-medium text-slate-600">
+        <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--color-primary-400)]" />
+        <p className="text-xs font-medium text-[rgba(255,255,255,0.7)]">
           {ws.current_stage || 'Initializing...'}
         </p>
       </div>
       {ws.stage_index != null && ws.total_stages && (
         <div className="mt-2">
           <div className="mb-1 flex items-center justify-between">
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-[rgba(255,255,255,0.5)]">
               Stage {ws.stage_index} of {ws.total_stages}
             </p>
-            <p className="text-[11px] text-slate-400">{progress}%</p>
+            <p className="font-mono text-[11px] text-[rgba(255,255,255,0.5)]">{progress}%</p>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[rgba(255,255,255,0.06)]">
             <div
-              className="h-full rounded-full bg-emerald-500 transition-all duration-700 ease-out"
-              style={{ width: `${Math.max(progress, 3)}%` }}
+              className="h-full rounded-full bg-gradient-to-r from-[var(--color-primary-500)] to-[var(--color-primary-400)] transition-all duration-700 ease-out"
+              style={{ width: `${Math.max(progress, 3)}%`, boxShadow: '0 0 8px rgba(129,140,248,0.4)' }}
             />
           </div>
         </div>
       )}
       {isPending && (
-        <p className="mt-2 text-[11px] text-emerald-600">
+        <p className="mt-2 text-[11px] text-[var(--color-primary-400)]">
           You'll be redirected when ready...
         </p>
       )}
@@ -619,18 +648,18 @@ function FailedStatus({
 }) {
   return (
     <>
-      <p className="flex items-center gap-1.5 text-xs font-medium text-red-600">
+      <p className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-danger)]">
         <AlertTriangle className="h-3.5 w-3.5" />
         Generation failed
       </p>
       {ws.error_message && (
-        <p className="mt-1 line-clamp-2 text-[11px] text-red-400">
+        <p className="mt-1 line-clamp-2 text-[11px] text-[rgba(255,255,255,0.5)]">
           {ws.error_message}
         </p>
       )}
       <button
         onClick={onRetry}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--color-danger)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#ef4444]"
       >
         <RefreshCw className="h-3.5 w-3.5" />
         Retry Generation
@@ -642,10 +671,10 @@ function FailedStatus({
 function CreatedStatus({ onGenerate }: { onGenerate: () => void }) {
   return (
     <>
-      <p className="text-xs text-slate-400">Not generated yet</p>
+      <p className="text-xs text-[rgba(255,255,255,0.5)]">Not generated yet</p>
       <button
         onClick={onGenerate}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--color-primary-400)] bg-[rgba(129,140,248,0.1)] px-4 py-2 text-sm font-medium text-[var(--color-primary-400)] transition hover:bg-[rgba(129,140,248,0.18)]"
       >
         <Play className="h-3.5 w-3.5" />
         Generate Data
@@ -706,17 +735,20 @@ function CreateView({
       {/* Back */}
       <button
         onClick={onBack}
-        className="mb-8 flex items-center gap-1.5 text-sm font-medium text-slate-500 transition hover:text-slate-700"
+        className="mb-8 flex items-center gap-1.5 text-sm font-medium text-[rgba(255,255,255,0.5)] transition hover:text-white"
       >
         <ChevronLeft className="h-4 w-4" />
         Back to workspaces
       </button>
 
       {/* Title */}
-      <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-primary-400)]">
+        New Workspace
+      </p>
+      <h2 className="mt-2 text-3xl font-bold tracking-tight text-white">
         Choose a Company Profile
       </h2>
-      <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-500">
+      <p className="mt-3 max-w-xl text-sm leading-relaxed text-[rgba(255,255,255,0.40)]">
         Each scenario generates realistic synthetic data with different industry
         dynamics, customer behavior patterns, and business challenges.
       </p>
@@ -736,37 +768,37 @@ function CreateView({
         {/* Custom scenario card */}
         <button
           onClick={() => onSelectScenario('custom')}
-          className={`animate-fade-in-up stagger-${scenarios.length + 1} group rounded-xl border-2 p-6 text-left transition-all duration-200 ${
+          className={`animate-fade-in-up stagger-${scenarios.length + 1} glass glass-hover group rounded-xl border p-6 text-left transition-all duration-300 ${
             isCustom
-              ? 'border-indigo-200 bg-indigo-50 shadow-sm'
-              : 'border-slate-200/60 bg-white hover:-translate-y-0.5 hover:shadow-md'
+              ? 'border-[var(--color-primary-400)] shadow-[0_0_20px_rgba(129,140,248,0.12),inset_0_0_0_1px_rgba(129,140,248,0.10)]'
+              : 'border-[rgba(255,255,255,0.08)] hover:-translate-y-0.5'
           }`}
         >
           <div className="flex items-start gap-3">
             <div
-              className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
-                isCustom ? 'bg-indigo-50' : 'bg-slate-100 group-hover:bg-slate-200/60'
+              className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg transition-colors ${
+                isCustom ? 'bg-[rgba(129,140,248,0.12)]' : 'bg-[rgba(255,255,255,0.04)] ring-1 ring-[rgba(255,255,255,0.08)] group-hover:bg-[rgba(255,255,255,0.08)]'
               }`}
             >
               <Sliders
-                className={`h-5 w-5 ${isCustom ? 'text-indigo-600' : 'text-slate-500'}`}
+                className={`h-5 w-5 transition-colors ${isCustom ? 'text-[var(--color-primary-400)]' : 'text-[rgba(255,255,255,0.40)] group-hover:text-[rgba(255,255,255,0.60)]'}`}
               />
             </div>
             <div className="flex-1">
-              <h3 className="text-sm font-semibold text-slate-900">
+              <h3 className="text-sm font-semibold text-white">
                 Build Your Own
               </h3>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <p className="mt-0.5 text-xs text-[rgba(255,255,255,0.38)]">
                 Custom configuration
               </p>
-              <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
+              <p className="mt-2 text-[13px] leading-relaxed text-[rgba(255,255,255,0.45)]">
                 Configure customer count, churn rate, industry, and more to
                 create a tailored scenario for your analysis.
               </p>
             </div>
           </div>
           {isCustom && (
-            <div className="mt-3 flex items-center gap-1.5 text-xs font-medium text-indigo-600">
+            <div className="mt-3 flex items-center gap-1.5 text-xs font-medium text-[var(--color-primary-400)]">
               <CheckCircle2 className="h-3.5 w-3.5" />
               Selected
             </div>
@@ -777,20 +809,20 @@ function CreateView({
         <button
           onClick={onRandomCreate}
           disabled={isSubmitting}
-          className={`animate-fade-in-up stagger-${scenarios.length + 2} group rounded-xl border-2 border-slate-200/60 bg-white p-6 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50`}
+          className={`animate-fade-in-up stagger-${scenarios.length + 2} glass glass-hover group rounded-xl border border-[rgba(255,255,255,0.08)] p-6 text-left transition-all duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0`}
         >
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 group-hover:bg-rose-100">
-              <Sparkles className="h-5 w-5 text-rose-500" />
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[rgba(244,114,182,0.08)] ring-1 ring-[rgba(244,114,182,0.12)] transition-colors group-hover:bg-[rgba(244,114,182,0.14)]">
+              <Sparkles className="h-5 w-5 text-[#f472b6]" />
             </div>
             <div className="flex-1">
-              <h3 className="text-sm font-semibold text-slate-900">
+              <h3 className="text-sm font-semibold text-white">
                 Surprise Me
               </h3>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <p className="mt-0.5 text-xs text-[rgba(255,255,255,0.38)]">
                 Random company
               </p>
-              <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
+              <p className="mt-2 text-[13px] leading-relaxed text-[rgba(255,255,255,0.45)]">
                 Generate a random company with varied size, industry, churn
                 profile, and business story. Great for quick demos.
               </p>
@@ -801,14 +833,14 @@ function CreateView({
 
       {/* Custom scenario controls */}
       {isCustom && (
-        <div className="mt-8 animate-fade-in space-y-5 rounded-xl border border-indigo-100 bg-indigo-50/30 p-6">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
+        <div className="glass mt-8 animate-fade-in space-y-5 p-6">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--color-primary-400)]">
             Custom Configuration
           </h3>
 
           {/* Company name */}
           <div>
-            <label className="block text-xs font-medium text-slate-600">
+            <label className="block text-xs font-medium text-[rgba(255,255,255,0.7)]">
               Company Name
             </label>
             <input
@@ -816,17 +848,17 @@ function CreateView({
               value={workspaceName}
               onChange={(e) => onChangeName(e.target.value)}
               placeholder="My Company"
-              className="mt-1.5 w-full max-w-md rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+              className="glass-input mt-1.5 w-full max-w-md px-4 py-2.5 text-sm"
             />
           </div>
 
           {/* Customer count slider */}
           <div>
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-slate-600">
+              <label className="text-xs font-medium text-[rgba(255,255,255,0.7)]">
                 Customer Count
               </label>
-              <span className="text-xs font-semibold text-indigo-600">
+              <span className="font-mono text-xs font-semibold text-[var(--color-primary-400)]">
                 {customCount.toLocaleString()}
               </span>
             </div>
@@ -837,9 +869,10 @@ function CreateView({
               step={100}
               value={customCount}
               onChange={(e) => onChangeCount(Number(e.target.value))}
-              className="mt-2 w-full max-w-md accent-indigo-600"
+              className="mt-2 w-full max-w-md"
+              style={{ accentColor: 'var(--color-primary-400)' }}
             />
-            <div className="mt-1 flex max-w-md justify-between text-[10px] text-slate-400">
+            <div className="mt-1 flex max-w-md justify-between font-mono text-[10px] text-[rgba(255,255,255,0.45)]">
               <span>100</span>
               <span>10,000</span>
             </div>
@@ -848,10 +881,10 @@ function CreateView({
           {/* Churn rate slider */}
           <div>
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-slate-600">
+              <label className="text-xs font-medium text-[rgba(255,255,255,0.7)]">
                 Churn Rate
               </label>
-              <span className="text-xs font-semibold text-indigo-600">
+              <span className="font-mono text-xs font-semibold text-[var(--color-primary-400)]">
                 {Math.round(customChurn * 100)}%
               </span>
             </div>
@@ -862,9 +895,10 @@ function CreateView({
               step={1}
               value={Math.round(customChurn * 100)}
               onChange={(e) => onChangeChurn(Number(e.target.value) / 100)}
-              className="mt-2 w-full max-w-md accent-indigo-600"
+              className="mt-2 w-full max-w-md"
+              style={{ accentColor: 'var(--color-primary-400)' }}
             />
-            <div className="mt-1 flex max-w-md justify-between text-[10px] text-slate-400">
+            <div className="mt-1 flex max-w-md justify-between font-mono text-[10px] text-[rgba(255,255,255,0.45)]">
               <span>5%</span>
               <span>30%</span>
             </div>
@@ -872,16 +906,16 @@ function CreateView({
 
           {/* Industry dropdown */}
           <div>
-            <label className="block text-xs font-medium text-slate-600">
+            <label className="block text-xs font-medium text-[rgba(255,255,255,0.7)]">
               Primary Industry
             </label>
             <select
               value={customIndustry}
               onChange={(e) => onChangeIndustry(e.target.value)}
-              className="mt-1.5 w-full max-w-md rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+              className="glass-input mt-1.5 w-full max-w-md px-4 py-2.5 text-sm"
             >
               {INDUSTRIES.map((ind) => (
-                <option key={ind} value={ind}>
+                <option key={ind} value={ind} className="bg-[#1e1b4b] text-white">
                   {ind}
                 </option>
               ))}
@@ -889,12 +923,12 @@ function CreateView({
           </div>
 
           {/* Outage toggle */}
-          <div className="flex items-center justify-between max-w-md">
+          <div className="flex max-w-md items-center justify-between">
             <div>
-              <label className="text-xs font-medium text-slate-600">
+              <label className="text-xs font-medium text-[rgba(255,255,255,0.7)]">
                 Include Q3 Service Outage
               </label>
-              <p className="mt-0.5 text-[11px] text-slate-400">
+              <p className="mt-0.5 text-[11px] text-[rgba(255,255,255,0.45)]">
                 Simulates spike in tickets and negative feedback Aug-Sep 2024
               </p>
             </div>
@@ -902,7 +936,7 @@ function CreateView({
               type="button"
               onClick={() => onChangeOutage(!customOutage)}
               className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors ${
-                customOutage ? 'bg-indigo-600' : 'bg-slate-200'
+                customOutage ? 'bg-[var(--color-primary-400)]' : 'bg-[rgba(255,255,255,0.15)]'
               }`}
             >
               <span
@@ -916,11 +950,11 @@ function CreateView({
           {/* Scenario description */}
           <div>
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-slate-600">
+              <label className="text-xs font-medium text-[rgba(255,255,255,0.7)]">
                 Scenario Description
-                <span className="ml-1 font-normal text-slate-400">(optional)</span>
+                <span className="ml-1 font-normal text-[rgba(255,255,255,0.45)]">(optional)</span>
               </label>
-              <span className="text-[10px] text-slate-400">
+              <span className="font-mono text-[10px] text-[rgba(255,255,255,0.45)]">
                 {customDescription.length}/500
               </span>
             </div>
@@ -931,7 +965,7 @@ function CreateView({
               }}
               placeholder="Describe the business scenario for this workspace..."
               rows={3}
-              className="mt-1.5 w-full max-w-md rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+              className="glass-input mt-1.5 w-full max-w-md px-4 py-2.5 text-sm"
             />
           </div>
         </div>
@@ -940,7 +974,7 @@ function CreateView({
       {/* Name input — appears for archetype scenarios (not custom, which has its own) */}
       {selectedScenario && !isCustom && (
         <div className="mt-8 animate-fade-in">
-          <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <label className="block text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
             Workspace Name
           </label>
           <input
@@ -948,15 +982,15 @@ function CreateView({
             value={workspaceName}
             onChange={(e) => onChangeName(e.target.value)}
             placeholder="Enter a name for this workspace"
-            className="mt-2 w-full max-w-md rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
+            className="glass-input mt-2 w-full max-w-md px-4 py-2.5 text-sm"
           />
         </div>
       )}
 
       {/* Error */}
       {error && (
-        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3">
-          <p className="flex items-center gap-2 text-sm text-red-600">
+        <div className="mt-4 rounded-lg border border-[rgba(248,113,113,0.3)] bg-[rgba(248,113,113,0.1)] p-3">
+          <p className="flex items-center gap-2 text-sm text-[var(--color-danger)]">
             <AlertTriangle className="h-4 w-4 flex-shrink-0" />
             Failed to create workspace. Please try again.
           </p>
@@ -968,11 +1002,7 @@ function CreateView({
         <button
           onClick={onCreate}
           disabled={!selectedScenario || isSubmitting}
-          className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 ${
-            isCustom
-              ? 'bg-indigo-600 shadow-indigo-200 hover:bg-indigo-700 hover:shadow-indigo-200 disabled:hover:bg-indigo-600'
-              : 'bg-emerald-600 shadow-emerald-200 hover:bg-emerald-700 hover:shadow-emerald-200 disabled:hover:bg-emerald-600'
-          }`}
+          className="btn-primary disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
         >
           {isSubmitting ? (
             <>
@@ -1010,40 +1040,38 @@ function ScenarioCard({
   return (
     <button
       onClick={onSelect}
-      className={`animate-fade-in-up stagger-${index + 1} group rounded-xl border-2 p-6 text-left transition-all duration-200 ${
+      className={`animate-fade-in-up stagger-${index + 1} glass glass-hover group rounded-xl border p-6 text-left transition-all duration-300 ${
         isSelected
-          ? `${meta.border} ${meta.bg} shadow-sm`
-          : 'border-slate-200/60 bg-white hover:-translate-y-0.5 hover:shadow-md'
+          ? 'border-[var(--color-primary-400)] shadow-[0_0_20px_rgba(129,140,248,0.12),inset_0_0_0_1px_rgba(129,140,248,0.10)]'
+          : 'border-[rgba(255,255,255,0.08)] hover:-translate-y-0.5'
       }`}
     >
       <div className="flex items-start gap-3">
         <div
-          className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
-            isSelected ? meta.bg : 'bg-slate-100 group-hover:bg-slate-200/60'
+          className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg transition-colors ${
+            isSelected ? meta.iconBg : 'bg-[rgba(255,255,255,0.04)] ring-1 ring-[rgba(255,255,255,0.08)] group-hover:bg-[rgba(255,255,255,0.08)]'
           }`}
         >
           <Icon
-            className={`h-5 w-5 ${isSelected ? meta.accent : 'text-slate-500'}`}
+            className={`h-5 w-5 transition-colors ${isSelected ? meta.accentText : 'text-[rgba(255,255,255,0.40)] group-hover:text-[rgba(255,255,255,0.60)]'}`}
           />
         </div>
         <div className="flex-1">
-          <h3 className="text-sm font-semibold text-slate-900">
+          <h3 className="text-sm font-semibold text-white">
             {scenario.company_name}
           </h3>
-          <p className="mt-0.5 text-xs text-slate-500">
+          <p className="mt-0.5 text-xs text-[rgba(255,255,255,0.38)]">
             {scenario.industry} &middot;{' '}
-            {scenario.customer_count.toLocaleString()} customers &middot;{' '}
-            {Math.round(scenario.churn_rate * 100)}% churn
+            <span className="font-mono">{scenario.customer_count.toLocaleString()}</span> customers &middot;{' '}
+            <span className="font-mono">{Math.round(scenario.churn_rate * 100)}%</span> churn
           </p>
-          <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
+          <p className="mt-2 text-[13px] leading-relaxed text-[rgba(255,255,255,0.45)]">
             {scenario.description}
           </p>
         </div>
       </div>
       {isSelected && (
-        <div
-          className={`mt-3 flex items-center gap-1.5 text-xs font-medium ${meta.accent}`}
-        >
+        <div className="mt-3 flex items-center gap-1.5 text-xs font-medium text-[var(--color-primary-400)]">
           <CheckCircle2 className="h-3.5 w-3.5" />
           Selected
         </div>

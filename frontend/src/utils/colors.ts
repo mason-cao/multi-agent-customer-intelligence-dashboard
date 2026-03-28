@@ -1,22 +1,22 @@
 export const SEGMENT_COLORS: Record<string, string> = {
-  Champions: '#10b981',
-  'Loyal Customers': '#3b82f6',
-  'At Risk': '#f59e0b',
-  Dormant: '#6b7280',
-  'Growth Potential': '#8b5cf6',
+  Champions: '#34d399',
+  'Loyal Customers': '#60a5fa',
+  'At Risk': '#fbbf24',
+  Dormant: '#94a3b8',
+  'Growth Potential': '#a78bfa',
 };
 
 export const RISK_COLORS: Record<string, string> = {
-  low: '#10b981',
-  medium: '#f59e0b',
-  high: '#f97316',
-  critical: '#ef4444',
+  low: '#34d399',
+  medium: '#fbbf24',
+  high: '#fb923c',
+  critical: '#f87171',
 };
 
 export const SENTIMENT_COLORS: Record<string, string> = {
-  very_positive: '#10b981',
+  very_positive: '#34d399',
   positive: '#6ee7b7',
-  neutral: '#9ca3af',
+  neutral: '#94a3b8',
   negative: '#fca5a5',
-  very_negative: '#ef4444',
+  very_negative: '#f87171',
 };

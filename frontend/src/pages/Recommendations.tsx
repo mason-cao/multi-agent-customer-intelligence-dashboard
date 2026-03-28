@@ -1,21 +1,34 @@
 import { Lightbulb, AlertTriangle, ArrowUpRight } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from 'recharts';
 import PageHeader from '../components/shared/PageHeader';
 import Card from '../components/shared/Card';
 import EmptyState from '../components/shared/EmptyState';
+import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE } from '../components/charts';
 import {
   useRecommendationSummary,
   useTopRecommendations,
 } from '../api/hooks';
 
-const CATEGORY_COLORS: Record<string, string> = {
-  retention: '#ef4444',
-  growth: '#10b981',
-  monitoring: '#6b7280',
-  support: '#f59e0b',
+const CATEGORY_BADGE: Record<string, string> = {
+  retention: 'bg-[rgba(248,113,113,0.15)] text-[#f87171]',
+  growth: 'bg-[rgba(52,211,153,0.15)] text-[#34d399]',
+  monitoring: 'bg-[rgba(148,163,184,0.15)] text-[#94a3b8]',
+  support: 'bg-[rgba(251,191,36,0.15)] text-[#fbbf24]',
 };
 
+const DEFAULT_BADGE = 'bg-[rgba(148,163,184,0.15)] text-[#94a3b8]';
+
 function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`rounded bg-slate-200 animate-pulse ${className}`} />;
+  return <div className={`rounded-md shimmer ${className}`} />;
 }
 
 export default function Recommendations() {
@@ -30,7 +43,10 @@ export default function Recommendations() {
     ? Object.entries(summary.action_distribution).sort(([, a], [, b]) => b - a)
     : [];
 
-  const maxAction = actionEntries.length > 0 ? actionEntries[0][1] : 1;
+  const chartData = actionEntries.map(([label, count]) => ({
+    action: label,
+    count,
+  }));
 
   return (
     <div>
@@ -49,8 +65,8 @@ export default function Recommendations() {
           <Card><Skeleton className="h-64 w-full" /></Card>
         </div>
       ) : isError ? (
-        <Card className="border-red-100 bg-red-50/40">
-          <p className="flex items-center gap-2 text-sm text-red-600">
+        <Card className="border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.1)]">
+          <p className="flex items-center gap-2 text-sm text-[rgba(248,113,113,0.9)]">
             <AlertTriangle className="h-4 w-4" />
             Failed to load recommendation data.
           </p>
@@ -66,31 +82,30 @@ export default function Recommendations() {
           {/* Summary KPIs */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Card hover>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
                 Total Recommendations
               </p>
-              <p className="mt-2 text-3xl font-bold text-slate-900">
+              <p className="mt-2 font-mono text-3xl font-bold text-white">
                 {summary.total_recommendations.toLocaleString()}
               </p>
             </Card>
             <Card hover>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
                 Avg Urgency Score
               </p>
-              <p className="mt-2 text-3xl font-bold text-slate-900">
+              <p className="mt-2 font-mono text-3xl font-bold text-white">
                 {summary.avg_urgency.toFixed(1)}
               </p>
             </Card>
             <Card hover>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
                 Categories
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {Object.entries(summary.category_distribution).map(([cat, count]) => (
                   <span
                     key={cat}
-                    className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white"
-                    style={{ backgroundColor: CATEGORY_COLORS[cat] ?? '#6b7280' }}
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${CATEGORY_BADGE[cat] ?? DEFAULT_BADGE}`}
                   >
                     {cat} ({count})
                   </span>
@@ -100,47 +115,61 @@ export default function Recommendations() {
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
-            {/* Action distribution */}
+            {/* Action distribution — Recharts vertical bar chart */}
             <Card>
               <div className="mb-4 flex items-center gap-2">
-                <Lightbulb className="h-4 w-4 text-amber-500" />
-                <h3 className="text-sm font-semibold text-slate-700">
+                <Lightbulb className="h-4 w-4 text-[#fbbf24]" />
+                <h3 className="text-sm font-semibold text-white">
                   Action Distribution
                 </h3>
               </div>
-              <div className="space-y-2.5">
-                {actionEntries.map(([label, count]) => {
-                  const widthPct = (count / maxAction) * 100;
-                  return (
-                    <div key={label}>
-                      <div className="mb-1 flex items-center justify-between text-xs">
-                        <span className="font-medium text-slate-600">{label}</span>
-                        <span className="text-slate-400">{count}</span>
-                      </div>
-                      <div className="h-2 w-full rounded-full bg-slate-100">
-                        <div
-                          className="h-2 rounded-full bg-emerald-500 transition-all"
-                          style={{ width: `${widthPct}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart
+                  layout="vertical"
+                  data={chartData}
+                  margin={{ top: 0, right: 16, bottom: 0, left: 0 }}
+                >
+                  <CartesianGrid {...GRID_STYLE} horizontal={false} />
+                  <XAxis
+                    type="number"
+                    {...AXIS_STYLE}
+                    tickFormatter={(value: unknown) => String(value)}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="action"
+                    width={110}
+                    {...AXIS_STYLE}
+                    tickFormatter={(value: unknown) => String(value)}
+                  />
+                  <Tooltip
+                    {...TOOLTIP_STYLE}
+                    formatter={(value: unknown) => [String(value), 'Count']}
+                  />
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={16}>
+                    {chartData.map((_, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={CHART_COLORS[index % CHART_COLORS.length]}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </Card>
 
             {/* Top priority recommendations */}
             <Card className="xl:col-span-2">
               <div className="mb-4 flex items-center gap-2">
-                <ArrowUpRight className="h-4 w-4 text-emerald-600" />
-                <h3 className="text-sm font-semibold text-slate-700">
+                <ArrowUpRight className="h-4 w-4 text-[#34d399]" />
+                <h3 className="text-sm font-semibold text-white">
                   Top Priority Actions
                 </h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-slate-100 text-xs text-slate-400">
+                    <tr className="border-b border-[rgba(255,255,255,0.1)] text-xs text-[rgba(255,255,255,0.45)]">
                       <th className="pb-2 font-medium">Action</th>
                       <th className="pb-2 font-medium">Category</th>
                       <th className="pb-2 font-medium">Driver</th>
@@ -153,36 +182,32 @@ export default function Recommendations() {
                       topRecs.map((r) => (
                         <tr
                           key={r.recommendation_id}
-                          className="border-b border-slate-50 last:border-0"
+                          className="border-b border-[rgba(255,255,255,0.06)] transition-colors hover:bg-[rgba(255,255,255,0.04)] last:border-0"
                         >
-                          <td className="py-2.5 font-medium text-slate-700">
+                          <td className="py-2.5 font-medium text-white">
                             {r.action_label}
                           </td>
                           <td className="py-2.5">
                             <span
-                              className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
-                              style={{
-                                backgroundColor:
-                                  CATEGORY_COLORS[r.action_category] ?? '#6b7280',
-                              }}
+                              className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${CATEGORY_BADGE[r.action_category] ?? DEFAULT_BADGE}`}
                             >
                               {r.action_category}
                             </span>
                           </td>
-                          <td className="py-2.5 text-xs text-slate-500">
+                          <td className="py-2.5 text-xs text-[rgba(255,255,255,0.7)]">
                             {r.primary_driver}
                           </td>
-                          <td className="py-2.5 text-right text-sm font-semibold text-slate-700">
+                          <td className="py-2.5 text-right font-mono text-sm font-semibold text-white">
                             {r.urgency_score.toFixed(1)}
                           </td>
-                          <td className="py-2.5 text-xs text-slate-500">
+                          <td className="py-2.5 text-xs text-[rgba(255,255,255,0.7)]">
                             {r.target_timeframe}
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={5} className="py-8 text-center text-sm text-slate-400">
+                        <td colSpan={5} className="py-8 text-center text-sm text-[rgba(255,255,255,0.45)]">
                           No priority recommendations available
                         </td>
                       </tr>

@@ -1,27 +1,81 @@
-import { MessageCircle, AlertTriangle, Hash } from 'lucide-react';
+import { MessageCircle, AlertTriangle, Hash, FileText } from 'lucide-react';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 import PageHeader from '../components/shared/PageHeader';
 import Card from '../components/shared/Card';
 import EmptyState from '../components/shared/EmptyState';
 import { useSentimentSummary } from '../api/hooks';
 import { SENTIMENT_COLORS } from '../utils/colors';
+import { AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE } from '../components/charts';
 
 function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`rounded bg-slate-200 animate-pulse ${className}`} />;
+  return <div className={`rounded-md shimmer ${className}`} />;
 }
 
-const LABEL_ORDER = ['positive', 'neutral', 'negative'];
+const LABEL_ORDER = ['very_positive', 'positive', 'neutral', 'negative', 'very_negative'];
+
+const LABEL_DISPLAY: Record<string, string> = {
+  very_positive: 'Very Positive',
+  positive: 'Positive',
+  neutral: 'Neutral',
+  negative: 'Negative',
+  very_negative: 'Very Negative',
+};
+
+function sentColor(score: number): string {
+  if (score >= 0.4) return SENTIMENT_COLORS.very_positive;
+  if (score >= 0.1) return SENTIMENT_COLORS.positive;
+  if (score >= -0.1) return SENTIMENT_COLORS.neutral;
+  if (score >= -0.4) return SENTIMENT_COLORS.negative;
+  return SENTIMENT_COLORS.very_negative;
+}
+
+function barColor(score: number): string {
+  if (score >= 0.1) return SENTIMENT_COLORS.positive;
+  if (score >= -0.1) return SENTIMENT_COLORS.neutral;
+  return SENTIMENT_COLORS.negative;
+}
 
 export default function SentimentSupport() {
   const { data: summary, isLoading, isError } = useSentimentSummary();
 
   const total = summary?.total ?? 0;
 
-  // Sentiment score to color
-  function sentColor(score: number): string {
-    if (score > 0.2) return SENTIMENT_COLORS.positive;
-    if (score > -0.2) return SENTIMENT_COLORS.neutral;
-    return SENTIMENT_COLORS.negative;
-  }
+  // Build pie data from distribution
+  const pieData = summary
+    ? LABEL_ORDER
+        .filter((label) => (summary.distribution[label] ?? 0) > 0)
+        .map((label) => ({
+          name: LABEL_DISPLAY[label] ?? label,
+          value: summary.distribution[label] ?? 0,
+          color: SENTIMENT_COLORS[label] ?? '#94a3b8',
+        }))
+    : [];
+
+  // Build bar data from topics — sorted by avg_sentiment descending
+  const topicBarData = summary
+    ? [...summary.topics]
+        .sort((a, b) => b.avg_sentiment - a.avg_sentiment)
+        .map((t) => ({
+          topic: t.topic.replace(/_/g, ' '),
+          avg_sentiment: parseFloat(t.avg_sentiment.toFixed(3)),
+          count: t.count,
+          fill: barColor(t.avg_sentiment),
+        }))
+    : [];
+
+  const topicBarHeight = Math.max(280, topicBarData.length * 36);
 
   return (
     <div>
@@ -37,11 +91,14 @@ export default function SentimentSupport() {
               <Card key={i}><Skeleton className="h-20 w-full" /></Card>
             ))}
           </div>
-          <Card><Skeleton className="h-64 w-full" /></Card>
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <Card><Skeleton className="h-72 w-full" /></Card>
+            <Card className="xl:col-span-2"><Skeleton className="h-72 w-full" /></Card>
+          </div>
         </div>
       ) : isError ? (
-        <Card className="border-red-100 bg-red-50/40">
-          <p className="flex items-center gap-2 text-sm text-red-600">
+        <Card className="border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.1)]">
+          <p className="flex items-center gap-2 text-sm text-[rgba(248,113,113,0.9)]">
             <AlertTriangle className="h-4 w-4" />
             Failed to load sentiment data.
           </p>
@@ -57,173 +114,214 @@ export default function SentimentSupport() {
           {/* KPI row */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Card hover>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Total Documents
-              </p>
-              <p className="mt-2 text-3xl font-bold text-slate-900">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-[rgba(255,255,255,0.45)]" />
+                <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
+                  Total Documents
+                </p>
+              </div>
+              <p className="mt-2 text-3xl font-bold font-mono text-white">
                 {total.toLocaleString()}
               </p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-[rgba(255,255,255,0.45)]">
                 tickets &amp; feedback analyzed
               </p>
             </Card>
             <Card hover>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Avg Sentiment Score
-              </p>
+              <div className="flex items-center gap-2">
+                <MessageCircle className="h-4 w-4 text-[rgba(255,255,255,0.45)]" />
+                <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
+                  Avg Sentiment Score
+                </p>
+              </div>
               <p
-                className="mt-2 text-3xl font-bold"
+                className="mt-2 text-3xl font-bold font-mono"
                 style={{ color: sentColor(summary.avg_score) }}
               >
-                {summary.avg_score.toFixed(3)}
+                {summary.avg_score >= 0 ? '+' : ''}{summary.avg_score.toFixed(3)}
               </p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-[rgba(255,255,255,0.45)]">
                 scale: -1.0 to +1.0
               </p>
             </Card>
             <Card hover>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Topics Detected
-              </p>
-              <p className="mt-2 text-3xl font-bold text-slate-900">
+              <div className="flex items-center gap-2">
+                <Hash className="h-4 w-4 text-[rgba(255,255,255,0.45)]" />
+                <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
+                  Topics Detected
+                </p>
+              </div>
+              <p className="mt-2 text-3xl font-bold font-mono text-white">
                 {summary.topics.length}
               </p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-[rgba(255,255,255,0.45)]">
                 unique topics extracted
               </p>
             </Card>
           </div>
 
-          {/* Distribution + Topics */}
+          {/* Distribution donut + Topic bars */}
           <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
-            {/* Sentiment distribution */}
+            {/* Sentiment distribution donut */}
             <Card>
               <div className="mb-4 flex items-center gap-2">
-                <MessageCircle className="h-4 w-4 text-emerald-600" />
-                <h3 className="text-sm font-semibold text-slate-700">
+                <MessageCircle className="h-4 w-4 text-[var(--color-primary-400)]" />
+                <h3 className="text-sm font-semibold text-white">
                   Sentiment Distribution
                 </h3>
               </div>
 
-              {/* Stacked bar */}
-              <div className="flex h-10 overflow-hidden rounded-lg">
-                {LABEL_ORDER.map((label) => {
-                  const count = summary.distribution[label] ?? 0;
-                  const pct = total > 0 ? (count / total) * 100 : 0;
-                  return (
-                    <div
-                      key={label}
-                      className="flex items-center justify-center text-[11px] font-bold text-white"
-                      style={{
-                        width: `${pct}%`,
-                        backgroundColor: SENTIMENT_COLORS[label] ?? '#9ca3af',
+              {pieData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="45%"
+                      innerRadius="55%"
+                      outerRadius="80%"
+                      paddingAngle={2}
+                      stroke="rgba(255,255,255,0.08)"
+                      strokeWidth={1}
+                    >
+                      {pieData.map((entry, i) => (
+                        <Cell key={i} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      {...TOOLTIP_STYLE}
+                      formatter={(value: unknown) => {
+                        const num = Number(value);
+                        const pct = total > 0 ? ((num / total) * 100).toFixed(1) : '0';
+                        return [`${num.toLocaleString()} (${pct}%)`, 'Count'];
                       }}
-                      title={`${label}: ${count} (${pct.toFixed(1)}%)`}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      iconType="circle"
+                      iconSize={8}
+                      wrapperStyle={{
+                        fontSize: 11,
+                        color: 'rgba(255,255,255,0.7)',
+                        fontFamily: "'Geist Sans', sans-serif",
+                        paddingTop: 8,
+                      }}
+                      formatter={(value: unknown) => (
+                        <span style={{ color: 'rgba(255,255,255,0.7)' }}>{String(value)}</span>
+                      )}
+                    />
+                    {/* Center avg score text */}
+                    <text
+                      x="50%"
+                      y="42%"
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      style={{
+                        fontSize: 22,
+                        fontWeight: 700,
+                        fontFamily: "'Geist Mono', monospace",
+                        fill: sentColor(summary.avg_score),
+                      }}
                     >
-                      {pct > 10 ? `${pct.toFixed(0)}%` : ''}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Legend */}
-              <div className="mt-4 space-y-2">
-                {LABEL_ORDER.map((label) => {
-                  const count = summary.distribution[label] ?? 0;
-                  const pct = total > 0 ? (count / total) * 100 : 0;
-                  return (
-                    <div
-                      key={label}
-                      className="flex items-center justify-between text-xs"
+                      {summary.avg_score >= 0 ? '+' : ''}{summary.avg_score.toFixed(2)}
+                    </text>
+                    <text
+                      x="50%"
+                      y="52%"
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      style={{
+                        fontSize: 10,
+                        fontFamily: "'Geist Sans', sans-serif",
+                        fill: 'rgba(255,255,255,0.45)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
                     >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="inline-block h-2.5 w-2.5 rounded-full"
-                          style={{
-                            backgroundColor: SENTIMENT_COLORS[label] ?? '#9ca3af',
-                          }}
-                        />
-                        <span className="font-medium text-slate-600 capitalize">
-                          {label}
-                        </span>
-                      </div>
-                      <span className="text-slate-400">
-                        {count.toLocaleString()} ({pct.toFixed(1)}%)
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+                      avg score
+                    </text>
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-64 items-center justify-center">
+                  <p className="text-sm text-[rgba(255,255,255,0.45)]">
+                    No distribution data
+                  </p>
+                </div>
+              )}
             </Card>
 
-            {/* Top topics */}
+            {/* Top topics horizontal bar chart */}
             <Card className="xl:col-span-2">
               <div className="mb-4 flex items-center gap-2">
-                <Hash className="h-4 w-4 text-emerald-600" />
-                <h3 className="text-sm font-semibold text-slate-700">
-                  Top Topics
+                <Hash className="h-4 w-4 text-[var(--color-primary-400)]" />
+                <h3 className="text-sm font-semibold text-white">
+                  Top Topics by Sentiment
                 </h3>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-xs text-slate-400">
-                      <th className="pb-2 font-medium">Topic</th>
-                      <th className="pb-2 font-medium text-right">Mentions</th>
-                      <th className="pb-2 font-medium text-right">Avg Sentiment</th>
-                      <th className="pb-2 font-medium">Sentiment</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {summary.topics.length ? (
-                      summary.topics.map((t) => {
-                        const barPct = Math.min(
-                          100,
-                          Math.max(0, ((t.avg_sentiment + 1) / 2) * 100)
-                        );
-                        return (
-                          <tr
-                            key={t.topic}
-                            className="border-b border-slate-50 last:border-0"
-                          >
-                            <td className="py-2.5 font-medium text-slate-700 capitalize">
-                              {t.topic.replace(/_/g, ' ')}
-                            </td>
-                            <td className="py-2.5 text-right text-slate-600">
-                              {t.count.toLocaleString()}
-                            </td>
-                            <td className="py-2.5 text-right">
-                              <span
-                                className="font-semibold"
-                                style={{ color: sentColor(t.avg_sentiment) }}
-                              >
-                                {t.avg_sentiment.toFixed(3)}
-                              </span>
-                            </td>
-                            <td className="py-2.5">
-                              <div className="h-2 w-24 rounded-full bg-slate-100">
-                                <div
-                                  className="h-2 rounded-full transition-all"
-                                  style={{
-                                    width: `${barPct}%`,
-                                    backgroundColor: sentColor(t.avg_sentiment),
-                                  }}
-                                />
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan={4} className="py-8 text-center text-sm text-slate-400">
-                          No topics extracted from feedback
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+
+              {topicBarData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={topicBarHeight}>
+                  <BarChart
+                    data={topicBarData}
+                    layout="vertical"
+                    margin={{ top: 4, right: 24, bottom: 4, left: 8 }}
+                  >
+                    <CartesianGrid {...GRID_STYLE} horizontal={false} />
+                    <XAxis
+                      type="number"
+                      domain={[-1, 1]}
+                      tickCount={5}
+                      {...AXIS_STYLE}
+                      tickFormatter={(value: unknown) => String(Number(value).toFixed(1))}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="topic"
+                      width={120}
+                      {...AXIS_STYLE}
+                      tick={{
+                        ...AXIS_STYLE,
+                        textAnchor: 'end',
+                        style: {
+                          textTransform: 'capitalize',
+                          fontSize: 11,
+                          fill: 'rgba(255,255,255,0.7)',
+                          fontFamily: "'Geist Sans', sans-serif",
+                        },
+                      }}
+                    />
+                    <Tooltip
+                      {...TOOLTIP_STYLE}
+                      formatter={(value: unknown, name: unknown) => {
+                        const label = String(name) === 'avg_sentiment' ? 'Avg Sentiment' : String(name);
+                        return [Number(value).toFixed(3), label];
+                      }}
+                      labelFormatter={(value: unknown) => {
+                        const label = String(value);
+                        return label.charAt(0).toUpperCase() + label.slice(1);
+                      }}
+                    />
+                    <Bar
+                      dataKey="avg_sentiment"
+                      radius={[0, 4, 4, 0]}
+                      maxBarSize={22}
+                    >
+                      {topicBarData.map((entry, i) => (
+                        <Cell key={i} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-64 items-center justify-center">
+                  <p className="text-sm text-[rgba(255,255,255,0.45)]">
+                    No topics extracted from feedback
+                  </p>
+                </div>
+              )}
             </Card>
           </div>
         </>
