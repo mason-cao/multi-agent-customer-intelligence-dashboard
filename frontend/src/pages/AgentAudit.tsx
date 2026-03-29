@@ -79,7 +79,7 @@ export default function AgentAudit() {
                 {data.audit.total_checks}
               </p>
             </Card>
-            <Card hover>
+            <Card hover style={{ '--glass-hover-glow': 'rgba(52,211,153,0.12)' } as React.CSSProperties}>
               <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
                 Passed
               </p>
@@ -87,7 +87,7 @@ export default function AgentAudit() {
                 {data.audit.passed}
               </p>
             </Card>
-            <Card hover>
+            <Card hover style={{ '--glass-hover-glow': 'rgba(248,113,113,0.12)' } as React.CSSProperties}>
               <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
                 Failed
               </p>

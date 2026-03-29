@@ -86,7 +86,12 @@ export default function ChurnRetention() {
                 : '0';
               const colorKey = tier.risk_tier.toLowerCase();
               return (
-                <Card key={tier.risk_tier} hover className={`animate-fade-in-up stagger-${i + 1}`}>
+                <Card
+                  key={tier.risk_tier}
+                  hover
+                  className={`animate-fade-in-up stagger-${i + 1}`}
+                  style={{ '--glass-hover-glow': hexToRgba(RISK_COLORS[colorKey] ?? '#6b7280', 0.12) } as React.CSSProperties}
+                >
                   <div className="flex items-center gap-2">
                     <span
                       className="h-2.5 w-2.5 rounded-full"

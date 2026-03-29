@@ -2,16 +2,23 @@ interface CardProps {
   children: React.ReactNode;
   className?: string;
   hover?: boolean;
-  variant?: 'default' | 'elevated';
+  variant?: 'default' | 'elevated' | 'hero';
+  style?: React.CSSProperties;
 }
 
-export default function Card({ children, className = '', hover = false, variant = 'default' }: CardProps) {
-  const base = variant === 'elevated' ? 'glass-elevated' : 'glass';
+const VARIANT_CLASS = {
+  default: 'glass',
+  elevated: 'glass-elevated',
+  hero: 'glass-hero',
+} as const;
+
+export default function Card({ children, className = '', hover = false, variant = 'default', style }: CardProps) {
   return (
     <div
-      className={`${base} p-6 ${
+      className={`${VARIANT_CLASS[variant]} p-6 ${
         hover ? 'glass-hover' : ''
       } ${className}`}
+      style={style}
     >
       {children}
     </div>

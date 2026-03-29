@@ -47,7 +47,7 @@ export default function AskAnything() {
       />
 
       {/* Query input */}
-      <Card className="mb-6">
+      <Card variant="hero" className="mb-6">
         <div className="flex items-center gap-3">
           <Sparkles className="h-5 w-5 shrink-0 text-[var(--color-primary-400)]" />
           <input

@@ -158,7 +158,7 @@ export default function Overview() {
       </div>
 
       {/* AI Narrative */}
-      <Card className="mt-6 animate-fade-in-up stagger-5 border-l-2 border-[var(--color-primary-400)]">
+      <Card variant="hero" className="mt-6 animate-fade-in-up stagger-5">
         <div className="mb-3 flex items-center gap-2">
           <span className="flex items-center gap-1.5 rounded-full bg-[rgba(129,140,248,0.15)] px-2.5 py-1 text-[11px] font-semibold text-[var(--color-primary-400)]">
             <Zap className="h-3 w-3" />
