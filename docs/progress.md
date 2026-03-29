@@ -5,9 +5,9 @@
 ## Current Status
 
 **Branch:** `main`
-**HEAD:** `03ae2e1` -Session handoff
-**Working tree:** Uncommitted changes (UI overhaul + Ticket 5/5.1)
-**Current phase:** Phase 5 (Infrastructure & Polish) -Tickets 1–4 committed; Tickets 5, 5.1, and UI overhaul uncommitted.
+**HEAD:** `a37282e` — Glassmorphism perfection pass
+**Working tree:** Clean
+**Current phase:** UI/UX Elevation (Phase 5 complete, Ticket A1 done, Ticket A2 next)
 ---
 
 ## Phase Summary
@@ -18,7 +18,8 @@
 | 2 | Validation & Hardening | Complete | Full-system hardening pass, pipeline runner |
 | 3 | Integration | Complete | All 8 pages wired to real backend data |
 | 4 | Productization | Complete | Workspace model, generation pipeline, hub UI, DB routing, lifecycle, custom scenarios |
-| **5** | **Infrastructure & Polish** | **In Progress** | Tickets 1–4 committed; Tickets 5, 5.1 implemented (uncommitted); Ticket 6 remaining |
+| 5 | Infrastructure & Polish | Complete | All 6 tickets committed (resilience, error handling, empty states, tests, lifecycle hardening, code consistency) |
+| **—** | **UI/UX Elevation** | **In Progress** | Ticket A1 (Glass Perfection) committed; Ticket A2 (Generation Experience) next |
 | 6 | Deployment & Presentation | Planned | Railway + Vercel, demo prep |
 
 ---
@@ -91,7 +92,7 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 
 ---
 
-## Phase 4 -Productization (In Progress)
+## Phase 4 -Productization (Complete)
 
 ### Ticket 1 -Workspace Metadata Model (Committed: `9a4ef00`)
 - Workspace ORM model with 15 columns on WorkspaceBase
@@ -166,7 +167,7 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 - Key discovery: `workspace_manager.py` captures `MetadataSession` at import time — must patch both source and consumer modules
 - All 10 tests pass in 0.23s with full DB isolation (production data/ untouched)
 
-### Ticket 5 — Workspace Lifecycle Hardening (uncommitted)
+### Ticket 5 — Workspace Lifecycle Hardening (`432392b`)
 - Generation timeout: dual-detection (poll-time in route + stage-boundary `_check_timeout()` in generator thread)
 - `generation_started_at` column on Workspace model with SQLite ALTER TABLE migration
 - Human-readable `user_message` computed field via Pydantic `@computed_field` (maps error patterns to friendly strings)
@@ -175,27 +176,60 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 - Race condition guard: generator checks status before marking `ready`
 - `GENERATION_TIMEOUT_SECONDS = 300` (5 minutes)
 
-### Ticket 5.1 — Corrective Fixes (uncommitted)
+### Ticket 5.1 — Corrective Fixes (`a38aa26`)
 - Fixed `generation_started_at` reset on every stage update (only set on transition TO `"generating"`)
 - Fixed timeout prefix mismatch (`startswith("Timeout")` now matches both `"Timeout:"` and `"TimeoutError:"`)
 - Removed unused `prepare_for_regeneration` import from workspace routes
 - Hoisted `PRESERVED_KEYS` to module level in `WorkspaceContext.tsx`
 - All 10 backend tests pass
 
-### Remaining Phase 5 Work
-- **Ticket 6 — Code consistency pass** (final planned Phase 5 ticket):
-  - Response shape standardization
-  - CORS config cleanup
-  - README update
+### Ticket 6 — Code Consistency Pass (`502f528`)
+- Response shape standardization
+- CORS config cleanup
+- README update
+- **Phase 5 complete — all tickets committed**
+
+---
+
+## UI/UX Elevation (In Progress)
+
+Premium UI/UX improvement pass informed by Google Stitch MCP + UI-UX Pro Max design intelligence.
+Plan: `.claude/plans/binary-enchanting-brooks.md`
+Stitch project: `4015723663518318885` (Geist/dark/vibrant/indigo)
+
+### Ticket A1 — Glassmorphism Perfection Pass (`a37282e`)
+- 12 glass system gaps implemented (CSS-only in `index.css` + minor page updates):
+  - SVG noise texture overlay at 3% opacity via `::after` pseudo-elements with `mix-blend-mode: overlay`
+  - Gradient borders via `background-clip: padding-box, border-box` technique
+  - Dark-indigo-tinted shadows (`rgba(6,8,20,x)`) replacing pure black
+  - `.glass-hero` variant with conic-gradient border (indigo→violet→cyan)
+  - Specular highlight refinement via `::before` pseudo-element
+  - `:active` press state on `.glass-hover` cards (`translateY(-1px) scale(0.99)`)
+  - 4-level shadow elevation scale per glass tier
+  - Glass-themed `::-webkit-scrollbar` styles
+  - `--glass-hover-glow` CSS custom property for semantic hover colors
+  - `.glass-nested` variant with reduced blur(8px)
+  - Orb color diversity (orb 5 boosted 0.22→0.30, orb 6 shifted to violet)
+  - Saturate tuning per tier (glass-surface 1.2, glass 1.4, glass-elevated 1.8)
+- `Card.tsx` updated with `hero` variant + `style` prop
+- Semantic `--glass-hover-glow` applied to Overview KPIs, ChurnRetention risk cards, AgentAudit pass/fail
+- `.glass-hero` applied to Overview AI Narrative, AskAnything query input
+
+### Remaining UI/UX Tickets
+- **Ticket A2** — Generation Experience Overhaul (new `GenerationView.tsx`, 14-stage timeline, auto-redirect)
+- **Ticket B1** — Component System Standardization (structured Card, ChartCard, StatCard, Badge)
+- **Ticket B2** — Overview Dashboard Hierarchy (KPI elevation, narrative hero, pipeline health)
+- **Ticket C1** — Ask Anything Reimagination (conversational UI, rich results)
+- **Ticket C2** — Sidebar & Navigation Enhancement (workspace indicator, page transitions)
+- **Ticket D1** — Chart & Table Polish (ChartCard wrapper, animated entrances)
+- **Ticket D2** — Microinteraction Pass (button press, loading states, hover consistency)
+
 ---
 
 ## What Is Not Built Yet
 
-### Phase 5 -Infrastructure & Polish
-- DAG-based agent orchestrator for parallel execution
-- ChromaDB vector store for NL query semantic search
-- Frontend tests (Vitest)
-- Code cleanup and documentation
+### UI/UX Elevation
+- Tickets A2–D2 (see above)
 
 ### Phase 6 -Deployment & Presentation
 - Railway backend deployment
@@ -244,12 +278,11 @@ All 8 agents implemented with BaseAgent ABC pattern, mock-first LLM support, and
 
 ## Next Steps
 
-Continue Phase 5 -Infrastructure & Polish. Follow the roadmap.
+Continue UI/UX Elevation roadmap (Ticket A2 next). When complete or paused, move to Phase 6.
 
 ### Do Not Do Yet
 - Do not add deployment before Phase 6
 - Do not create new agents
-- Do not add stretch UI features
 - Do not add real data ingestion
 - Do not skip phases
 
@@ -359,7 +392,7 @@ Continue Phase 5 -Infrastructure & Polish. Follow the roadmap.
 
 ### Session 7 — 2026-03-28 (Cinematic Glassmorphism UI Overhaul)
 
-**Work completed (all uncommitted on `main`):**
+**Work completed (committed as `1f40e0a`):**
 - Complete visual redesign of the entire frontend to cinematic premium glassmorphism
 - 24 files changed (3 new, 21 modified), ~2,600 lines added / ~1,300 removed
 
@@ -409,15 +442,13 @@ Continue Phase 5 -Infrastructure & Polish. Follow the roadmap.
 - All buttons use `.btn-primary`/`.btn-secondary` classes
 - Motion: `cubic-bezier(0.16, 1, 0.3, 1)`, 80ms stagger, 16px translateY entrance
 
-**Status:** All changes uncommitted. Build verified clean. No backend changes (frontend-only redesign).
-
-**Next session:** Commit the UI overhaul, then continue Phase 5 roadmap
+**Status:** Committed as `1f40e0a`. No backend changes (frontend-only redesign).
 
 ---
 
 ### Session 8 — 2026-03-28 (Phase 5 Tickets 5 + 5.1)
 
-**Work completed (all uncommitted on `main`):**
+**Work completed (committed as `432392b` + `a38aa26`):**
 - Ticket 5: Workspace lifecycle hardening — generation timeout detection, human-readable error messages, stale cache invalidation
 - Ticket 5 audit: systematic review of all 10 modified files against ticket spec, identified 2 bugs + 2 cleanups
 - Ticket 5.1: Corrective fixes for all 4 issues found during audit
@@ -456,8 +487,25 @@ Continue Phase 5 -Infrastructure & Polish. Follow the roadmap.
 - `user_message` as Pydantic computed field keeps technical `error_message` for debugging while showing friendly text to users
 - `completed_at` in query keys provides automatic cache invalidation on regeneration without manual cache management
 
-**Next session:**
-1. Commit UI overhaul + Ticket 5/5.1 changes
-2. Implement Ticket 6 — Code consistency pass (final Phase 5 ticket)
-3. Audit Ticket 6
-4. Determine whether Phase 5 is complete
+---
+
+### Session 9 — 2026-03-29 (Phase 5 Completion + UI/UX Elevation Start)
+
+**Work completed:**
+- Committed all previously uncommitted work (UI overhaul `1f40e0a`, Ticket 5 `432392b`, Ticket 5.1 `a38aa26`)
+- Added Google Stitch MCP and skills (`88a77d5`)
+- Ticket 6: Code consistency pass — response shapes, CORS config, README (`502f528`) — **Phase 5 complete**
+- Comprehensive UI/UX product planning pass using Google Stitch MCP + UI-UX Pro Max skill
+- Google Stitch project created (ID: `4015723663518318885`) with design system + 3 screen concepts
+- Full 8-ticket UI/UX roadmap written at `.claude/plans/binary-enchanting-brooks.md`
+- Ticket A1: Glassmorphism perfection pass — 12 glass system gaps fixed (`a37282e`)
+
+**Key decisions:**
+- Phase 5 declared complete after Ticket 6 commit
+- UI/UX Elevation treated as a separate improvement pass (not a new phase), positioned between Phase 5 and Phase 6
+- Glassmorphism perfection done as CSS-only changes in `index.css` with minimal page-level updates for maximum impact
+- `background-clip: padding-box, border-box` technique chosen for gradient borders (compatible with `backdrop-filter`)
+- Inline SVG data URI for noise texture (no network request)
+- `--glass-hover-glow` CSS custom property enables per-card semantic colors without component changes
+
+**Next session:** Implement Ticket A2 — Generation Experience Overhaul

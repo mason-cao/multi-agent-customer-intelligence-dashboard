@@ -15,34 +15,38 @@ Workspace-based customer intelligence platform. Users create workspaces, generat
 | 2 | Validation & Hardening | Complete |
 | 3 | Integration | Complete |
 | 4 | Productization | Complete |
-| **5** | **Infrastructure & Polish** | **In Progress — Tickets 1–5.1 done, Ticket 6 remaining** |
+| 5 | Infrastructure & Polish | Complete |
+| **—** | **UI/UX Elevation** | **In Progress — Ticket A1 done, Ticket A2 next** |
 | 6 | Deployment & Presentation | Planned |
 
-### Phase 5 — Infrastructure & Polish (Current)
-Reliability, consistency, and maintainability improvements. No new features.
+### Phase 5 — Infrastructure & Polish (Complete)
+All 6 tickets committed. Reliability, consistency, and maintainability improvements.
+
+### UI/UX Elevation (Current)
+Premium UI/UX improvement pass using Google Stitch MCP + UI-UX Pro Max design intelligence. Plan at `.claude/plans/binary-enchanting-brooks.md`.
 
 **Completed:**
-- Ticket 1: Frontend resilience layer — error boundaries, loading states, API error handling
-- Ticket 2: Backend error handling standardization — `handle_errors` decorator on all 19 endpoints, structlog
-- Ticket 3: Dashboard empty states for all 8 pages + catch-all 404 route
-- Ticket 4: Test infrastructure — pytest conftest with full DB isolation + 10 backend smoke tests
-- Ticket 5: Workspace lifecycle hardening — generation timeout, human-readable errors, stale cache invalidation
-- Ticket 5.1: Corrective fixes — timestamp transition guard, timeout prefix match, cleanup
+- Ticket A1: Glassmorphism perfection pass — gradient borders, noise texture, hero variant, colored shadows, semantic hover glows, press states, glass scrollbars, nested glass (`a37282e`)
 
-**Next:** Implement Ticket 6 — Code consistency pass (final planned Phase 5 ticket).
+**Next:** Ticket A2 — Generation Experience Overhaul (full-content-area generation timeline with 14-stage progress)
 
 ## Current State
 
 **Branch:** `main`
-**HEAD:** `03ae2e1`
-**Uncommitted:** Cinematic glassmorphism UI overhaul + Ticket 5/5.1 changes
+**HEAD:** `a37282e`
+**Working tree:** Clean
 
 ## UI/Design Baseline
 
 **Cinematic premium glassmorphism** — established direction, preserve unless intentionally changed:
 - Deep blue / indigo / violet gradient palette
 - Premium layered shell (6 ambient orbs + vignette overlay)
-- 4-tier glass panel system (`.glass`, `.glass-surface`, `.glass-elevated`, `.glass-strong`)
+- 5-tier glass panel system (`.glass`, `.glass-surface`, `.glass-elevated`, `.glass-strong`, `.glass-hero`)
+- `.glass-nested` variant for glass-within-glass composition
+- Gradient borders via `background-clip: padding-box, border-box` technique
+- SVG noise texture overlay at 3% opacity on all glass surfaces
+- Dark-indigo-tinted shadows (`rgba(6,8,20,x)`) — not pure black
+- `--glass-hover-glow` CSS custom property for semantic hover colors
 - Geist Sans (UI) + Geist Mono (data/numbers) typography
 - Recharts for all data visualizations
 - `.btn-primary` / `.btn-secondary` button classes
@@ -94,11 +98,9 @@ Reliability, consistency, and maintainability improvements. No new features.
 - Demo must work offline from cached agent outputs.
 
 ## Next Session
-1. **Commit** uncommitted work (UI overhaul + Ticket 5/5.1)
-2. **Implement Ticket 6** — Code consistency pass (response shapes, CORS, README)
-3. **Audit Ticket 6**
-4. **Determine whether Phase 5 is complete**
-5. If Phase 5 closed, move to Phase 6 (Deployment & Presentation)
+1. **Implement Ticket A2** — Generation Experience Overhaul (new `GenerationView.tsx`, 14-stage timeline, auto-redirect)
+2. Continue UI/UX Elevation roadmap (B1→B2→C1→C2→D1→D2)
+3. When UI/UX elevation is complete or paused, move to Phase 6 (Deployment & Presentation)
 
 ## Scope Constraints
 

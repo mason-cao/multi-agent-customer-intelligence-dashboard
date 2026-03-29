@@ -1,4 +1,4 @@
-# Session Handoff — 2026-03-28
+# Session Handoff — 2026-03-29
 
 ---
 
@@ -9,8 +9,8 @@
 High school capstone project. All data is synthetic by design — no real integrations.
 
 **Branch:** `main`
-**HEAD:** `03ae2e1` — Session handoff
-**Working tree:** Uncommitted changes — cinematic glassmorphism UI overhaul (Session 7) + Ticket 5/5.1 workspace lifecycle hardening (Session 8)
+**HEAD:** `a37282e` — Glassmorphism perfection pass
+**Working tree:** Clean
 
 ---
 
@@ -22,31 +22,44 @@ High school capstone project. All data is synthetic by design — no real integr
 | 2 — Validation & Hardening | Complete |
 | 3 — Integration | Complete |
 | 4 — Productization | Complete |
-| **5 — Infrastructure & Polish** | **In Progress — Tickets 1–4 committed; Tickets 5, 5.1 + UI overhaul uncommitted; Ticket 6 remaining** |
+| 5 — Infrastructure & Polish | **Complete** — All 6 tickets committed |
+| UI/UX Elevation | **In Progress** — Ticket A1 done, Ticket A2 next |
 | 6 — Deployment & Presentation | Planned |
 
 ---
 
-## 3. What Was Done This Session
+## 3. What Was Done This Session (Session 9)
 
-### Ticket 5 — Workspace Lifecycle Hardening (uncommitted)
-- Dual timeout detection: poll-time in route handler + stage-boundary `_check_timeout()` in generator thread
-- `generation_started_at` column on Workspace model with SQLite ALTER TABLE migration
-- Computed `user_message` field via Pydantic `@computed_field` for human-readable error messages
-- All 11 dashboard TanStack Query hooks updated with `completed_at` in query keys + `status === 'ready'` guards
-- Scoped cache clearing (preserves workspace/health caches)
-- Race condition guard in generator thread
-- 10 files modified across backend and frontend
+### Phase 5 Completion
+- All previously uncommitted work committed:
+  - `1f40e0a` — Cinematic glassmorphism UI overhaul (24 files, ~2600 lines)
+  - `432392b` — Workspace lifecycle hardening (Ticket 5)
+  - `a38aa26` — Timeout detection fixes (Ticket 5.1)
+- `502f528` — Ticket 6: Code consistency pass (response shapes, CORS, README) — **Phase 5 complete**
 
-### Ticket 5.1 — Corrective Fixes (uncommitted)
-- Fixed `generation_started_at` reset on every stage update (transition guard)
-- Fixed timeout prefix mismatch in schema (`startswith("Timeout")`)
-- Removed unused `prepare_for_regeneration` import
-- Hoisted `PRESERVED_KEYS` to module level in WorkspaceContext
-- All 10 backend tests pass
+### UI/UX Elevation Plan
+- Comprehensive UI/UX product planning pass using Google Stitch MCP + UI-UX Pro Max skill
+- Google Stitch project created (ID: `4015723663518318885`) with design system (Geist/dark/vibrant/indigo)
+- 3 Stitch screen concepts generated (Workspace Hub, Executive Overview, Generation Progress)
+- Full plan written at `.claude/plans/binary-enchanting-brooks.md` with 8 tickets (A1→A2→B1→B2→C1→C2→D1→D2)
 
-### Also Uncommitted from Previous Session
-- Session 7: Complete cinematic glassmorphism UI overhaul (24 files, ~2600 lines added)
+### Ticket A1 — Glassmorphism Perfection Pass (`a37282e`)
+- 12 glass system gaps identified and implemented (CSS-only in `index.css` + minor page updates):
+  1. SVG noise texture overlay at 3% opacity via `::after` pseudo-elements
+  2. Gradient borders via `background-clip: padding-box, border-box` technique
+  3. Dark-indigo-tinted shadows (`rgba(6,8,20,x)`) replacing pure black
+  4. `.glass-hero` variant with conic-gradient border (indigo→violet→cyan)
+  5. Specular highlight refinement via `::before` pseudo-element
+  6. `:active` press state for glass-hover cards
+  7. 4-level shadow elevation scale differentiated per glass tier
+  8. Glass-themed `::-webkit-scrollbar` styles
+  9. `--glass-hover-glow` CSS custom property for semantic hover colors
+  10. `.glass-nested` variant with reduced blur for glass-within-glass
+  11. Orb color diversity adjustments (orb 5 boosted, orb 6 shifted to violet)
+  12. Saturate tuning per glass tier (1.2→1.4→1.8 range)
+- `Card.tsx` updated with `hero` variant + `style` prop
+- Semantic `--glass-hover-glow` applied to: Overview KPIs, ChurnRetention risk cards, AgentAudit pass/fail cards
+- `.glass-hero` applied to: Overview AI Narrative, AskAnything query input
 
 ---
 
@@ -55,7 +68,10 @@ High school capstone project. All data is synthetic by design — no real integr
 **Cinematic premium glassmorphism** — established and should be preserved:
 - Deep blue / indigo / violet gradient palette
 - Premium layered shell with 6 ambient orbs + vignette overlay
-- 4-tier glass panel system (`.glass`, `.glass-surface`, `.glass-elevated`, `.glass-strong`)
+- 5-tier glass panel system (`.glass`, `.glass-surface`, `.glass-elevated`, `.glass-strong`, `.glass-hero`)
+- `.glass-nested` for glass-within-glass composition
+- Gradient borders, noise texture, dark-indigo shadows, specular highlights
+- `--glass-hover-glow` CSS custom property for semantic card colors
 - Geist Sans (UI) + Geist Mono (data/numbers) typography
 - Recharts for all data visualizations
 - `.btn-primary` / `.btn-secondary` button classes
@@ -67,14 +83,14 @@ High school capstone project. All data is synthetic by design — no real integr
 ## 5. Immediate Next Priorities
 
 **Exact sequence for next session:**
-1. **Commit** the UI overhaul + Ticket 5/5.1 changes
-2. **Implement Ticket 6 — Code consistency pass** (final planned Phase 5 ticket):
-   - Response shape standardization
-   - CORS config cleanup
-   - README update
-3. **Audit Ticket 6**
-4. **Determine whether Phase 5 is complete**
-5. If Phase 5 is closed, move to Phase 6 (Deployment & Presentation)
+1. **Implement Ticket A2 — Generation Experience Overhaul**
+   - Extract generation state from WorkspaceHub into dedicated `GenerationView.tsx`
+   - 14-stage vertical timeline with icons, names, and status
+   - Progress ring showing `stage_index / total_stages`
+   - Auto-redirect to dashboard on completion
+   - All data already available in workspace polling response (`current_stage`, `stage_index`, `total_stages`)
+2. Continue UI/UX elevation roadmap (B1→B2→C1→C2→D1→D2)
+3. When UI/UX elevation is complete or paused, move to Phase 6 (Deployment & Presentation)
 
 ---
 
@@ -87,7 +103,9 @@ High school capstone project. All data is synthetic by design — no real integr
 - **Workspace infrastructure**: metadata DB, per-workspace SQLite, generation pipeline, timeout detection, lifecycle management
 - **Custom scenario support**: 5 configurable controls + random scenario option
 - **Error handling**: standardized decorator + structlog + human-readable `user_message` field
-- **UI**: cinematic glassmorphism across all pages with Recharts visualizations
+- **UI**: cinematic glassmorphism with perfected glass system (gradient borders, noise texture, hero variant, semantic hover glows)
+- **UI/UX plan**: `.claude/plans/binary-enchanting-brooks.md` with 8-ticket roadmap
+- **Google Stitch project**: ID `4015723663518318885` with 3 reference screens
 
 ---
 
@@ -104,7 +122,7 @@ High school capstone project. All data is synthetic by design — no real integr
 - Do NOT add features from later phases prematurely
 - Do NOT add real data ingestion or third-party connectors
 - Do NOT add auth/accounts or stretch features
-- Do NOT jump to deployment before Phase 5 is complete
+- Do NOT jump to deployment before UI/UX elevation is complete or deliberately paused
 
 ---
 
@@ -113,17 +131,18 @@ High school capstone project. All data is synthetic by design — no real integr
 ```
 Resuming Luminosity Intelligence capstone project.
 
-State: Phases 1–4 complete. Phase 5 Infrastructure & Polish in progress — Tickets 1–4 committed on main; Tickets 5, 5.1 + UI overhaul uncommitted. Working tree has changes.
+State: Phases 1–5 complete (all committed on main). UI/UX Elevation pass in progress — Ticket A1 (Glassmorphism Perfection) committed. Working tree clean at a37282e.
 
 Product model: Workspace-based synthetic-data intelligence platform. Users create workspaces, select scenarios, generate synthetic data, explore AI-driven insights. Data is synthetic by design.
 
-UI baseline: Cinematic premium glassmorphism (deep blue/indigo/violet, glass panels, Geist font, Recharts). Preserve this direction.
+UI baseline: Cinematic premium glassmorphism with perfected glass system (5-tier panels, gradient borders, noise texture, hero variant, semantic hover glows, dark-indigo shadows). Preserve this direction.
 
-Immediate next steps:
-1. Commit uncommitted work (UI overhaul + Ticket 5/5.1)
-2. Implement Ticket 6 — Code consistency pass (final Phase 5 ticket)
-3. Audit Ticket 6
-4. Determine whether Phase 5 is complete
+UI/UX plan: .claude/plans/binary-enchanting-brooks.md (8-ticket roadmap: A1→A2→B1→B2→C1→C2→D1→D2)
 
-Do not skip phases. Do not add Phase 6 features prematurely. Do not add real data ingestion. Do not describe as a static dashboard.
+Immediate next step:
+1. Implement Ticket A2 — Generation Experience Overhaul (GenerationView.tsx, 14-stage timeline, auto-redirect)
+2. Continue UI/UX elevation roadmap
+3. When done, move to Phase 6 (Deployment & Presentation)
+
+Do not skip phases. Do not add real data ingestion. Do not describe as a static dashboard.
 ```
