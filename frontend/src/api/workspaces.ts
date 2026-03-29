@@ -57,7 +57,7 @@ export function useCreateWorkspace() {
 
 export function useGenerateWorkspace() {
   const queryClient = useQueryClient();
-  return useMutation<{ status: string; workspace_id: string }, Error, string>({
+  return useMutation<Workspace, Error, string>({
     mutationFn: async (workspaceId) => {
       const { data } = await api.post(`/workspaces/${workspaceId}/generate`);
       return data;

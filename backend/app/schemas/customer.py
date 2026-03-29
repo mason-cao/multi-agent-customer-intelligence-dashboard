@@ -32,3 +32,26 @@ class CustomerSearchResult(BaseModel):
     name: str
     company: str
     plan_tier: str
+
+
+class CustomerListItem(BaseModel):
+    customer_id: str
+    name: str
+    email: str
+    company: str
+    industry: str
+    plan_tier: str
+    signup_date: str
+    region: str
+    is_churned: bool
+    engagement_score: Optional[float] = None
+    total_revenue: Optional[float] = None
+    segment_name: Optional[str] = None
+    churn_probability: Optional[float] = None
+    risk_tier: Optional[str] = None
+    avg_sentiment: Optional[float] = None
+
+
+class CustomerListResponse(BaseModel):
+    customers: list[CustomerListItem]
+    total: int

@@ -43,10 +43,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS: allow the Vite dev server origin. In production, replace with the
+# deployed frontend URL. allow_headers=["*"] is required for the custom
+# X-Workspace-ID header sent by the frontend.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
-    allow_credentials=True,
+    allow_origins=["http://localhost:5173"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

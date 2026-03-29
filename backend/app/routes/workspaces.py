@@ -99,7 +99,7 @@ def get_workspace_detail(workspace_id: str):
     return WorkspaceResponse.model_validate(ws)
 
 
-@router.post("/{workspace_id}/generate", status_code=202)
+@router.post("/{workspace_id}/generate", response_model=WorkspaceResponse, status_code=202)
 @handle_errors("trigger_generation")
 def trigger_generation(workspace_id: str):
     """Start workspace data generation and agent pipeline.
@@ -122,7 +122,8 @@ def trigger_generation(workspace_id: str):
     if not started:
         raise HTTPException(status_code=500, detail="We couldn't start the setup process. Try again.")
 
-    return {"status": "generating", "workspace_id": workspace_id}
+    ws = get_workspace(workspace_id)
+    return WorkspaceResponse.model_validate(ws)
 
 
 @router.delete("/{workspace_id}", status_code=204)

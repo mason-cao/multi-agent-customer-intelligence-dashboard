@@ -22,3 +22,27 @@ class AgentDetail(BaseModel):
     input_summary: Optional[dict] = None
     output_summary: Optional[dict] = None
     validation_results: List[str] = []
+
+
+class AuditCheckResponse(BaseModel):
+    audit_id: str
+    check_category: str
+    check_name: str
+    severity: str
+    passed: bool
+    audit_message: str
+
+
+class AuditOverviewResponse(BaseModel):
+    total_checks: int
+    passed: int
+    failed: int
+    critical_failures: int
+    warnings: int
+    check_categories: dict
+
+
+class AgentsSummaryResponse(BaseModel):
+    audit: AuditOverviewResponse
+    runs: List[AgentRunSummary]
+    checks: List[AuditCheckResponse]

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.utils.error_handling import handle_errors
 from app.models.churn_prediction import ChurnPrediction
+from app.schemas.customer import CustomerListResponse
 from app.models.customer import Customer
 from app.models.customer_feature import CustomerFeature
 from app.models.customer_segment import CustomerSegment
@@ -13,7 +14,7 @@ from app.models.sentiment_result import SentimentResult
 router = APIRouter(prefix="/api/customers", tags=["customers"])
 
 
-@router.get("")
+@router.get("", response_model=CustomerListResponse)
 @handle_errors("get_customers")
 def get_customers(
     db: Session = Depends(get_db),

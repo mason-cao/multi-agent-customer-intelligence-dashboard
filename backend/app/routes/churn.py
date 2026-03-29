@@ -7,13 +7,14 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.utils.error_handling import handle_errors
 from app.models.churn_prediction import ChurnPrediction
+from app.schemas.churn import AtRiskCustomer, ChurnDistribution, FeatureImportance
 from app.models.customer import Customer
 from app.models.subscription import Subscription
 
 router = APIRouter(prefix="/api/churn", tags=["churn"])
 
 
-@router.get("/distribution")
+@router.get("/distribution", response_model=list[ChurnDistribution])
 @handle_errors("get_churn_distribution")
 def get_churn_distribution(db: Session = Depends(get_db)):
     """Risk tier counts and MRR at risk per tier."""
@@ -55,7 +56,7 @@ def get_churn_distribution(db: Session = Depends(get_db)):
     return result
 
 
-@router.get("/at-risk")
+@router.get("/at-risk", response_model=list[AtRiskCustomer])
 @handle_errors("get_at_risk_customers")
 def get_at_risk_customers(
     db: Session = Depends(get_db),
@@ -108,7 +109,7 @@ def get_at_risk_customers(
     return result
 
 
-@router.get("/feature-importance")
+@router.get("/feature-importance", response_model=list[FeatureImportance])
 @handle_errors("get_feature_importance")
 def get_feature_importance(db: Session = Depends(get_db)):
     """Observed feature importance from top_risk_factors across all predictions."""

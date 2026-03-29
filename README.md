@@ -76,10 +76,12 @@ All pages render real computed data from backend API endpoints. No hardcoded stu
 
 ### Data Layer
 
+- Per-workspace SQLite databases with isolated synthetic datasets
 - Synthetic data generator producing correlated, realistic customer data across 7 source tables
-- 752K behavioral events, 36K orders, 18K sentiment entries, 11K support tickets, 7.6K feedback entries
+- Data volumes scale with scenario configuration (e.g., ~750K behavioral events for 5,000-customer workspaces)
 - Feature engineering service with pure functions for login, engagement, revenue, support, and activity metrics
-- SQLite database with 17 ORM models and full Pydantic schema validation
+- Global metadata database (`data/nexus.db`) for workspace management
+- 17 ORM models with full Pydantic schema validation
 
 ---
 
@@ -109,9 +111,11 @@ All pages render real computed data from backend API endpoints. No hardcoded stu
                 └──────────────────────┬──────────────────────┘
                                        │
                 ┌──────────────────────┴──────────────────────┐
-                │           SQLite (data/nexus.db)             │
+                │              SQLite (per-workspace)           │
                 │                                              │
-                │  7 source tables + 9 derived agent tables    │
+                │  Global:  data/nexus.db (workspace metadata) │
+                │  Per-ws:  data/workspaces/{id}.db            │
+                │           7 source + 9 agent tables each     │
                 │  17 ORM models, full Pydantic schemas        │
                 └──────────────────────────────────────────────┘
 ```
@@ -145,7 +149,7 @@ All pages render real computed data from backend API endpoints. No hardcoded stu
 
 No API keys required. The entire system runs locally in mock mode.
 
-### Setup
+### Quick Start
 
 ```bash
 # Clone
@@ -157,17 +161,6 @@ cd backend
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
-
-# Generate synthetic data (~175MB SQLite database)
-cd ..
-python scripts/generate_data.py --seed 42
-python scripts/validate_data.py
-
-# Run the full agent pipeline
-python scripts/run_pipeline.py --clean
-
-# Start the backend
-cd backend
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -178,7 +171,17 @@ npm install --legacy-peer-deps
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) to see the dashboard.
+Open [http://localhost:5173](http://localhost:5173) — create a workspace, select a scenario, generate data, and explore the dashboard.
+
+### Developer Scripts
+
+These scripts exist for development and debugging. They are not needed for normal usage — the workspace UI handles data generation and pipeline execution automatically.
+
+```bash
+python scripts/generate_data.py --seed 42   # Generate raw synthetic data
+python scripts/validate_data.py              # Validate data quality
+python scripts/run_pipeline.py --clean       # Run the full agent pipeline
+```
 
 ### Optional: LLM Providers
 
@@ -213,10 +216,14 @@ LLM providers enhance narrative explanations but are never required for core sco
 - Workspace lifecycle management (create, generate, regenerate, delete)
 - Dashboard scoped to active workspace
 
-**Phase 5 (Infrastructure & Polish)** is the current phase, focused on reliability and maintainability:
+**Phase 5 (Infrastructure & Polish)** is the current phase, focused on reliability, consistency, and maintainability:
 
-- Ticket 1: Frontend resilience layer (error boundaries, loading states)
+- Ticket 1: Frontend resilience layer (error boundaries, loading states, API error handling)
 - Ticket 2: Backend error handling standardization (decorator pattern, structlog)
+- Ticket 3: Dashboard empty states and catch-all 404 route
+- Ticket 4: Test infrastructure (pytest conftest, backend smoke tests)
+- Ticket 5: Workspace lifecycle hardening (timeout detection, human-readable errors, cache invalidation)
+- Ticket 6: Code consistency pass (response shape standardization, CORS config, README)
 
 **Phase 6** covers deployment (Railway + Vercel) and presentation preparation.
 

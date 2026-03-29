@@ -6,11 +6,12 @@ from app.db.database import get_db
 from app.utils.error_handling import handle_errors
 from app.models.agent_run import AgentRun
 from app.models.audit_result import AuditResult
+from app.schemas.agent import AgentsSummaryResponse
 
 router = APIRouter(prefix="/api/agents", tags=["agents"])
 
 
-@router.get("/summary")
+@router.get("/summary", response_model=AgentsSummaryResponse)
 @handle_errors("get_agents_summary")
 def get_agents_summary(db: Session = Depends(get_db)):
     """Combined audit summary and agent run history."""

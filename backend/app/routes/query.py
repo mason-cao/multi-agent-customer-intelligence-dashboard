@@ -1,18 +1,14 @@
 import structlog
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.utils.error_handling import handle_errors
+from app.schemas.query import QueryRequest
 
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/api/query", tags=["query"])
-
-
-class QueryRequest(BaseModel):
-    question: str
 
 
 @router.post("")

@@ -28,3 +28,10 @@ class TicketRow(BaseModel):
     sentiment_score: Optional[float] = None
     topics: List[str] = []
     summary: Optional[str] = None
+
+
+class SentimentSummaryResponse(BaseModel):
+    distribution: dict[str, int]
+    avg_score: float
+    total: int
+    topics: List[TopicSummary]
