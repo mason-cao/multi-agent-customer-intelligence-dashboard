@@ -131,16 +131,13 @@ export default function WorkspaceHub() {
   const workspaces = list?.workspaces ?? [];
   const isSubmitting = createMutation.isPending || generateMutation.isPending;
 
-  // Auto-enter dashboard when the workspace we just created becomes ready
+  // When generation starts, set workspace as active and navigate to generation view
   useEffect(() => {
     if (!pendingId) return;
     const ws = workspaces.find((w) => w.id === pendingId);
-    if (ws?.status === 'ready') {
-      const timer = setTimeout(() => {
-        setActiveWorkspace(ws);
-        navigate('/');
-      }, 800);
-      return () => clearTimeout(timer);
+    if (ws?.status === 'generating') {
+      setActiveWorkspace(ws);
+      navigate('/');
     }
   }, [workspaces, pendingId, setActiveWorkspace, navigate]);
 

@@ -57,3 +57,10 @@ export function areaGradientStops(id: string, color: string) {
     ],
   };
 }
+
+/** Format large numbers with K/M suffixes: 1200 → "1.2K", 2500000 → "2.5M" */
+export function formatCompact(value: number): string {
+  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  return String(value);
+}

@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import PageHeader from '../components/shared/PageHeader';
 import Card from '../components/shared/Card';
+import ChartCard from '../components/shared/ChartCard';
 import EmptyState from '../components/shared/EmptyState';
 import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE } from '../components/charts';
 import {
@@ -116,13 +117,7 @@ export default function Recommendations() {
 
           <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
             {/* Action distribution — Recharts vertical bar chart */}
-            <Card>
-              <div className="mb-4 flex items-center gap-2">
-                <Lightbulb className="h-4 w-4 text-[#fbbf24]" />
-                <h3 className="text-sm font-semibold text-white">
-                  Action Distribution
-                </h3>
-              </div>
+            <ChartCard title="Action Distribution" icon={Lightbulb} className="animate-fade-in-up stagger-4">
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart
                   layout="vertical"
@@ -156,16 +151,10 @@ export default function Recommendations() {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </Card>
+            </ChartCard>
 
             {/* Top priority recommendations */}
-            <Card className="xl:col-span-2">
-              <div className="mb-4 flex items-center gap-2">
-                <ArrowUpRight className="h-4 w-4 text-[#34d399]" />
-                <h3 className="text-sm font-semibold text-white">
-                  Top Priority Actions
-                </h3>
-              </div>
+            <ChartCard title="Top Priority Actions" icon={ArrowUpRight} className="animate-fade-in-up stagger-5 xl:col-span-2">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
@@ -215,7 +204,7 @@ export default function Recommendations() {
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </ChartCard>
           </div>
         </>
       )}

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Users, DollarSign, Activity, AlertTriangle, Layers } from 'lucide-react';
+import { Users, DollarSign, Activity, AlertTriangle, Layers, PieChart as PieChartIcon } from 'lucide-react';
 import {
   PieChart,
   Pie,
@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import PageHeader from '../components/shared/PageHeader';
 import Card from '../components/shared/Card';
+import ChartCard from '../components/shared/ChartCard';
 import EmptyState from '../components/shared/EmptyState';
 import { useSegmentSummary } from '../api/hooks';
 import { SEGMENT_COLORS } from '../utils/colors';
@@ -127,10 +128,7 @@ export default function Segments() {
           {/* Top charts row */}
           <div className="mb-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
             {/* Donut Chart */}
-            <Card>
-              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
-                Customer Distribution
-              </h3>
+            <ChartCard title="Customer Distribution" icon={PieChartIcon} className="animate-fade-in-up stagger-1">
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
                   <Pie
@@ -195,13 +193,10 @@ export default function Segments() {
                   </text>
                 </PieChart>
               </ResponsiveContainer>
-            </Card>
+            </ChartCard>
 
             {/* Radar Chart */}
-            <Card>
-              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
-                Segment Comparison
-              </h3>
+            <ChartCard title="Segment Comparison" icon={Activity} className="animate-fade-in-up stagger-2">
               <ResponsiveContainer width="100%" height={300}>
                 <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
                   <PolarGrid stroke="rgba(255,255,255,0.1)" />
@@ -246,7 +241,7 @@ export default function Segments() {
                   />
                 </RadarChart>
               </ResponsiveContainer>
-            </Card>
+            </ChartCard>
           </div>
 
           {/* Segment detail cards */}

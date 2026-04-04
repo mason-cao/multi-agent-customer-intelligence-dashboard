@@ -10,6 +10,7 @@ import {
 } from 'recharts';
 import PageHeader from '../components/shared/PageHeader';
 import Card from '../components/shared/Card';
+import ChartCard from '../components/shared/ChartCard';
 import EmptyState from '../components/shared/EmptyState';
 import {
   useChurnDistribution,
@@ -114,13 +115,7 @@ export default function ChurnRetention() {
 
           <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
             {/* Top at-risk customers */}
-            <Card className="xl:col-span-2">
-              <div className="mb-4 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-[rgba(248,113,113,0.9)]" />
-                <h3 className="text-sm font-semibold text-white">
-                  Highest-Risk Customers
-                </h3>
-              </div>
+            <ChartCard title="Highest-Risk Customers" icon={AlertTriangle} className="animate-fade-in-up stagger-5 xl:col-span-2">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
@@ -175,16 +170,10 @@ export default function ChurnRetention() {
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </ChartCard>
 
             {/* Feature importance — Recharts horizontal bar chart */}
-            <Card>
-              <div className="mb-4 flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-[#818cf8]" />
-                <h3 className="text-sm font-semibold text-white">
-                  Top Churn Drivers
-                </h3>
-              </div>
+            <ChartCard title="Top Churn Drivers" icon={BarChart3} className="animate-fade-in-up stagger-6">
               {chartData.length ? (
                 <ResponsiveContainer width="100%" height={350}>
                   <BarChart
@@ -228,7 +217,7 @@ export default function ChurnRetention() {
                   No feature importance data available
                 </p>
               )}
-            </Card>
+            </ChartCard>
           </div>
         </>
       )}

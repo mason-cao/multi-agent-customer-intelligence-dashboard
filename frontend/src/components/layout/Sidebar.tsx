@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -8,8 +8,11 @@ import {
   Lightbulb,
   ShieldCheck,
   Sparkles,
+  Building2,
+  ArrowLeftRight,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useActiveWorkspace } from '../../contexts/WorkspaceContext';
 
 interface NavItem {
   name: string;
@@ -28,7 +31,15 @@ const navigation: NavItem[] = [
   { name: 'Ask Anything', path: '/ask', icon: Sparkles },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ disabled = false }: { disabled?: boolean }) {
+  const { activeWorkspace, clearWorkspace } = useActiveWorkspace();
+  const navigate = useNavigate();
+
+  function handleSwitch() {
+    clearWorkspace();
+    navigate('/workspaces');
+  }
+
   return (
     <aside className="glass-surface flex h-screen w-60 flex-col border-r border-[rgba(255,255,255,0.06)]">
       {/* Logo */}
@@ -46,8 +57,41 @@ export default function Sidebar() {
         </div>
       </div>
 
+      {/* Workspace indicator */}
+      {activeWorkspace && (
+        <div className="mx-3 mt-3 mb-1">
+          <div className="glass-nested rounded-lg px-3 py-2.5">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-[rgba(129,140,248,0.12)]">
+                <Building2 className="h-3.5 w-3.5 text-[var(--color-primary-400)]" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[12px] font-semibold text-white">
+                  {activeWorkspace.company_name}
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <span className="rounded-full bg-[rgba(129,140,248,0.10)] px-1.5 py-0.5 text-[9px] font-medium capitalize text-[var(--color-text-accent)]">
+                    {activeWorkspace.industry}
+                  </span>
+                  <span className="font-mono text-[9px] text-[rgba(255,255,255,0.30)]">
+                    {activeWorkspace.customer_count.toLocaleString()} customers
+                  </span>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleSwitch}
+              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md bg-[rgba(255,255,255,0.04)] py-1.5 text-[10px] font-medium text-[rgba(255,255,255,0.40)] transition-colors hover:bg-[rgba(255,255,255,0.07)] hover:text-[rgba(255,255,255,0.60)]"
+            >
+              <ArrowLeftRight className="h-3 w-3" />
+              Switch workspace
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Navigation */}
-      <nav className="flex-1 space-y-0.5 px-3 pt-4">
+      <nav className={`flex-1 space-y-0.5 px-3 pt-4 ${disabled ? 'pointer-events-none opacity-30' : ''}`}>
         {navigation.map((item) => {
           const Icon = item.icon;
           return (

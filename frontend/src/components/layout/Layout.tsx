@@ -2,6 +2,7 @@ import { Outlet, useLocation, Navigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import ErrorBoundary from '../ErrorBoundary';
+import GenerationView from '../../pages/GenerationView';
 import { useActiveWorkspace } from '../../contexts/WorkspaceContext';
 
 function BackgroundSystem() {
@@ -33,23 +34,31 @@ export default function Layout() {
     );
   }
 
-  if (!activeWorkspace || activeWorkspace.status !== 'ready') {
+  if (!activeWorkspace) {
     return <Navigate to="/workspaces" replace />;
   }
+
+  const isGenerating = activeWorkspace.status === 'generating' || activeWorkspace.status === 'failed';
 
   return (
     <div className="relative flex h-screen bg-app-gradient">
       <BackgroundSystem />
       <div className="relative z-10 flex h-screen w-full">
-        <Sidebar />
+        <Sidebar disabled={isGenerating} />
         <div className="flex flex-1 flex-col overflow-hidden">
-          <Header />
+          {!isGenerating && <Header />}
           <main className="flex-1 overflow-y-auto p-8">
-            <ErrorBoundary key={location.pathname}>
-              <div className="animate-fade-in-up">
-                <Outlet />
-              </div>
-            </ErrorBoundary>
+            {isGenerating ? (
+              <GenerationView workspace={activeWorkspace} />
+            ) : activeWorkspace.status === 'ready' ? (
+              <ErrorBoundary key={location.pathname}>
+                <div key={location.pathname} className="page-transition">
+                  <Outlet />
+                </div>
+              </ErrorBoundary>
+            ) : (
+              <Navigate to="/workspaces" replace />
+            )}
           </main>
         </div>
       </div>

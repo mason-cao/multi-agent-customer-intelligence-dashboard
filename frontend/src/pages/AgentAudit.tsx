@@ -10,6 +10,8 @@ import {
 } from 'recharts';
 import PageHeader from '../components/shared/PageHeader';
 import Card from '../components/shared/Card';
+import StatCard from '../components/shared/StatCard';
+import ChartCard from '../components/shared/ChartCard';
 import EmptyState from '../components/shared/EmptyState';
 import { AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE } from '../components/charts';
 import { useAgentsSummary } from '../api/hooks';
@@ -71,52 +73,20 @@ export default function AgentAudit() {
         <>
           {/* Audit KPIs */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Card hover>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
-                Total Checks
-              </p>
-              <p className="mt-2 font-mono text-3xl font-bold text-white">
-                {data.audit.total_checks}
-              </p>
-            </Card>
-            <Card hover style={{ '--glass-hover-glow': 'rgba(52,211,153,0.12)' } as React.CSSProperties}>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
-                Passed
-              </p>
-              <p className="mt-2 font-mono text-3xl font-bold text-[#34d399]">
-                {data.audit.passed}
-              </p>
-            </Card>
-            <Card hover style={{ '--glass-hover-glow': 'rgba(248,113,113,0.12)' } as React.CSSProperties}>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
-                Failed
-              </p>
-              <p className="mt-2 font-mono text-3xl font-bold text-[#f87171]">
-                {data.audit.failed}
-              </p>
-            </Card>
-            <Card hover>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
-                Pass Rate
-              </p>
-              <p className="mt-2 font-mono text-3xl font-bold text-[#34d399]">
-                {data.audit.total_checks > 0
-                  ? ((data.audit.passed / data.audit.total_checks) * 100).toFixed(0)
-                  : 0}%
-              </p>
-            </Card>
+            <StatCard title="Total Checks" value={data.audit.total_checks} variant="default" />
+            <StatCard title="Passed" value={data.audit.passed} glowColor="rgba(52,211,153,0.12)" variant="default" />
+            <StatCard title="Failed" value={data.audit.failed} glowColor="rgba(248,113,113,0.12)" variant="default" />
+            <StatCard
+              title="Pass Rate"
+              value={`${data.audit.total_checks > 0 ? ((data.audit.passed / data.audit.total_checks) * 100).toFixed(0) : 0}%`}
+              variant="default"
+            />
           </div>
 
           {/* Category breakdown + Agent runs */}
           <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
             {/* Category breakdown — Recharts stacked bar chart */}
-            <Card>
-              <div className="mb-4 flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-[#34d399]" />
-                <h3 className="text-sm font-semibold text-white">
-                  Checks by Category
-                </h3>
-              </div>
+            <ChartCard title="Checks by Category" icon={ShieldCheck}>
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart
                   layout="vertical"
@@ -160,16 +130,10 @@ export default function AgentAudit() {
                   />
                 </BarChart>
               </ResponsiveContainer>
-            </Card>
+            </ChartCard>
 
             {/* Agent runs */}
-            <Card className="xl:col-span-2">
-              <div className="mb-4 flex items-center gap-2">
-                <Clock className="h-4 w-4 text-[#818cf8]" />
-                <h3 className="text-sm font-semibold text-white">
-                  Latest Agent Runs
-                </h3>
-              </div>
+            <ChartCard title="Latest Agent Runs" icon={Clock} className="xl:col-span-2">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
@@ -231,7 +195,7 @@ export default function AgentAudit() {
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </ChartCard>
           </div>
 
           {/* Detailed checks */}

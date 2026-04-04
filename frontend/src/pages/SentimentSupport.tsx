@@ -14,6 +14,8 @@ import {
 } from 'recharts';
 import PageHeader from '../components/shared/PageHeader';
 import Card from '../components/shared/Card';
+import StatCard from '../components/shared/StatCard';
+import ChartCard from '../components/shared/ChartCard';
 import EmptyState from '../components/shared/EmptyState';
 import { useSentimentSummary } from '../api/hooks';
 import { SENTIMENT_COLORS } from '../utils/colors';
@@ -113,63 +115,20 @@ export default function SentimentSupport() {
         <>
           {/* KPI row */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Card hover>
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-[rgba(255,255,255,0.45)]" />
-                <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
-                  Total Documents
-                </p>
-              </div>
-              <p className="mt-2 text-3xl font-bold font-mono text-white">
-                {total.toLocaleString()}
-              </p>
-              <p className="mt-1 text-xs text-[rgba(255,255,255,0.45)]">
-                tickets &amp; feedback analyzed
-              </p>
-            </Card>
-            <Card hover>
-              <div className="flex items-center gap-2">
-                <MessageCircle className="h-4 w-4 text-[rgba(255,255,255,0.45)]" />
-                <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
-                  Avg Sentiment Score
-                </p>
-              </div>
-              <p
-                className="mt-2 text-3xl font-bold font-mono"
-                style={{ color: sentColor(summary.avg_score) }}
-              >
-                {summary.avg_score >= 0 ? '+' : ''}{summary.avg_score.toFixed(3)}
-              </p>
-              <p className="mt-1 text-xs text-[rgba(255,255,255,0.45)]">
-                scale: -1.0 to +1.0
-              </p>
-            </Card>
-            <Card hover>
-              <div className="flex items-center gap-2">
-                <Hash className="h-4 w-4 text-[rgba(255,255,255,0.45)]" />
-                <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
-                  Topics Detected
-                </p>
-              </div>
-              <p className="mt-2 text-3xl font-bold font-mono text-white">
-                {summary.topics.length}
-              </p>
-              <p className="mt-1 text-xs text-[rgba(255,255,255,0.45)]">
-                unique topics extracted
-              </p>
-            </Card>
+            <StatCard title="Total Documents" value={total.toLocaleString()} icon={FileText} variant="default" />
+            <StatCard
+              title="Avg Sentiment Score"
+              value={`${summary.avg_score >= 0 ? '+' : ''}${summary.avg_score.toFixed(3)}`}
+              icon={MessageCircle}
+              variant="default"
+            />
+            <StatCard title="Topics Detected" value={summary.topics.length} icon={Hash} variant="default" />
           </div>
 
           {/* Distribution donut + Topic bars */}
           <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
             {/* Sentiment distribution donut */}
-            <Card>
-              <div className="mb-4 flex items-center gap-2">
-                <MessageCircle className="h-4 w-4 text-[var(--color-primary-400)]" />
-                <h3 className="text-sm font-semibold text-white">
-                  Sentiment Distribution
-                </h3>
-              </div>
+            <ChartCard title="Sentiment Distribution" icon={MessageCircle}>
 
               {pieData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={280}>
@@ -251,16 +210,10 @@ export default function SentimentSupport() {
                   </p>
                 </div>
               )}
-            </Card>
+            </ChartCard>
 
             {/* Top topics horizontal bar chart */}
-            <Card className="xl:col-span-2">
-              <div className="mb-4 flex items-center gap-2">
-                <Hash className="h-4 w-4 text-[var(--color-primary-400)]" />
-                <h3 className="text-sm font-semibold text-white">
-                  Top Topics by Sentiment
-                </h3>
-              </div>
+            <ChartCard title="Top Topics by Sentiment" icon={Hash} className="xl:col-span-2">
 
               {topicBarData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={topicBarHeight}>
@@ -322,7 +275,7 @@ export default function SentimentSupport() {
                   </p>
                 </div>
               )}
-            </Card>
+            </ChartCard>
           </div>
         </>
       )}
