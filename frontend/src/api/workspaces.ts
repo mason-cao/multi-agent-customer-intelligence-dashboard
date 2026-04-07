@@ -26,6 +26,8 @@ export function useWorkspace(id: string | null) {
       return data;
     },
     enabled: !!id,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
     refetchInterval: (query) => {
       return query.state.data?.status === 'generating' ? 2000 : false;
     },

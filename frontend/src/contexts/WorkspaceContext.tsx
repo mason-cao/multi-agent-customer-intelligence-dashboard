@@ -33,7 +33,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   });
   const [localWorkspace, setLocalWorkspace] = useState<Workspace | null>(null);
 
-  const { data, isLoading, isError } = useWorkspace(storedId);
+  const { data, isLoading, isError, error } = useWorkspace(storedId);
 
   // Use API data when available, fall back to optimistic local data
   const activeWorkspace = data ?? localWorkspace;
@@ -45,14 +45,20 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
   }, [data]);
 
-  // Clear stored workspace if it no longer exists (404)
+  // Clear stored workspace only when it genuinely no longer exists (404).
+  // Transient network errors (502, timeout, etc.) should NOT wipe the
+  // session — the local workspace data keeps the UI functional until the
+  // next successful poll.
   useEffect(() => {
-    if (isError && storedId) {
+    if (!isError || !storedId) return;
+
+    const status = (error as { response?: { status?: number } })?.response?.status;
+    if (status === 404) {
       setStoredId(null);
       setLocalWorkspace(null);
       localStorage.removeItem(STORAGE_KEY);
     }
-  }, [isError, storedId]);
+  }, [isError, error, storedId]);
 
   const clearDashboardCache = useCallback(() => {
     queryClient.removeQueries({

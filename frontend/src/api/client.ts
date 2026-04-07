@@ -26,6 +26,7 @@ api.interceptors.response.use(
       typeof error.response?.data?.detail === 'string' &&
       error.response.data.detail.includes('Workspace database not found')
     ) {
+      console.warn('[client interceptor] Workspace DB not found — redirect triggered by:', error.config?.url);
       localStorage.removeItem('luminosity_active_workspace');
       window.location.href = '/workspaces';
       return new Promise(() => {}); // halt further processing

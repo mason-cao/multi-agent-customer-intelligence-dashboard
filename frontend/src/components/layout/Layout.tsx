@@ -25,7 +25,11 @@ export default function Layout() {
   const location = useLocation();
   const { activeWorkspace, isLoading } = useActiveWorkspace();
 
-  if (isLoading) {
+  // Show spinner while workspace data is loading, or if localStorage says a
+  // workspace is active but the context hasn't hydrated it yet (prevents a
+  // flash-redirect to /workspaces during the Vercel→Railway proxy round-trip).
+  const hasStoredWorkspace = !!localStorage.getItem('luminosity_active_workspace');
+  if (isLoading || (!activeWorkspace && hasStoredWorkspace)) {
     return (
       <div className="flex h-screen items-center justify-center bg-app-gradient">
         <BackgroundSystem />
