@@ -6,7 +6,7 @@ A full-stack customer intelligence application where users create workspaces, ge
 
 > Built as a flagship high school capstone project demonstrating systems architecture, AI/ML engineering, full-stack development, and product thinking.
 
-**[Live Demo](https://multi-agent-customer-intelligence-d.vercel.app)**
+<!-- [Live Demo](https://multi-agent-customer-intelligence-d.vercel.app) -->
 
 ---
 
