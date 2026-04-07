@@ -1,4 +1,4 @@
-# Session Handoff — 2026-04-04
+# Session Handoff — 2026-04-06
 
 ---
 
@@ -9,7 +9,7 @@
 High school capstone project. All data is synthetic by design — no real integrations.
 
 **Branch:** `main`
-**Working tree:** Modified (UI/UX elevation tickets A2–D2 uncommitted)
+**Working tree:** Modified (Phase 6 deployment prep — uncommitted)
 
 ---
 
@@ -21,60 +21,35 @@ High school capstone project. All data is synthetic by design — no real integr
 | 2 — Validation & Hardening | Complete |
 | 3 — Integration | Complete |
 | 4 — Productization | Complete |
-| 5 — Infrastructure & Polish | **Complete** — All 6 tickets committed |
-| UI/UX Elevation | **Complete** — All 8 tickets (A1–D2) |
-| **6 — Deployment & Presentation** | **Next** |
+| 5 — Infrastructure & Polish | Complete |
+| UI/UX Elevation | Complete |
+| **6 — Deployment & Presentation** | **In Progress** — code prep done, platform deploy remaining |
 
 ---
 
-## 3. What Was Done This Session (Session 10)
+## 3. What Was Done This Session (Session 11)
 
-### UI/UX Elevation — All 7 Remaining Tickets Completed (A2–D2)
+### Phase 6 — Deployment & Presentation (Code Prep)
 
-**Ticket A2 — Generation Experience Overhaul:**
-- New `GenerationView.tsx` (~400 lines) — full-content-area generation progress page
-- SVG progress ring (~150px) with animated strokeDasharray/strokeDashoffset
-- Vertical timeline with 15 stages grouped into "Data Generation" and "AI Analysis" sections
-- STAGE_META record with icons, labels, and rich descriptions per stage
-- Completion celebration with sparkle animation, countdown redirect, "Enter Dashboard" button
-- Failed state with error display and back button
-- `Layout.tsx` modified to show GenerationView when workspace is generating/failed
-- `Sidebar.tsx` gets `disabled` prop (dims nav during generation)
-- `WorkspaceHub.tsx` auto-enters GenerationView on detecting generating workspace
+**Backend deployment prep:**
+- `backend/app/main.py` — CORS origins parameterized via `CORS_ORIGINS` env var (comma-separated, defaults to `http://localhost:5173`)
+- `Dockerfile` (project root) — Python 3.11-slim container copying `backend/` + `scripts/`, preserves `__file__`-based path resolution for database and data generation imports
+- `.dockerignore` — excludes frontend, node_modules, data, tests, docs
+- `railway.toml` — Dockerfile build, `/api/health` healthcheck with 300s timeout, restart-on-failure policy
 
-**Ticket B1 — Component System Standardization:**
-- `StatCard.tsx` (~100 lines) — reusable KPI card with trend arrows, sparkline AreaChart, variant/glow support
-- `ChartCard.tsx` (~35 lines) — glass wrapper for Recharts charts with title/icon header
-- `Badge.tsx` (~45 lines) — status/severity badges with solid and subtle variants + `BADGE_COLORS` preset
-- `DataTable.tsx` (~100 lines) — generic glass table with sticky header, alternating rows, pagination
+**Frontend deployment prep:**
+- `frontend/public/fonts/` — Geist Sans + Geist Mono .woff2 variable font files copied from npm package
+- `frontend/src/index.css` — `@font-face` paths fixed from `/node_modules/geist/...` to `/fonts/...` (production-safe)
+- `frontend/vercel.json` — API rewrites (`/api/*` → Railway backend URL placeholder), Vercel auto-detects Vite
 
-**Ticket B2 — Overview Dashboard Hierarchy:**
-- Overview.tsx rewritten: 2 hero StatCards + 3 secondary StatCards
-- 60/40 bottom split: AI Narrative (hero glass, xl:col-span-3) + Pipeline Health (xl:col-span-2)
-- Pipeline Health uses `useAgentsSummary()` for agent run status with checkmarks and durations
+**Documentation:**
+- `ARCHITECTURE.md` (new, ~300 lines) — system overview with deployment topology, request lifecycle, dual-tier SQLite database architecture, agent pipeline with BaseAgent ABC pattern, mock-first LLM architecture, ML components (GradientBoosting + SHAP), synthetic data generation 14-stage flow, frontend component hierarchy and glass design system, security and validation, deployment config and environment variables
+- `README.md` — updated clone URL to `mason-cao/multi-agent-customer-intelligence-dashboard`, roadmap updated (all phases complete), added Deployment section with env var table, updated repo structure with new files, commented-out live demo link placeholder
+- `CLAUDE.md` — fully rewritten with streamlined instructions: project purpose, run/build/test commands, architecture map, non-obvious coding rules, testing/verification guidance, workflow rules, repo specifics, output format
 
-**Ticket C1 — Ask Anything Reimagination:**
-- AskAnything.tsx rewritten as conversational chat thread
-- UserBubble (right-aligned glass-surface) and AiBubble (left-aligned with Sparkles avatar)
-- Auto-scroll via useRef + useEffect, suggested prompts when empty, clear thread button
-- Metadata footer on AI responses: intent badge, execution time, source tables
-
-**Ticket C2 — Sidebar & Navigation Enhancement:**
-- Workspace indicator card in Sidebar: company name, industry badge, customer count, "Switch workspace" button
-- Uses `useActiveWorkspace()` context + `clearWorkspace()` for workspace switching
-- `.page-transition` CSS animation on route changes (fade + translateY, 350ms)
-- Added to `prefers-reduced-motion` block
-
-**Ticket D1 — Chart & Table Polish:**
-- ChartCard adopted on ChurnRetention, Recommendations, Segments (replacing manual Card + header)
-- Stagger animations (`animate-fade-in-up stagger-N`) applied to chart sections across all pages
-- `formatCompact` number formatter added to chartTheme (K/M suffixes)
-
-**Ticket D2 — Microinteraction Pass:**
-- `useCountUp` hook (`frontend/src/hooks/useCountUp.ts`, ~40 lines) — easeOutCubic animation from 0→target
-- Integrated into StatCard: numeric values animate on render, respects `prefers-reduced-motion`
-
-**Build verification:** Frontend `npm run build` passes clean after every ticket. Backend `pytest` — all 10 tests pass.
+**Verification:**
+- Frontend `npm run build` passes clean
+- Backend `pytest` — all 10 tests pass (0.32s)
 
 ---
 
@@ -101,8 +76,11 @@ High school capstone project. All data is synthetic by design — no real integr
 
 ## 5. Immediate Next Priorities
 
-1. **Commit** all UI/UX elevation changes (A2–D2)
-2. **Phase 6 — Deployment & Presentation**: Configure Railway (backend) + Vercel (frontend), environment variables, production builds, demo preparation
+1. **Commit** Phase 6 deployment prep changes
+2. **Deploy backend to Railway** — create project, connect GitHub, add persistent volume at `/app/data`, set env vars (`CORS_ORIGINS`, `APP_ENV=production`), deploy, verify `/api/health`
+3. **Deploy frontend to Vercel** — create project, set root to `frontend/`, update `vercel.json` with actual Railway URL, deploy
+4. **Verify** — end-to-end test: workspace creation, generation, all 8 dashboard pages
+5. **Finalize** — uncomment live demo link in README, commit final updates
 
 ---
 
@@ -118,12 +96,27 @@ High school capstone project. All data is synthetic by design — no real integr
 - **Custom scenario support**: 5 configurable controls + random scenario option
 - **Error handling**: standardized decorator + structlog + human-readable `user_message` field
 - **UI**: cinematic glassmorphism with perfected glass system (gradient borders, noise texture, hero variant, semantic hover glows)
-- **UI/UX plan**: `.claude/plans/luminous-bouncing-aurora.md` — all 8 tickets complete
-- **Google Stitch project**: ID `4015723663518318885` with reference screens
+- **Deployment config**: Dockerfile, railway.toml, .dockerignore, vercel.json (Railway URL placeholder)
+- **Architecture docs**: ARCHITECTURE.md with deployment topology, data flow, agent pipeline, database design, frontend architecture, security
+- **GitHub repo**: https://github.com/mason-cao/multi-agent-customer-intelligence-dashboard
 
 ---
 
-## 7. Constraints
+## 7. Key Deployment Details
+
+**Dockerfile path resolution** — critical constraint discovered during planning:
+- `database.py` and `workspace_db.py` resolve `DATA_DIR` via `__file__` parent traversal (4 levels up to project root → `data/`)
+- `workspace_generator.py` imports `scripts/generate_data.py` via `sys.path` from project root
+- The Dockerfile copies both `backend/` and `scripts/` to `/app/`, sets WORKDIR to `/app/backend`, preserving all path chains
+- Railway persistent volume mounts at `/app/data` for SQLite persistence across deploys
+
+**Vercel rewrites** — the frontend's Axios client uses relative `/api` baseURL. Vercel rewrites proxy `/api/*` to the Railway backend, so no frontend code changes are needed for production API routing.
+
+**CORS** — `backend/app/main.py` now reads `CORS_ORIGINS` env var (comma-separated). Set to the Vercel URL on Railway for any direct API calls that bypass the rewrite proxy.
+
+---
+
+## 8. Constraints
 
 - Follow phase plan in order
 - Mock-first: all agents must work with zero API keys
@@ -136,24 +129,29 @@ High school capstone project. All data is synthetic by design — no real integr
 - Do NOT add features from later phases prematurely
 - Do NOT add real data ingestion or third-party connectors
 - Do NOT add auth/accounts or stretch features
-- Do NOT jump to deployment before UI/UX elevation is complete or deliberately paused
+- Never auto-commit — suggest commit message to Mason instead
 
 ---
 
-## 8. Resume Prompt
+## 9. Resume Prompt
 
 ```
 Resuming Luminosity Intelligence capstone project.
 
-State: Phases 1–5 complete (all committed on main). UI/UX Elevation complete (8 tickets: A1–D2). A2–D2 changes uncommitted.
+State: Phases 1–5 + UI/UX Elevation all complete and committed on main. Phase 6 (Deployment & Presentation) code prep is done but uncommitted — Dockerfile, railway.toml, .dockerignore, vercel.json, CORS parameterization, font path fix, ARCHITECTURE.md, README update, CLAUDE.md rewrite.
 
 Product model: Workspace-based synthetic-data intelligence platform. Users create workspaces, select scenarios, generate synthetic data, explore AI-driven insights. Data is synthetic by design.
 
 UI baseline: Cinematic premium glassmorphism with perfected glass system (5-tier panels, gradient borders, noise texture, hero variant, semantic hover glows, dark-indigo shadows). Reusable component kit (StatCard, ChartCard, Badge, DataTable). GenerationView with progress ring + timeline. Conversational Ask Anything. Animated number count-ups. Page transitions. Preserve this direction.
 
-Immediate next step:
-1. Commit all UI/UX elevation changes (A2–D2)
-2. Begin Phase 6 — Deployment & Presentation (Railway + Vercel, demo prep)
+GitHub: https://github.com/mason-cao/multi-agent-customer-intelligence-dashboard
 
-Do not skip phases. Do not add real data ingestion. Do not describe as a static dashboard.
+Immediate next steps:
+1. Commit Phase 6 deployment prep
+2. Deploy backend to Railway (persistent volume at /app/data, set CORS_ORIGINS + APP_ENV)
+3. Deploy frontend to Vercel (root: frontend/, update vercel.json with Railway URL)
+4. End-to-end verification
+5. Uncomment live demo link in README, finalize
+
+Do not skip phases. Do not add real data ingestion. Do not describe as a static dashboard. Never auto-commit — suggest commit messages instead.
 ```
