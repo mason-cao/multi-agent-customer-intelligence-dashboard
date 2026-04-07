@@ -1,5 +1,5 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://RAILWAY_BACKEND_URL/api/:path*" }
+    { "source": "/api/:path*", "destination": "https://multi-agent-customer-intelligence-dashboard-production.up.railway.app/api/:path*" }
   ]
 }
