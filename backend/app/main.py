@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -43,12 +44,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS: allow the Vite dev server origin. In production, replace with the
-# deployed frontend URL. allow_headers=["*"] is required for the custom
-# X-Workspace-ID header sent by the frontend.
+# CORS: allow_headers=["*"] is required for the custom X-Workspace-ID header.
+# In production, set CORS_ORIGINS to the deployed frontend URL.
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

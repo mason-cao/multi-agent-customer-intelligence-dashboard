@@ -17,7 +17,7 @@ Workspace-based customer intelligence platform. Users create workspaces, generat
 | 4 | Productization | Complete |
 | 5 | Infrastructure & Polish | Complete |
 | — | UI/UX Elevation | Complete |
-| **6** | **Deployment & Presentation** | **Next** |
+| **6** | **Deployment & Presentation** | **In Progress** |
 
 ### Phase 5 — Infrastructure & Polish (Complete)
 All 6 tickets committed. Reliability, consistency, and maintainability improvements.
@@ -38,7 +38,7 @@ Premium UI/UX improvement pass using Google Stitch MCP + UI-UX Pro Max design in
 ## Current State
 
 **Branch:** `main`
-**Working tree:** Modified (UI/UX elevation tickets A2–D2 uncommitted)
+**Working tree:** Modified (Phase 6 deployment prep)
 
 ## UI/Design Baseline
 
@@ -67,7 +67,7 @@ Premium UI/UX improvement pass using Google Stitch MCP + UI-UX Pro Max design in
 - **LLMs**: Mock-first (zero API keys) → Claude 3.5 Sonnet → GPT-4o-mini
 - **ML**: scikit-learn (GradientBoosting), SHAP, pandas, numpy
 - **Testing**: pytest + pytest-asyncio + httpx (ASGI transport)
-- **Deploy**: Railway (backend) + Vercel (frontend) — not yet configured
+- **Deploy**: Railway (backend, Docker + persistent volume) + Vercel (frontend, API rewrites)
 
 ## Code Style & Conventions
 - **Python**: snake_case, type hints, Pydantic models for API schemas, SQLAlchemy ORM models
@@ -91,6 +91,10 @@ Premium UI/UX improvement pass using Google Stitch MCP + UI-UX Pro Max design in
 - `frontend/src/components/shared/` — StatCard, ChartCard, Badge, DataTable, Card, PageHeader, EmptyState
 - `frontend/src/components/charts/` — GlassTooltip, chartTheme, barrel export
 - `frontend/src/hooks/` — useCountUp (animated number hook)
+- `frontend/public/fonts/` — Geist Sans + Geist Mono variable font files
+- `Dockerfile` — Railway container definition (copies backend + scripts)
+- `railway.toml` — Railway deployment config (healthcheck, restart policy)
+- `ARCHITECTURE.md` — Technical architecture documentation
 
 ## Pipeline Order
 1. BehaviorAgent → `customer_features`
@@ -108,8 +112,10 @@ Premium UI/UX improvement pass using Google Stitch MCP + UI-UX Pro Max design in
 - Demo must work offline from cached agent outputs.
 
 ## Next Session
-1. **Commit** all UI/UX elevation changes (A2–D2)
-2. **Phase 6 — Deployment & Presentation**: Configure Railway (backend) + Vercel (frontend), environment variables, production builds, demo preparation
+1. **Deploy to Railway** — create project, configure persistent volume at `/app/data`, set env vars, deploy
+2. **Deploy to Vercel** — create project, set root to `frontend/`, update `vercel.json` with Railway URL, deploy
+3. **Verify** — end-to-end test of deployed app (workspace creation, generation, dashboard pages)
+4. **Finalize** — uncomment live demo link in README, update CLAUDE.md to mark Phase 6 complete
 
 ## Scope Constraints
 

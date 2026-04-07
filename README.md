@@ -2,9 +2,11 @@
 
 **Workspace-Based Customer Intelligence Platform**
 
-A full-stack customer intelligence application where users create workspaces, generate realistic synthetic company data, and explore AI-driven insights through an executive dashboard. Eight coordinated AI agents transform raw customer data into behavioral profiles, segments, sentiment analysis, churn predictions, recommendations, and natural language answers -all with full explainability and audit trails.
+A full-stack customer intelligence application where users create workspaces, generate realistic synthetic company data, and explore AI-driven insights through an executive dashboard. Eight coordinated AI agents transform raw customer data into behavioral profiles, segments, sentiment analysis, churn predictions, recommendations, and natural language answers — all with full explainability and audit trails.
 
 > Built as a flagship high school capstone project demonstrating systems architecture, AI/ML engineering, full-stack development, and product thinking.
+
+<!-- **[Live Demo](https://luminosity-intelligence.vercel.app)** -->
 
 ---
 
@@ -153,8 +155,8 @@ No API keys required. The entire system runs locally in mock mode.
 
 ```bash
 # Clone
-git clone https://github.com/YOUR_USERNAME/luminosity-intelligence.git
-cd luminosity-intelligence
+git clone https://github.com/mason-cao/multi-agent-customer-intelligence-dashboard.git
+cd multi-agent-customer-intelligence-dashboard
 
 # Backend
 cd backend
@@ -205,27 +207,17 @@ LLM providers enhance narrative explanations but are never required for core sco
 | 2 | Validation & Hardening | Complete |
 | 3 | Integration | Complete |
 | 4 | Productization | Complete |
-| **5** | **Infrastructure & Polish** | **In Progress** |
-| 6 | Deployment & Presentation | Planned |
+| 5 | Infrastructure & Polish | Complete |
+| — | UI/UX Elevation | Complete |
+| 6 | Deployment & Presentation | Complete |
 
-**Phase 4 (Productization)** transformed the system from a developer-run pipeline into a user-facing application:
+**Phase 4 (Productization)** transformed the system from a developer-run pipeline into a user-facing application: workspace creation with predefined scenarios + custom configuration, 14-stage generation progress tracking, per-workspace SQLite isolation, and full lifecycle management.
 
-- Workspace creation with 4 predefined scenarios + custom configuration
-- User-triggered synthetic data generation with 14-stage progress tracking
-- Per-workspace SQLite isolation and DB routing via request headers
-- Workspace lifecycle management (create, generate, regenerate, delete)
-- Dashboard scoped to active workspace
+**Phase 5 (Infrastructure & Polish)** hardened reliability and consistency: error boundaries, `@handle_errors` decorator with structlog, empty states, pytest test infrastructure (10 smoke tests), workspace lifecycle hardening, and code consistency pass.
 
-**Phase 5 (Infrastructure & Polish)** is the current phase, focused on reliability, consistency, and maintainability:
+**UI/UX Elevation** applied a premium cinematic glassmorphism design system: 5-tier glass panels with gradient borders and noise texture, GenerationView with SVG progress ring, reusable component kit (StatCard, ChartCard, Badge, DataTable), conversational Ask Anything interface, animated number count-ups, and page transitions.
 
-- Ticket 1: Frontend resilience layer (error boundaries, loading states, API error handling)
-- Ticket 2: Backend error handling standardization (decorator pattern, structlog)
-- Ticket 3: Dashboard empty states and catch-all 404 route
-- Ticket 4: Test infrastructure (pytest conftest, backend smoke tests)
-- Ticket 5: Workspace lifecycle hardening (timeout detection, human-readable errors, cache invalidation)
-- Ticket 6: Code consistency pass (response shape standardization, CORS config, README)
-
-**Phase 6** covers deployment (Railway + Vercel) and presentation preparation.
+**Phase 6 (Deployment & Presentation)** deployed the full stack: Railway (backend with persistent volume) + Vercel (frontend with API rewrites), plus architecture documentation.
 
 ---
 
@@ -244,10 +236,32 @@ LLM providers enhance narrative explanations but are never required for core sco
 
 ---
 
+## Deployment
+
+The application deploys as two services:
+
+| Service | Platform | What It Does |
+|---------|----------|-------------|
+| **Backend** | Railway | FastAPI container with persistent volume for SQLite databases |
+| **Frontend** | Vercel | Static React build with API rewrites proxying to Railway |
+
+Both platforms auto-deploy on push to `main` via GitHub integration. The backend health check is at `GET /api/health`. See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed deployment topology, database architecture, and agent pipeline documentation.
+
+### Environment Variables (Railway)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `CORS_ORIGINS` | No | Comma-separated allowed origins (default: `http://localhost:5173`) |
+| `APP_ENV` | No | `development` or `production` |
+| `ANTHROPIC_API_KEY` | No | Enables Anthropic LLM for narratives (mock mode without) |
+| `OPENAI_API_KEY` | No | Enables OpenAI LLM alternative (mock mode without) |
+
+---
+
 ## Repository Structure
 
 ```
-luminosity-intelligence/
+multi-agent-customer-intelligence-dashboard/
 ├── backend/
 │   ├── app/
 │   │   ├── agents/          # 8 AI agents + BaseAgent ABC
@@ -258,23 +272,29 @@ luminosity-intelligence/
 │   │   ├── services/        # LLM client, feature engine, workspace manager
 │   │   ├── utils/           # Error handling decorator, structured logging
 │   │   └── main.py          # FastAPI entry point
+│   ├── tests/               # pytest smoke tests (10 tests)
 │   └── pyproject.toml
 ├── frontend/
+│   ├── public/fonts/        # Geist Sans + Geist Mono variable fonts
 │   ├── src/
 │   │   ├── api/             # Axios client + 12 TanStack Query hooks
-│   │   ├── components/      # Layout + shared UI
+│   │   ├── components/      # Layout + shared UI (StatCard, ChartCard, Badge, DataTable)
 │   │   ├── contexts/        # WorkspaceContext (state + localStorage)
-│   │   ├── pages/           # 8 dashboard pages + WorkspaceHub
+│   │   ├── hooks/           # useCountUp (animated numbers)
+│   │   ├── pages/           # 8 dashboard pages + WorkspaceHub + GenerationView
 │   │   ├── types/           # 15 TypeScript interfaces
 │   │   └── utils/           # Color maps, formatters
+│   ├── vercel.json          # Vercel rewrites + SPA config
 │   └── package.json
 ├── scripts/
 │   ├── generate_data.py     # Synthetic data generator
 │   ├── run_pipeline.py      # Full 8-agent pipeline runner
 │   └── validate_data.py     # Data quality checks
-├── data/                    # SQLite database (gitignored)
-├── docs/                    # Progress tracking
-└── CLAUDE.md                # Internal project context
+├── data/                    # SQLite databases (gitignored, generated at runtime)
+├── Dockerfile               # Railway container definition
+├── railway.toml             # Railway deployment config
+├── ARCHITECTURE.md          # Technical architecture documentation
+└── README.md
 ```
 
 ---
