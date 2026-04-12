@@ -162,6 +162,7 @@ class SegmentationAgent(BaseAgent):
         return {
             "status": "completed",
             "rows_affected": len(segments),
+            "input_count": len(df),
             "tokens_used": 0,
             "model_used": None,
             "segment_summary": {
@@ -185,10 +186,11 @@ class SegmentationAgent(BaseAgent):
         errors = []
 
         rows = output.get("rows_affected", 0)
+        input_count = output.get("input_count", 0)
         if rows == 0:
             errors.append("No rows written to customer_segments")
-        elif rows < 4500:
-            errors.append(f"Expected ~5000 rows, got {rows}")
+        elif input_count > 0 and rows < input_count * 0.9:
+            errors.append(f"Expected ~{input_count} rows, got {rows}")
 
         summary = output.get("segment_summary", {})
         dist = summary.get("distribution", {})

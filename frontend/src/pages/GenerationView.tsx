@@ -295,8 +295,10 @@ function StageRow({
 
 export default function GenerationView({
   workspace,
+  onComplete,
 }: {
   workspace: Workspace;
+  onComplete?: () => void;
 }) {
   const navigate = useNavigate();
   const [isComplete, setIsComplete] = useState(false);
@@ -328,12 +330,16 @@ export default function GenerationView({
   useEffect(() => {
     if (!isComplete) return;
     if (countdown <= 0) {
-      navigate('/');
+      if (onComplete) {
+        onComplete();
+      } else {
+        navigate('/');
+      }
       return;
     }
     const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => clearTimeout(timer);
-  }, [isComplete, countdown, navigate]);
+  }, [isComplete, countdown, navigate, onComplete]);
 
   const stageIndex = workspace.stage_index ?? 0;
   const totalStages = workspace.total_stages ?? 14;

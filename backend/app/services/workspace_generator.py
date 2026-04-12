@@ -113,10 +113,22 @@ def _run_generation(workspace_id: str):
         ensure_workspace_dirs()
         ws_engine = get_workspace_engine(workspace_id)
 
+        # Map generate_data.py stage indices to the names the frontend expects
+        _DATA_STAGE_NAMES = {
+            1: "Customers",
+            2: "Subscriptions",
+            3: "Orders",
+            4: "Events",
+            5: "Tickets",
+            6: "Feedback",
+            7: "Campaigns",
+        }
+
         def on_data_stage(index, name):
+            stage_label = _DATA_STAGE_NAMES.get(index, name)
             update_workspace_status(
                 workspace_id, "generating",
-                current_stage=name,
+                current_stage=stage_label,
                 stage_index=index,
                 total_stages=TOTAL_STAGES,
             )

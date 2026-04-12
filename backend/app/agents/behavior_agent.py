@@ -158,6 +158,7 @@ class BehaviorAgent(BaseAgent):
         return {
             "status": "completed",
             "rows_affected": len(features),
+            "input_count": len(customers),
             "tokens_used": 0,
             "model_used": None,
             "feature_summary": summary,
@@ -173,10 +174,11 @@ class BehaviorAgent(BaseAgent):
         errors: List[str] = []
 
         rows = output.get("rows_affected", 0)
+        input_count = output.get("input_count", 0)
         if rows == 0:
             errors.append("No rows written to customer_features")
-        elif rows < 4500:
-            errors.append(f"Expected ~5000 rows, got {rows}")
+        elif input_count > 0 and rows < input_count * 0.9:
+            errors.append(f"Expected ~{input_count} rows, got {rows}")
 
         summary = output.get("feature_summary", {})
 

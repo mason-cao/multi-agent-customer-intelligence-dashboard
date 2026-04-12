@@ -51,10 +51,10 @@ def get_agents_summary(db: Session = Depends(get_db)):
         for r in category_rows
     }
 
-    # Agent runs — latest completed run per agent
+    # Agent runs — latest finished run per agent (completed or partial)
     runs = (
         db.query(AgentRun)
-        .filter(AgentRun.status == "completed")
+        .filter(AgentRun.status.in_(["completed", "partial"]))
         .order_by(desc(AgentRun.completed_at))
         .all()
     )

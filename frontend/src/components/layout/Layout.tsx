@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Outlet, useLocation, Navigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -25,6 +26,22 @@ export default function Layout() {
   const location = useLocation();
   const { activeWorkspace, isLoading } = useActiveWorkspace();
 
+  // Track whether we were in the generation flow so the completion
+  // celebration screen can play before switching to the dashboard.
+  // Updated during render (React allows storing information from previous
+  // renders this way, which avoids the set-state-in-effect anti-pattern).
+  const [wasGenerating, setWasGenerating] = useState(false);
+  if (activeWorkspace?.status === 'generating' && !wasGenerating) {
+    setWasGenerating(true);
+  }
+  if (
+    wasGenerating &&
+    activeWorkspace?.status === 'ready' &&
+    location.pathname !== '/'
+  ) {
+    setWasGenerating(false);
+  }
+
   // Show spinner while workspace data is loading, or if localStorage says a
   // workspace is active but the context hasn't hydrated it yet (prevents a
   // flash-redirect to /workspaces during the Vercel→Railway proxy round-trip).
@@ -42,18 +59,22 @@ export default function Layout() {
     return <Navigate to="/workspaces" replace />;
   }
 
-  const isGenerating = activeWorkspace.status === 'generating' || activeWorkspace.status === 'failed';
+  // Show GenerationView for generating, failed, or the ready→celebration transition
+  const showGeneration =
+    activeWorkspace.status === 'generating' ||
+    activeWorkspace.status === 'failed' ||
+    (activeWorkspace.status === 'ready' && wasGenerating);
 
   return (
     <div className="relative flex h-screen bg-app-gradient">
       <BackgroundSystem />
       <div className="relative z-10 flex h-screen w-full">
-        <Sidebar disabled={isGenerating} />
+        <Sidebar disabled={showGeneration} />
         <div className="flex flex-1 flex-col overflow-hidden">
-          {!isGenerating && <Header />}
+          {!showGeneration && <Header />}
           <main className="flex-1 overflow-y-auto p-8">
-            {isGenerating ? (
-              <GenerationView workspace={activeWorkspace} />
+            {showGeneration ? (
+              <GenerationView workspace={activeWorkspace} onComplete={() => setWasGenerating(false)} />
             ) : activeWorkspace.status === 'ready' ? (
               <ErrorBoundary key={location.pathname}>
                 <div key={location.pathname} className="page-transition">

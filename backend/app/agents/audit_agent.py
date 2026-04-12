@@ -35,12 +35,20 @@ from app.agents.base import BaseAgent
 AUDIT_VERSION = "rules-v1"
 
 # ── Expected tables and their minimum row counts ──────────────────
-EXPECTED_TABLES = {
-    "customer_features": 4500,
-    "customer_segments": 4500,
-    "churn_predictions": 4500,
-    "sentiment_results": 10000,
-    "recommendations": 4500,
+# Per-customer tables: minimum is computed at runtime as 90% of the
+# actual customer count. Static minimums are used for tables whose
+# size is independent of customer count (e.g. executive_summaries).
+PER_CUSTOMER_TABLES = (
+    "customer_features",
+    "customer_segments",
+    "churn_predictions",
+    "recommendations",
+)
+
+# sentiment_results scales with feedback + tickets, computed at runtime
+SENTIMENT_SOURCE_TABLES = ("feedback", "support_tickets")
+
+STATIC_TABLE_MINIMUMS = {
     "executive_summaries": 7,
     "agent_runs": 1,
 }
@@ -222,7 +230,34 @@ def _check_completeness(engine, now: str) -> List[Dict[str, Any]]:
     """Verify all expected tables exist and have minimum row counts."""
     results = []
 
-    for table, min_rows in EXPECTED_TABLES.items():
+    # Compute dynamic minimums from the actual customer count and
+    # source document counts so checks scale with workspace size.
+    expected_tables: Dict[str, int] = {}
+    try:
+        cust_n = int(pd.read_sql(
+            text("SELECT COUNT(*) as cnt FROM customers"), engine
+        )["cnt"].iloc[0])
+    except Exception:
+        cust_n = 0
+    per_customer_min = max(1, int(cust_n * 0.9)) if cust_n > 0 else 1
+    for t in PER_CUSTOMER_TABLES:
+        expected_tables[t] = per_customer_min
+
+    sentiment_doc_n = 0
+    for src in SENTIMENT_SOURCE_TABLES:
+        try:
+            sentiment_doc_n += int(pd.read_sql(
+                text(f"SELECT COUNT(*) as cnt FROM {src}"), engine
+            )["cnt"].iloc[0])
+        except Exception:
+            pass
+    expected_tables["sentiment_results"] = (
+        max(1, int(sentiment_doc_n * 0.9)) if sentiment_doc_n > 0 else 1
+    )
+
+    expected_tables.update(STATIC_TABLE_MINIMUMS)
+
+    for table, min_rows in expected_tables.items():
         try:
             row = pd.read_sql(
                 text(f"SELECT COUNT(*) as cnt FROM {table}"), engine
@@ -258,14 +293,8 @@ def _check_completeness(engine, now: str) -> List[Dict[str, Any]]:
                 entity_id=table,
             ))
 
-    # Get total customer count for coverage checks
-    cust_count = None
-    try:
-        cust_count = int(pd.read_sql(
-            text("SELECT COUNT(*) as cnt FROM customers"), engine
-        )["cnt"].iloc[0])
-    except Exception:
-        pass
+    # Reuse the customer count we already queried for dynamic minimums
+    cust_count = cust_n if cust_n > 0 else None
 
     # Check that customer_features covers all customers
     if cust_count is not None:

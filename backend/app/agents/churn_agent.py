@@ -198,6 +198,7 @@ class ChurnAgent(BaseAgent):
         return {
             "status": "completed",
             "rows_affected": len(predictions),
+            "input_count": len(customer_ids),
             "tokens_used": 0,
             "model_used": None,
             "churn_summary": {
@@ -224,10 +225,11 @@ class ChurnAgent(BaseAgent):
         errors = []
 
         rows = output.get("rows_affected", 0)
+        input_count = output.get("input_count", 0)
         if rows == 0:
             errors.append("No rows written to churn_predictions")
-        elif rows < 4500:
-            errors.append(f"Expected ~5000 rows, got {rows}")
+        elif input_count > 0 and rows < input_count * 0.9:
+            errors.append(f"Expected ~{input_count} rows, got {rows}")
 
         summary = output.get("churn_summary", {})
 

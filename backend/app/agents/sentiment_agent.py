@@ -233,9 +233,16 @@ class SentimentAgent(BaseAgent):
             avg_score=avg_score,
         )
 
+        # Query total customer count for proportional validation
+        total_customers = pd.read_sql(
+            text("SELECT COUNT(*) AS n FROM customers"), engine
+        )["n"].iloc[0]
+
         return {
             "status": "completed",
             "rows_affected": len(all_results),
+            "input_doc_count": len(feedback) + len(tickets),
+            "total_customers": int(total_customers),
             "tokens_used": 0,
             "model_used": None,
             "sentiment_summary": {
@@ -435,10 +442,11 @@ class SentimentAgent(BaseAgent):
         errors = []
 
         rows = output.get("rows_affected", 0)
+        input_doc_count = output.get("input_doc_count", 0)
         if rows == 0:
             errors.append("No rows written to sentiment_results")
-        elif rows < 15000:
-            errors.append(f"Expected ~18000 rows, got {rows}")
+        elif input_doc_count > 0 and rows < input_doc_count * 0.9:
+            errors.append(f"Expected ~{input_doc_count} rows, got {rows}")
 
         summary = output.get("sentiment_summary", {})
         dist = summary.get("label_distribution", {})
@@ -466,11 +474,12 @@ class SentimentAgent(BaseAgent):
                 f"avg_score {avg} outside expected range [-0.5, 0.5]"
             )
 
-        # Should have updated at least some customers
+        # Should have updated a meaningful fraction of customers
         with_sent = summary.get("customers_with_sentiment", 0)
-        if with_sent < 3000:
+        total_customers = output.get("total_customers", 0)
+        if total_customers > 0 and with_sent < total_customers * 0.5:
             errors.append(
-                f"Only {with_sent} customers got avg_sentiment (expected 3000+)"
+                f"Only {with_sent} of {total_customers} customers got avg_sentiment (expected 50%+)"
             )
 
         return (len(errors) == 0, errors)

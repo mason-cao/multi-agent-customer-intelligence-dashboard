@@ -88,7 +88,11 @@ def get_workspace_detail(workspace_id: str):
             )
             ws = get_workspace(workspace_id)
         else:
-            elapsed = (datetime.now(timezone.utc) - ws.generation_started_at).total_seconds()
+            # SQLite returns naive datetimes; make both sides aware for safe comparison
+            started = ws.generation_started_at
+            if started.tzinfo is None:
+                started = started.replace(tzinfo=timezone.utc)
+            elapsed = (datetime.now(timezone.utc) - started).total_seconds()
             if elapsed > GENERATION_TIMEOUT_SECONDS:
                 update_workspace_status(
                     workspace_id, "failed",
