@@ -90,7 +90,7 @@ Two independent database layers serve different purposes:
 - One SQLite file per workspace, created during generation
 - Contains 16 tables: 7 source data + 9 agent output tables
 - Fully isolated — each workspace is a self-contained dataset
-- Managed by `Base` declarative base (shared with the global `nexus.db` schema)
+- Managed by `Base` declarative base (shared with the global `workspaces.db` schema)
 
 ### Schema Overview
 
@@ -188,7 +188,7 @@ Stage 13: NarrativeAgent
           └── Writes: executive_summaries (7 sections)
                 │
 Stage 14: AuditAgent + QueryAgent
-          ├── AuditAgent reads: all tables → writes: audit_results (44 checks)
+          ├── AuditAgent reads: all tables → writes: audit_results (45 checks)
           └── QueryAgent: on-demand NL query processing
 ```
 

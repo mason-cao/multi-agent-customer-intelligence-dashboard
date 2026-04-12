@@ -50,16 +50,16 @@ The data is synthetic by design. This is a demonstration platform, not a product
 
 | # | Agent | What It Does | Output |
 |---|-------|-------------|--------|
-| 1 | **BehaviorAgent** | Computes 17 per-customer behavioral features from 750K+ raw events | `customer_features` (5,000 rows) |
-| 2 | **SegmentationAgent** | Classifies customers into 5 business segments using RFM waterfall rules | `customer_segments` (5,000 rows) |
-| 3 | **SentimentAgent** | Scores 18K+ feedback and support entries with sentiment labels | `sentiment_results` (18,731 rows) |
-| 4 | **ChurnAgent** | GradientBoosting + SHAP per-customer churn prediction with explanations | `churn_predictions` (5,000 rows) |
-| 5 | **RecommendationAgent** | 12-rule priority cascade assigning next-best-action per customer | `recommendations` (5,000 rows) |
+| 1 | **BehaviorAgent** | Computes 17 per-customer behavioral features from hundreds of thousands of raw events | `customer_features` (1 row per customer) |
+| 2 | **SegmentationAgent** | Classifies customers into 5 business segments using RFM waterfall rules | `customer_segments` (1 row per customer) |
+| 3 | **SentimentAgent** | Scores feedback and support entries with sentiment labels and topic extraction | `sentiment_results` (1 row per document) |
+| 4 | **ChurnAgent** | GradientBoosting + SHAP per-customer churn prediction with explanations | `churn_predictions` (1 row per customer) |
+| 5 | **RecommendationAgent** | 12-rule priority cascade assigning next-best-action per customer | `recommendations` (1 row per customer) |
 | 6 | **NarrativeAgent** | Generates 7 executive summary sections from all agent outputs | `executive_summaries` (7 rows) |
-| 7 | **AuditAgent** | 44-check cross-agent validation across 5 categories | `audit_results` (44 rows) |
+| 7 | **AuditAgent** | 45-check cross-agent validation across 5 categories (completeness, schema, consistency, groundedness, freshness) | `audit_results` (45 rows) |
 | 8 | **QueryAgent** | Intent-classified natural language query layer with whitelisted SQL | `query_results` (on demand) |
 
-All agents inherit from a shared `BaseAgent` ABC with uniform `run()`, `validate_output()`, `execute()`, and `save_run()` methods. Every execution is logged to `agent_runs` with timing, validation results, and output metadata.
+All agents inherit from a shared `BaseAgent` ABC with uniform `run()`, `validate_output()`, `execute()`, and `save_run()` methods. Every execution is logged to `agent_runs` with timing, validation results, and output metadata. Validation thresholds are computed proportionally from the actual workspace size, so the pipeline runs cleanly on any customer count from a few hundred to tens of thousands.
 
 ### Eight Dashboard Pages
 
@@ -71,7 +71,7 @@ All agents inherit from a shared `BaseAgent` ABC with uniform `run()`, `validate
 | **Churn & Retention** | Risk tier distribution, at-risk customer table, feature importance bars |
 | **Sentiment & Support** | Sentiment distribution, topic extraction table, avg score |
 | **Recommendations** | Action distribution, priority table, category breakdown |
-| **Agent Audit** | Audit pass rates, agent run history, all 44 validation checks |
+| **Agent Audit** | Audit pass rates, agent run history, all 45 validation checks |
 | **Ask Anything** | Natural language query interface with result history |
 
 All pages render real computed data from backend API endpoints. No hardcoded stub data remains.
@@ -80,9 +80,10 @@ All pages render real computed data from backend API endpoints. No hardcoded stu
 
 - Per-workspace SQLite databases with isolated synthetic datasets
 - Synthetic data generator producing correlated, realistic customer data across 7 source tables
-- Data volumes scale with scenario configuration (e.g., ~750K behavioral events for 5,000-customer workspaces)
+- Data volumes scale with scenario configuration (e.g., ~750K behavioral events for a 5,000-customer workspace)
+- Workspace size is fully configurable; the agent pipeline validates proportionally so any customer count works
 - Feature engineering service with pure functions for login, engagement, revenue, support, and activity metrics
-- Global metadata database (`data/nexus.db`) for workspace management
+- Global metadata database (`data/workspaces.db`) for workspace management
 - 17 ORM models with full Pydantic schema validation
 
 ---
@@ -115,7 +116,7 @@ All pages render real computed data from backend API endpoints. No hardcoded stu
                 ┌──────────────────────┴──────────────────────┐
                 │              SQLite (per-workspace)           │
                 │                                              │
-                │  Global:  data/nexus.db (workspace metadata) │
+                │  Global:  data/workspaces.db (metadata)      │
                 │  Per-ws:  data/workspaces/{id}.db            │
                 │           7 source + 9 agent tables each     │
                 │  17 ORM models, full Pydantic schemas        │
@@ -277,12 +278,12 @@ multi-agent-customer-intelligence-dashboard/
 ├── frontend/
 │   ├── public/fonts/        # Geist Sans + Geist Mono variable fonts
 │   ├── src/
-│   │   ├── api/             # Axios client + 12 TanStack Query hooks
+│   │   ├── api/             # Axios client + 19 TanStack Query hooks
 │   │   ├── components/      # Layout + shared UI (StatCard, ChartCard, Badge, DataTable)
 │   │   ├── contexts/        # WorkspaceContext (state + localStorage)
 │   │   ├── hooks/           # useCountUp (animated numbers)
 │   │   ├── pages/           # 8 dashboard pages + WorkspaceHub + GenerationView
-│   │   ├── types/           # 15 TypeScript interfaces
+│   │   ├── types/           # 21 TypeScript interfaces
 │   │   └── utils/           # Color maps, formatters
 │   ├── vercel.json          # Vercel rewrites + SPA config
 │   └── package.json
