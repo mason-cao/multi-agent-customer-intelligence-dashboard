@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { AxiosError } from 'axios';
 import api from './client';
 import type { Workspace, WorkspaceListResponse, Scenario, CreateWorkspaceInput } from '../types/workspace';
+
+type ApiError = AxiosError<{ detail?: string }>;
 
 export function useWorkspaces() {
   return useQuery<WorkspaceListResponse>({
@@ -26,7 +29,10 @@ export function useWorkspace(id: string | null) {
       return data;
     },
     enabled: !!id,
-    retry: 3,
+    retry: (failureCount, error) => {
+      if ((error as ApiError).response?.status === 404) return false;
+      return failureCount < 3;
+    },
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
     refetchInterval: (query) => {
       return query.state.data?.status === 'generating' ? 2000 : false;

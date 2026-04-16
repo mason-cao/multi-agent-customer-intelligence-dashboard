@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -19,7 +19,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useActiveWorkspace } from '../contexts/WorkspaceContext';
+import { useActiveWorkspace } from '../contexts/workspaceContextValue';
 import {
   useWorkspaces,
   useScenarios,
@@ -128,7 +128,7 @@ export default function WorkspaceHub() {
   const generateMutation = useGenerateWorkspace();
   const deleteMutation = useDeleteWorkspace();
 
-  const workspaces = list?.workspaces ?? [];
+  const workspaces = useMemo(() => list?.workspaces ?? [], [list?.workspaces]);
   const isSubmitting = createMutation.isPending || generateMutation.isPending;
 
   // When generation starts, set workspace as active and navigate to generation view
@@ -600,7 +600,7 @@ function GeneratingStatus({
 }) {
   const progress =
     ws.stage_index != null && ws.total_stages
-      ? Math.round((ws.stage_index / ws.total_stages) * 100)
+      ? Math.min(100, Math.max(0, Math.round((ws.stage_index / Math.max(ws.total_stages, 1)) * 100)))
       : 0;
 
   return (

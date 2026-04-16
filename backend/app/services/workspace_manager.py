@@ -250,6 +250,8 @@ def update_workspace_status(
         ws.status = status
         if status == "generating" and old_status != "generating":
             ws.generation_started_at = datetime.now(timezone.utc)
+            ws.completed_at = None
+            ws.error_message = None
         if current_stage is not None:
             ws.current_stage = current_stage
         if stage_index is not None:
@@ -260,6 +262,7 @@ def update_workspace_status(
             ws.error_message = error_message
         if status == "ready":
             ws.completed_at = datetime.now(timezone.utc)
+            ws.error_message = None
         db.commit()
         db.refresh(ws)
         return ws

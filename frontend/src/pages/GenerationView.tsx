@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -301,9 +301,9 @@ export default function GenerationView({
   onComplete?: () => void;
 }) {
   const navigate = useNavigate();
-  const [isComplete, setIsComplete] = useState(false);
+  const isComplete = workspace.status === 'ready';
   const [countdown, setCountdown] = useState(3);
-  const startTimeRef = useRef<number>(
+  const [startTime] = useState(() =>
     workspace.generation_started_at
       ? new Date(workspace.generation_started_at).getTime()
       : Date.now()
@@ -312,19 +312,11 @@ export default function GenerationView({
 
   // Elapsed time counter
   useEffect(() => {
-    const start = startTimeRef.current;
     const timer = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - start) / 1000));
+      setElapsed(Math.floor((Date.now() - startTime) / 1000));
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
-
-  // Completion detection
-  useEffect(() => {
-    if (workspace.status === 'ready' && !isComplete) {
-      setIsComplete(true);
-    }
-  }, [workspace.status, isComplete]);
+  }, [startTime]);
 
   // Countdown + redirect after completion
   useEffect(() => {
@@ -345,7 +337,7 @@ export default function GenerationView({
   const totalStages = workspace.total_stages ?? 14;
   const progress = isComplete
     ? 100
-    : Math.round((stageIndex / totalStages) * 100);
+    : Math.min(100, Math.max(0, Math.round((stageIndex / Math.max(totalStages, 1)) * 100)));
   const currentStage = workspace.current_stage ?? 'Initializing workspace';
   const currentMeta = getStageMeta(currentStage);
 

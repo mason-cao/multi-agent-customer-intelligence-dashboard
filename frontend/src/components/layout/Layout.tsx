@@ -4,7 +4,7 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import ErrorBoundary from '../ErrorBoundary';
 import GenerationView from '../../pages/GenerationView';
-import { useActiveWorkspace } from '../../contexts/WorkspaceContext';
+import { useActiveWorkspace } from '../../contexts/workspaceContextValue';
 
 function BackgroundSystem() {
   return (
@@ -42,11 +42,8 @@ export default function Layout() {
     setWasGenerating(false);
   }
 
-  // Show spinner while workspace data is loading, or if localStorage says a
-  // workspace is active but the context hasn't hydrated it yet (prevents a
-  // flash-redirect to /workspaces during the Vercel→Railway proxy round-trip).
-  const hasStoredWorkspace = !!localStorage.getItem('luminosity_active_workspace');
-  if (isLoading || (!activeWorkspace && hasStoredWorkspace)) {
+  // Show spinner while workspace data is loading from persisted context.
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-app-gradient">
         <BackgroundSystem />

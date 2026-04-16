@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Activity } from 'lucide-react';
-import { useActiveWorkspace } from '../../contexts/WorkspaceContext';
+import { useActiveWorkspace } from '../../contexts/workspaceContextValue';
 
 export default function Header() {
   const navigate = useNavigate();

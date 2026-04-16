@@ -28,7 +28,17 @@ def get_db(request: Request):
     """
     workspace_id = request.headers.get("x-workspace-id")
     if workspace_id:
-        from app.db.workspace_db import get_workspace_db_path, get_workspace_engine
+        from app.db.workspace_db import (
+            get_workspace_db_path,
+            get_workspace_engine,
+            is_valid_workspace_id,
+        )
+
+        if not is_valid_workspace_id(workspace_id):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid workspace ID",
+            )
 
         db_path = get_workspace_db_path(workspace_id)
         if not db_path.exists():

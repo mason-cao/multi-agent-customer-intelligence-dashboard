@@ -12,7 +12,7 @@ import {
   ArrowLeftRight,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useActiveWorkspace } from '../../contexts/WorkspaceContext';
+import { useActiveWorkspace } from '../../contexts/workspaceContextValue';
 
 interface NavItem {
   name: string;

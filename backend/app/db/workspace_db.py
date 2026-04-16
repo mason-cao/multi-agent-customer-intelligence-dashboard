@@ -9,6 +9,7 @@ The metadata DB uses a separate DeclarativeBase (WorkspaceBase) so its models
 stay independent of the per-workspace agent models (which use Base from database.py).
 """
 
+import re
 from pathlib import Path
 
 from sqlalchemy import create_engine
@@ -18,6 +19,7 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 DATA_DIR = Path(__file__).resolve().parent.parent.parent.parent / "data"
 WORKSPACES_DIR = DATA_DIR / "workspaces"
 METADATA_DB_PATH = DATA_DIR / "workspaces.db"
+WORKSPACE_ID_PATTERN = re.compile(r"^[a-f0-9]{12}$")
 
 # ── Metadata database (workspace records) ──────────────────────
 metadata_engine = create_engine(f"sqlite:///{METADATA_DB_PATH}", echo=False)
@@ -36,8 +38,15 @@ def ensure_workspace_dirs():
     WORKSPACES_DIR.mkdir(parents=True, exist_ok=True)
 
 
+def is_valid_workspace_id(workspace_id: str) -> bool:
+    """Return whether a workspace ID matches generated workspace IDs."""
+    return bool(WORKSPACE_ID_PATTERN.fullmatch(workspace_id))
+
+
 def get_workspace_db_path(workspace_id: str) -> Path:
     """Get the SQLite database path for a specific workspace."""
+    if not is_valid_workspace_id(workspace_id):
+        raise ValueError("Invalid workspace ID")
     return WORKSPACES_DIR / f"{workspace_id}.db"
 
 

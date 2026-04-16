@@ -6,6 +6,29 @@ interface BadgeProps {
   className?: string;
 }
 
+function getSubtleBackground(color: string) {
+  const rgbaMatch = color.match(/^rgba\((.+),\s*[\d.]+\)$/i);
+  if (rgbaMatch) return `rgba(${rgbaMatch[1]}, 0.15)`;
+
+  const rgbMatch = color.match(/^rgb\((.+)\)$/i);
+  if (rgbMatch) return `rgba(${rgbMatch[1]}, 0.15)`;
+
+  const hexMatch = color.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hexMatch) {
+    const raw = hexMatch[1];
+    const hex = raw.length === 3
+      ? raw.split('').map((char) => char + char).join('')
+      : raw;
+    const value = Number.parseInt(hex, 16);
+    const r = (value >> 16) & 255;
+    const g = (value >> 8) & 255;
+    const b = value & 255;
+    return `rgba(${r}, ${g}, ${b}, 0.15)`;
+  }
+
+  return color;
+}
+
 export default function Badge({
   label,
   color = 'rgba(129,140,248,1)',
@@ -31,7 +54,7 @@ export default function Badge({
     <span
       className={`inline-flex items-center rounded-full font-medium ${sizeClasses} ${className}`}
       style={{
-        backgroundColor: color.replace(/[\d.]+\)$/, '0.15)').replace(/^#/, ''),
+        backgroundColor: getSubtleBackground(color),
         color: color,
       }}
     >
@@ -39,13 +62,3 @@ export default function Badge({
     </span>
   );
 }
-
-// Pre-defined color presets for common badge types
-export const BADGE_COLORS = {
-  success: 'rgba(52,211,153,1)',
-  danger: 'rgba(248,113,113,1)',
-  warning: 'rgba(251,191,36,1)',
-  info: 'rgba(148,163,184,1)',
-  primary: 'rgba(129,140,248,1)',
-  violet: 'rgba(167,139,250,1)',
-} as const;

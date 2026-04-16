@@ -74,3 +74,44 @@ async def test_create_workspace_random_scenario(client):
     assert body["company_name"] != "Random Test"
     assert body["customer_count"] >= 100
     assert len(body["industry"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_regeneration_clears_stale_completion_state(client):
+    create = await client.post("/api/workspaces", json={
+        "name": "Regenerate Test",
+        "scenario": "velocity_saas",
+    })
+    ws_id = create.json()["id"]
+
+    from app.services.workspace_manager import get_workspace, update_workspace_status
+
+    update_workspace_status(ws_id, "ready", error_message="old failure")
+    ready = get_workspace(ws_id)
+    assert ready.completed_at is not None
+    assert ready.error_message is None
+
+    update_workspace_status(ws_id, "generating", error_message="")
+    generating = get_workspace(ws_id)
+    assert generating.completed_at is None
+    assert generating.error_message == ""
+    assert generating.generation_started_at is not None
+
+
+@pytest.mark.asyncio
+async def test_dashboard_routes_reject_invalid_workspace_header(client):
+    resp = await client.get(
+        "/api/overview/kpis",
+        headers={"X-Workspace-ID": "../../nexus"},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "Invalid workspace ID"
+
+
+@pytest.mark.asyncio
+async def test_dashboard_routes_404_for_missing_workspace_database(client):
+    resp = await client.get(
+        "/api/overview/kpis",
+        headers={"X-Workspace-ID": "abcdef123456"},
+    )
+    assert resp.status_code == 404

@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import api from './client';
-import { useActiveWorkspace } from '../contexts/WorkspaceContext';
+import { useActiveWorkspace } from '../contexts/workspaceContextValue';
 import type {
   KpiData,
   SegmentSummary,
