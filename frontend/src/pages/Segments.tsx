@@ -279,28 +279,28 @@ export default function Segments() {
                     customers
                   </p>
 
-                  <div className="mt-4 grid grid-cols-3 gap-3 border-t border-[rgba(255,255,255,0.1)] pt-4">
+                  <div className="mt-4 grid grid-cols-3 gap-4 border-t border-[rgba(255,255,255,0.1)] pt-4">
                     <div>
-                      <p className="flex items-center gap-1 text-[10px] font-medium text-[rgba(255,255,255,0.45)]">
+                      <p className="flex items-center gap-1.5 text-[10px] font-medium text-[rgba(255,255,255,0.56)]">
                         <DollarSign className="h-3 w-3" /> Avg Rev
                       </p>
-                      <p className="mt-0.5 font-mono text-sm font-semibold text-white">
+                      <p className="mt-1.5 font-mono text-sm font-semibold text-white">
                         {formatCurrency(seg.avg_revenue)}
                       </p>
                     </div>
                     <div>
-                      <p className="flex items-center gap-1 text-[10px] font-medium text-[rgba(255,255,255,0.45)]">
+                      <p className="flex items-center gap-1.5 text-[10px] font-medium text-[rgba(255,255,255,0.56)]">
                         <Activity className="h-3 w-3" /> Engage
                       </p>
-                      <p className="mt-0.5 font-mono text-sm font-semibold text-white">
+                      <p className="mt-1.5 font-mono text-sm font-semibold text-white">
                         {seg.avg_engagement.toFixed(2)}
                       </p>
                     </div>
                     <div>
-                      <p className="flex items-center gap-1 text-[10px] font-medium text-[rgba(255,255,255,0.45)]">
+                      <p className="flex items-center gap-1.5 text-[10px] font-medium text-[rgba(255,255,255,0.56)]">
                         <Users className="h-3 w-3" /> Churn
                       </p>
-                      <p className="mt-0.5 font-mono text-sm font-semibold text-white">
+                      <p className="mt-1.5 font-mono text-sm font-semibold text-white">
                         {formatPercent(seg.avg_churn_risk)}
                       </p>
                     </div>

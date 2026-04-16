@@ -105,8 +105,11 @@ export default function ChurnRetention() {
                   <p className="mt-2 font-mono text-3xl font-bold text-white">
                     {tier.count.toLocaleString()}
                   </p>
-                  <p className="mt-1 text-xs text-[rgba(255,255,255,0.7)]">
-                    {pct}% of customers · {formatCurrency(tier.mrr_at_risk)} MRR
+                  <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[rgba(255,255,255,0.7)]">
+                    <span className="font-mono text-[rgba(255,255,255,0.82)]">{pct}%</span>
+                    <span>of customers</span>
+                    <span className="font-mono text-[rgba(255,255,255,0.82)]">{formatCurrency(tier.mrr_at_risk)}</span>
+                    <span>MRR</span>
                   </p>
                 </Card>
               );
@@ -117,9 +120,9 @@ export default function ChurnRetention() {
             {/* Top at-risk customers */}
             <ChartCard title="Highest-Risk Customers" icon={AlertTriangle} className="animate-fade-in-up stagger-5 xl:col-span-2">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
+                <table className="metric-table min-w-[720px] text-left text-sm">
                   <thead>
-                    <tr className="border-b border-[rgba(255,255,255,0.08)] text-xs text-[rgba(255,255,255,0.45)]">
+                    <tr>
                       <th className="pb-2 font-medium">Customer</th>
                       <th className="pb-2 font-medium">Company</th>
                       <th className="pb-2 font-medium text-right">Churn %</th>
@@ -142,7 +145,7 @@ export default function ChurnRetention() {
                             <td className="py-2.5 text-[rgba(255,255,255,0.6)]">{c.company}</td>
                             <td className="py-2.5 text-right">
                               <span
-                                className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold font-mono"
+                                className="inline-flex min-w-14 justify-center rounded-full px-2.5 py-1 font-mono text-xs font-semibold"
                                 style={{
                                   backgroundColor: hexToRgba(riskColor, 0.15),
                                   color: riskColor,

@@ -42,13 +42,13 @@ export default function DataTable<T extends Record<string, unknown>>({
   return (
     <Card className={className}>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="metric-table text-sm">
           <thead>
-            <tr className="border-b border-[rgba(255,255,255,0.06)]">
+            <tr>
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={`sticky top-0 z-10 bg-inherit px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[rgba(255,255,255,0.45)] ${alignClass(col.align)}`}
+                  className={`sticky top-0 z-10 ${alignClass(col.align)}`}
                 >
                   {col.label}
                 </th>
@@ -59,14 +59,14 @@ export default function DataTable<T extends Record<string, unknown>>({
             {paginated.map((row, rowIdx) => (
               <tr
                 key={rowIdx}
-                className={`border-b border-[rgba(255,255,255,0.04)] transition-colors hover:bg-[rgba(255,255,255,0.04)] ${
+                className={`transition-colors ${
                   rowIdx % 2 === 1 ? 'bg-[rgba(255,255,255,0.02)]' : ''
                 }`}
               >
                 {columns.map((col) => (
                   <td
                     key={col.key}
-                    className={`px-4 py-3 text-[rgba(255,255,255,0.7)] ${alignClass(col.align)}`}
+                    className={`text-[rgba(255,255,255,0.7)] ${alignClass(col.align)}`}
                   >
                     {col.render
                       ? col.render(row[col.key], row)

@@ -135,9 +135,9 @@ export default function AgentAudit() {
             {/* Agent runs */}
             <ChartCard title="Latest Agent Runs" icon={Clock} className="xl:col-span-2">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
+                <table className="metric-table min-w-[760px] text-left text-sm">
                   <thead>
-                    <tr className="border-b border-[rgba(255,255,255,0.1)] text-xs text-[rgba(255,255,255,0.45)]">
+                    <tr>
                       <th className="pb-2 font-medium">Agent</th>
                       <th className="pb-2 font-medium">Status</th>
                       <th className="pb-2 font-medium text-right">Duration</th>
@@ -157,12 +157,12 @@ export default function AgentAudit() {
                           </td>
                           <td className="py-2.5">
                             {r.status === 'completed' ? (
-                              <span className="inline-flex items-center gap-1 text-xs font-medium text-[#34d399]">
+                              <span className="inline-flex items-center gap-1.5 rounded-full bg-[rgba(52,211,153,0.12)] px-2.5 py-1 text-xs font-medium text-[#34d399]">
                                 <CheckCircle className="h-3.5 w-3.5" />
                                 Completed
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-xs font-medium text-[#f87171]">
+                              <span className="inline-flex items-center gap-1.5 rounded-full bg-[rgba(248,113,113,0.12)] px-2.5 py-1 text-xs font-medium text-[#f87171]">
                                 <XCircle className="h-3.5 w-3.5" />
                                 {r.status}
                               </span>
@@ -200,16 +200,16 @@ export default function AgentAudit() {
 
           {/* Detailed checks */}
           <Card className="mt-6">
-            <div className="mb-4 flex items-center gap-2">
+            <div className="panel-title-bar">
               <ShieldCheck className="h-4 w-4 text-[#34d399]" />
-              <h3 className="text-sm font-semibold text-white">
+              <h3 className="text-sm font-semibold">
                 All Audit Checks
               </h3>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="metric-table min-w-[860px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-[rgba(255,255,255,0.1)] text-xs text-[rgba(255,255,255,0.45)]">
+                  <tr>
                     <th className="pb-2 font-medium">Category</th>
                     <th className="pb-2 font-medium">Check</th>
                     <th className="pb-2 font-medium">Severity</th>
@@ -232,7 +232,7 @@ export default function AgentAudit() {
                         </td>
                         <td className="py-2">
                           <span
-                            className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${SEVERITY_BADGE[c.severity] ?? DEFAULT_SEVERITY}`}
+                            className={`inline-flex min-w-16 justify-center rounded-full px-2.5 py-1 text-[10px] font-semibold ${SEVERITY_BADGE[c.severity] ?? DEFAULT_SEVERITY}`}
                           >
                             {c.severity}
                           </span>

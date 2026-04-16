@@ -106,9 +106,10 @@ export default function Recommendations() {
                 {Object.entries(summary.category_distribution).map(([cat, count]) => (
                   <span
                     key={cat}
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${CATEGORY_BADGE[cat] ?? DEFAULT_BADGE}`}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${CATEGORY_BADGE[cat] ?? DEFAULT_BADGE}`}
                   >
-                    {cat} ({count})
+                    <span>{cat}</span>
+                    <span className="font-mono opacity-80">{count}</span>
                   </span>
                 ))}
               </div>
@@ -156,9 +157,9 @@ export default function Recommendations() {
             {/* Top priority recommendations */}
             <ChartCard title="Top Priority Actions" icon={ArrowUpRight} className="animate-fade-in-up stagger-5 xl:col-span-2">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
+                <table className="metric-table min-w-[760px] text-left text-sm">
                   <thead>
-                    <tr className="border-b border-[rgba(255,255,255,0.1)] text-xs text-[rgba(255,255,255,0.45)]">
+                    <tr>
                       <th className="pb-2 font-medium">Action</th>
                       <th className="pb-2 font-medium">Category</th>
                       <th className="pb-2 font-medium">Driver</th>
@@ -178,7 +179,7 @@ export default function Recommendations() {
                           </td>
                           <td className="py-2.5">
                             <span
-                              className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${CATEGORY_BADGE[r.action_category] ?? DEFAULT_BADGE}`}
+                              className={`inline-flex min-w-20 justify-center rounded-full px-2.5 py-1 text-[10px] font-semibold ${CATEGORY_BADGE[r.action_category] ?? DEFAULT_BADGE}`}
                             >
                               {r.action_category}
                             </span>

@@ -70,7 +70,7 @@ export default function Customer360() {
                   {data.total.toLocaleString()} customers
                 </span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <button
                   onClick={() => setPage(Math.max(0, page - 1))}
                   disabled={page === 0}
@@ -78,7 +78,7 @@ export default function Customer360() {
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-                <span className="text-xs text-[rgba(255,255,255,0.45)] font-mono">
+                <span className="rounded-md bg-[rgba(255,255,255,0.04)] px-2.5 py-1 font-mono text-xs text-[rgba(255,255,255,0.62)]">
                   Page {page + 1} of {totalPages}
                 </span>
                 <button
@@ -95,9 +95,9 @@ export default function Customer360() {
           {/* Customer table */}
           <Card>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="metric-table min-w-[920px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-[rgba(255,255,255,0.08)] text-xs text-[rgba(255,255,255,0.45)]">
+                  <tr>
                     <th className="pb-2 font-medium">Name</th>
                     <th className="pb-2 font-medium">Company</th>
                     <th className="pb-2 font-medium">Plan</th>
@@ -128,7 +128,7 @@ export default function Customer360() {
                       </td>
                       <td className="py-2.5">
                         {c.segment_name ? (
-                          <span className="inline-flex items-center gap-1 text-xs">
+                          <span className="inline-flex items-center gap-2 text-xs">
                             <span
                               className="h-2 w-2 rounded-full"
                               style={{
@@ -170,7 +170,7 @@ export default function Customer360() {
                       <td className="py-2.5">
                         {c.risk_tier ? (
                           <span
-                            className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                            className="inline-flex min-w-14 justify-center rounded-full px-2.5 py-1 text-[10px] font-semibold"
                             style={{
                               backgroundColor:
                                 RISK_BG[c.risk_tier.toLowerCase()] ??

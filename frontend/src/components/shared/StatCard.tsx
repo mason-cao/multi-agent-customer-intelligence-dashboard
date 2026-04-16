@@ -62,11 +62,11 @@ export default function StatCard({
               {title}
             </p>
           </div>
-          <p className="text-hero mt-3 font-mono text-3xl font-bold tracking-tight">
+          <p className="text-hero mt-3 font-mono text-3xl font-bold tracking-tight leading-none">
             {displayValue}
           </p>
           {trend && (
-            <p className="mt-1.5 flex items-center gap-1 text-xs text-[rgba(255,255,255,0.55)]">
+            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[rgba(255,255,255,0.58)]">
               {trend.value > 0 && (
                 <TrendingUp className="h-3 w-3 text-[var(--color-success)]" />
               )}
@@ -85,7 +85,7 @@ export default function StatCard({
                   {trend.value}
                 </span>
               )}
-              {trend.label && <span>{trend.label}</span>}
+              {trend.label && <span className="leading-snug">{trend.label}</span>}
             </p>
           )}
         </div>

@@ -194,9 +194,9 @@ export default function Overview() {
 
         {/* Pipeline Health — 40% */}
         <Card className="animate-fade-in-up stagger-6 xl:col-span-2">
-          <div className="mb-4 flex items-center gap-2">
+          <div className="panel-title-bar">
             <ShieldCheck className="h-4 w-4 text-[var(--color-success)]" />
-            <h3 className="text-sm font-semibold text-white">
+            <h3 className="text-sm font-semibold">
               Pipeline Health
             </h3>
           </div>
@@ -206,9 +206,9 @@ export default function Overview() {
               {latestRuns.map((run) => (
                 <div
                   key={run.id}
-                  className="flex items-center justify-between rounded-lg bg-[rgba(255,255,255,0.03)] px-3 py-2"
+                  className="flex items-center justify-between gap-4 rounded-lg bg-[rgba(255,255,255,0.04)] px-3 py-2.5"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 items-center gap-2.5">
                     {run.status === 'completed' ? (
                       <CheckCircle className="h-3.5 w-3.5 text-[var(--color-success)]" />
                     ) : run.status === 'failed' ? (
@@ -216,12 +216,12 @@ export default function Overview() {
                     ) : (
                       <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[rgba(255,255,255,0.1)] border-t-[var(--color-primary-400)]" />
                     )}
-                    <span className="text-xs font-medium text-[rgba(255,255,255,0.7)]">
+                    <span className="truncate text-xs font-medium text-[rgba(255,255,255,0.78)]">
                       {run.agent_name}
                     </span>
                   </div>
                   {run.duration_ms != null && (
-                    <span className="font-mono text-[11px] text-[rgba(255,255,255,0.35)]">
+                    <span className="shrink-0 rounded-md bg-[rgba(255,255,255,0.05)] px-2 py-0.5 font-mono text-[11px] text-[rgba(255,255,255,0.58)]">
                       {(run.duration_ms / 1000).toFixed(1)}s
                     </span>
                   )}

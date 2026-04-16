@@ -20,18 +20,20 @@ export default function ChartCard({
 }: ChartCardProps) {
   return (
     <Card variant={variant} className={className}>
-      <div className="mb-4">
-        <div className="flex items-center gap-2">
-          {Icon && (
-            <Icon className="h-4 w-4 text-[var(--color-primary-400)]" />
+      <div className="panel-title-bar">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            {Icon && (
+              <Icon className="h-4 w-4 shrink-0 text-[var(--color-primary-400)]" />
+            )}
+            <h3 className="text-sm font-semibold">{title}</h3>
+          </div>
+          {description && (
+            <p className="mt-1 text-xs">
+              {description}
+            </p>
           )}
-          <h3 className="text-sm font-semibold text-white">{title}</h3>
         </div>
-        {description && (
-          <p className="mt-1 text-xs text-[rgba(255,255,255,0.4)]">
-            {description}
-          </p>
-        )}
       </div>
       {children}
     </Card>
