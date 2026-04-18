@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import structlog
 from fastapi import APIRouter, Depends
@@ -40,41 +40,64 @@ def _fmt_currency(amount: float) -> str:
     return f"${amount:.0f}"
 
 
+def _parse_order_datetime(value) -> datetime | None:
+    """Parse an order date defensively, normalizing aware values to naive UTC."""
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    else:
+        return None
+
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return parsed
+
+
+def _compute_recent_revenue(order_rows) -> tuple[float, float]:
+    """Return latest-30-day revenue and prior-30-day trend from valid order dates."""
+    parsed_orders = []
+    for row in order_rows:
+        order_date = _parse_order_datetime(row.order_date)
+        if order_date is None:
+            continue
+        parsed_orders.append((order_date, float(row.amount or 0.0)))
+
+    if not parsed_orders:
+        return 0.0, 0.0
+
+    latest_order_date = max(order_date for order_date, _ in parsed_orders)
+    cutoff = latest_order_date - timedelta(days=30)
+    prior_cutoff = latest_order_date - timedelta(days=60)
+
+    monthly_revenue = sum(
+        amount for order_date, amount in parsed_orders if order_date >= cutoff
+    )
+    prior_revenue = sum(
+        amount
+        for order_date, amount in parsed_orders
+        if prior_cutoff <= order_date < cutoff
+    )
+    revenue_trend = (
+        ((monthly_revenue - prior_revenue) / prior_revenue * 100)
+        if prior_revenue > 0
+        else 0.0
+    )
+    return monthly_revenue, revenue_trend
+
+
 @router.get("/kpis", response_model=OverviewKpis)
 @handle_errors("get_overview_kpis")
 def get_overview_kpis(db: Session = Depends(get_db)):
     # --- Total customers ---
     total_customers = db.query(func.count(Customer.customer_id)).scalar() or 0
 
-    # --- Monthly revenue (most recent 30 days of order data) ---
-    latest_order_date = db.query(func.max(Order.order_date)).scalar()
-    if latest_order_date:
-        cutoff = (
-            datetime.fromisoformat(latest_order_date) - timedelta(days=30)
-        ).isoformat()
-        prior_cutoff = (
-            datetime.fromisoformat(latest_order_date) - timedelta(days=60)
-        ).isoformat()
-        monthly_revenue = (
-            db.query(func.sum(Order.amount))
-            .filter(Order.order_date >= cutoff)
-            .scalar()
-            or 0.0
-        )
-        prior_revenue = (
-            db.query(func.sum(Order.amount))
-            .filter(Order.order_date >= prior_cutoff, Order.order_date < cutoff)
-            .scalar()
-            or 0.0
-        )
-        revenue_trend = (
-            ((monthly_revenue - prior_revenue) / prior_revenue * 100)
-            if prior_revenue > 0
-            else 0.0
-        )
-    else:
-        monthly_revenue = 0.0
-        revenue_trend = 0.0
+    # --- Monthly revenue (most recent 30 days of valid order data) ---
+    order_rows = db.query(Order.order_date, Order.amount).all()
+    monthly_revenue, revenue_trend = _compute_recent_revenue(order_rows)
 
     # --- Churn rate (avg probability across all predictions) ---
     avg_churn = (
