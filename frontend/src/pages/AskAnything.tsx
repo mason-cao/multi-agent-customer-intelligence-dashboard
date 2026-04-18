@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import type { AxiosError } from 'axios';
 import {
   Sparkles,
   Send,
@@ -25,6 +26,31 @@ interface Message {
   role: 'user' | 'ai';
   content: string;
   result?: QueryResult;
+  tone?: 'default' | 'error';
+}
+
+interface ApiErrorBody {
+  detail?: string | Array<{ msg?: string }>;
+}
+
+function getQueryErrorMessage(error: Error): string {
+  const axiosError = error as AxiosError<ApiErrorBody>;
+  const detail = axiosError.response?.data?.detail;
+
+  if (typeof detail === 'string') {
+    return detail;
+  }
+
+  if (Array.isArray(detail)) {
+    const message = detail.find((item) => typeof item.msg === 'string')?.msg;
+    if (message) return message;
+  }
+
+  if (axiosError.response?.status === 404) {
+    return 'This workspace data is no longer available. Return to Workspaces and choose an active workspace.';
+  }
+
+  return 'I could not complete that query. Check that the workspace data is ready and try again.';
 }
 
 export default function AskAnything() {
@@ -51,6 +77,16 @@ export default function AskAnything() {
         setMessages((prev) => [
           ...prev,
           { role: 'ai', content: result.answer_text, result },
+        ]);
+      },
+      onError: (error) => {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'ai',
+            content: getQueryErrorMessage(error),
+            tone: 'error',
+          },
         ]);
       },
     });
@@ -162,6 +198,7 @@ export default function AskAnything() {
             <button
               onClick={() => handleSubmit(question)}
               disabled={isPending || !question.trim()}
+              aria-label="Send question"
               className="btn-primary py-2.5 disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
             >
               {isPending ? (
@@ -191,17 +228,34 @@ function UserBubble({ content }: { content: string }) {
 
 function AiBubble({ message }: { message: Message }) {
   const result = message.result;
+  const isError = message.tone === 'error' || result?.query_status === 'error';
 
   return (
     <div className="flex items-start gap-3">
       {/* AI avatar */}
-      <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[rgba(129,140,248,0.12)]">
-        <Sparkles className="h-3.5 w-3.5 text-[var(--color-primary-400)]" />
+      <div
+        className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full ${
+          isError ? 'bg-[rgba(248,113,113,0.12)]' : 'bg-[rgba(129,140,248,0.12)]'
+        }`}
+      >
+        {isError ? (
+          <AlertCircle className="h-3.5 w-3.5 text-[var(--color-danger)]" />
+        ) : (
+          <Sparkles className="h-3.5 w-3.5 text-[var(--color-primary-400)]" />
+        )}
       </div>
 
-      <Card className="max-w-xl">
+      <Card
+        className={`max-w-xl ${
+          isError ? 'border-[rgba(248,113,113,0.20)] bg-[rgba(248,113,113,0.08)]' : ''
+        }`}
+      >
         {/* Answer */}
-        <p className="text-sm leading-relaxed text-[rgba(255,255,255,0.7)]">
+        <p
+          className={`text-sm leading-relaxed ${
+            isError ? 'text-[rgba(254,202,202,0.92)]' : 'text-[rgba(255,255,255,0.7)]'
+          }`}
+        >
           {message.content}
         </p>
 
