@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 
 interface Props {
@@ -46,12 +47,12 @@ export default class ErrorBoundary extends Component<Props, State> {
               >
                 Try Again
               </button>
-              <a
-                href="/workspaces"
+              <Link
+                to="/workspaces"
                 className="btn-primary"
               >
                 Back to Workspaces
-              </a>
+              </Link>
             </div>
           </div>
         </div>
