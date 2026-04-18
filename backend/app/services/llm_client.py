@@ -25,7 +25,7 @@ import json
 import time
 import logging
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, Optional
 
 import structlog
 
@@ -42,7 +42,7 @@ class LLMResponse:
     content: str
     tokens_used: int
     model: str
-    raw_json: Optional[dict] = field(default=None, repr=False)
+    raw_json: Optional[Any] = field(default=None, repr=False)
 
 
 # ---------------------------------------------------------------------------
@@ -401,7 +401,7 @@ def _maybe_add_json_instruction(prompt: str, json_mode: bool) -> str:
     )
 
 
-def _parse_json(text: str) -> Optional[dict]:
+def _parse_json(text: str) -> Optional[Any]:
     """Try to parse JSON from LLM output, stripping markdown fences if present."""
     text = text.strip()
     if text.startswith("```"):
