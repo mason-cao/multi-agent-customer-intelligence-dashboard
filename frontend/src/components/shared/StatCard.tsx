@@ -29,8 +29,12 @@ export default function StatCard({
   const sparkColor =
     sparkline?.color ??
     (trend && trend.value >= 0
-      ? 'var(--color-success)'
-      : 'var(--color-danger)');
+      ? '#5eead4'
+      : '#fb7185');
+  const sparkShadow =
+    trend && trend.value < 0
+      ? 'rgba(248, 113, 113, 0.55)'
+      : 'rgba(45, 212, 191, 0.50)';
 
   const sparkData = sparkline
     ? sparkline.data.map((v) => ({ value: v }))
@@ -59,7 +63,7 @@ export default function StatCard({
             {Icon && (
               <Icon className="h-3.5 w-3.5 text-[rgba(255,255,255,0.45)]" />
             )}
-            <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.62)]">
               {title}
             </p>
           </div>
@@ -67,7 +71,7 @@ export default function StatCard({
             {displayValue}
           </p>
           {trend && (
-            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[rgba(255,255,255,0.58)]">
+            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[rgba(255,255,255,0.68)]">
               {trend.value > 0 && (
                 <TrendingUp className="h-3 w-3 text-[var(--color-success)]" />
               )}
@@ -92,12 +96,16 @@ export default function StatCard({
         </div>
 
         {sparkData && (
-          <div className="h-[50px] w-[72px] shrink-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={sparkData}>
+          <div
+            className="h-[58px] w-[88px] shrink-0"
+            style={{ filter: `drop-shadow(0 0 10px ${sparkShadow})` }}
+          >
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+              <AreaChart data={sparkData} margin={{ top: 5, right: 2, bottom: 5, left: 2 }}>
                 <defs>
                   <linearGradient id={sparkId} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={sparkColor} stopOpacity={0.3} />
+                    <stop offset="0%" stopColor={sparkColor} stopOpacity={0.55} />
+                    <stop offset="72%" stopColor={sparkColor} stopOpacity={0.14} />
                     <stop offset="100%" stopColor={sparkColor} stopOpacity={0} />
                   </linearGradient>
                 </defs>
@@ -105,7 +113,9 @@ export default function StatCard({
                   type="monotone"
                   dataKey="value"
                   stroke={sparkColor}
-                  strokeWidth={1.5}
+                  strokeWidth={2.4}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                   fill={`url(#${sparkId})`}
                   isAnimationActive={false}
                 />

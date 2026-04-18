@@ -28,6 +28,15 @@ const CATEGORY_BADGE: Record<string, string> = {
 
 const DEFAULT_BADGE = 'bg-[rgba(148,163,184,0.15)] text-[#94a3b8]';
 
+function humanize(value: string | null | undefined): string {
+  if (!value) return 'Not specified';
+  return value
+    .replace(/[_-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 function Skeleton({ className = '' }: { className?: string }) {
   return <div className={`rounded-md shimmer ${className}`} />;
 }
@@ -89,6 +98,9 @@ export default function Recommendations() {
               <p className="mt-2 font-mono text-3xl font-bold text-white">
                 {summary.total_recommendations.toLocaleString()}
               </p>
+              <p className="mt-2 text-xs leading-5 text-[rgba(255,255,255,0.58)]">
+                Customers with a recommended next action.
+              </p>
             </Card>
             <Card hover>
               <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
@@ -96,6 +108,9 @@ export default function Recommendations() {
               </p>
               <p className="mt-2 font-mono text-3xl font-bold text-white">
                 {summary.avg_urgency.toFixed(1)}
+              </p>
+              <p className="mt-2 text-xs leading-5 text-[rgba(255,255,255,0.58)]">
+                0-100 score; higher means stronger need to act.
               </p>
             </Card>
             <Card hover>
@@ -108,7 +123,7 @@ export default function Recommendations() {
                     key={cat}
                     className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${CATEGORY_BADGE[cat] ?? DEFAULT_BADGE}`}
                   >
-                    <span>{cat}</span>
+                    <span>{humanize(cat)}</span>
                     <span className="font-mono opacity-80">{count}</span>
                   </span>
                 ))}
@@ -118,7 +133,12 @@ export default function Recommendations() {
 
           <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
             {/* Action distribution — Recharts vertical bar chart */}
-            <ChartCard title="Action Distribution" icon={Lightbulb} className="animate-fade-in-up stagger-4">
+            <ChartCard
+              title="Action Distribution"
+              description="How the recommended work is distributed across next-best-action types."
+              icon={Lightbulb}
+              className="animate-fade-in-up stagger-4"
+            >
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart
                   layout="vertical"
@@ -155,13 +175,19 @@ export default function Recommendations() {
             </ChartCard>
 
             {/* Top priority recommendations */}
-            <ChartCard title="Top Priority Actions" icon={ArrowUpRight} className="animate-fade-in-up stagger-5 xl:col-span-2">
+            <ChartCard
+              title="Top Priority Actions"
+              description="Sorted by priority first, then urgency score."
+              icon={ArrowUpRight}
+              className="animate-fade-in-up stagger-5 xl:col-span-2"
+            >
               <div className="overflow-x-auto">
-                <table className="metric-table min-w-[760px] text-left text-sm">
+                <table className="metric-table min-w-[820px] text-left text-sm">
                   <thead>
                     <tr>
                       <th className="pb-2 font-medium">Action</th>
                       <th className="pb-2 font-medium">Category</th>
+                      <th className="pb-2 font-medium">Priority</th>
                       <th className="pb-2 font-medium">Driver</th>
                       <th className="pb-2 font-medium text-right">Urgency</th>
                       <th className="pb-2 font-medium">Timeframe</th>
@@ -181,11 +207,21 @@ export default function Recommendations() {
                             <span
                               className={`inline-flex min-w-20 justify-center rounded-full px-2.5 py-1 text-[10px] font-semibold ${CATEGORY_BADGE[r.action_category] ?? DEFAULT_BADGE}`}
                             >
-                              {r.action_category}
+                              {humanize(r.action_category)}
                             </span>
                           </td>
-                          <td className="py-2.5 text-xs text-[rgba(255,255,255,0.7)]">
-                            {r.primary_driver}
+                          <td className="py-2.5">
+                            <span className="inline-flex rounded-full border border-[rgba(255,255,255,0.10)] bg-[rgba(255,255,255,0.05)] px-2.5 py-1 font-mono text-[11px] font-semibold text-white">
+                              P{r.action_priority}
+                            </span>
+                          </td>
+                          <td className="max-w-[220px] py-2.5 text-xs leading-5 text-[rgba(255,255,255,0.72)]">
+                            <p>{humanize(r.primary_driver)}</p>
+                            {r.secondary_driver && (
+                              <p className="mt-1 text-[rgba(255,255,255,0.46)]">
+                                Also: {humanize(r.secondary_driver)}
+                              </p>
+                            )}
                           </td>
                           <td className="py-2.5 text-right font-mono text-sm font-semibold text-white">
                             {r.urgency_score.toFixed(1)}
@@ -197,7 +233,7 @@ export default function Recommendations() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={5} className="py-8 text-center text-sm text-[rgba(255,255,255,0.45)]">
+                        <td colSpan={6} className="py-8 text-center text-sm text-[rgba(255,255,255,0.45)]">
                           No priority recommendations available
                         </td>
                       </tr>

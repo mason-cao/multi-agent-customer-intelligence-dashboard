@@ -168,20 +168,18 @@ export default function AskAnything() {
       {/* Input area — pinned at bottom */}
       <div className="mt-auto border-t border-[rgba(255,255,255,0.06)] pt-4">
         {/* Suggested prompts */}
-        {!hasMessages && (
-          <div className="mb-3 flex flex-wrap gap-2">
-            {SUGGESTED_PROMPTS.map((q) => (
-              <button
-                key={q}
-                onClick={() => handleSubmit(q)}
-                disabled={isPending}
-                className="rounded-full border border-[rgba(255,255,255,0.08)] px-3 py-1.5 text-[11px] text-[rgba(255,255,255,0.40)] transition-all duration-200 hover:border-[rgba(129,140,248,0.30)] hover:bg-[rgba(129,140,248,0.08)] hover:text-[var(--color-primary-400)] disabled:opacity-50"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="mb-3 flex flex-wrap gap-2">
+          {SUGGESTED_PROMPTS.map((q) => (
+            <button
+              key={q}
+              onClick={() => handleSubmit(q)}
+              disabled={isPending}
+              className="rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.035)] px-3 py-1.5 text-[11px] text-[rgba(255,255,255,0.58)] transition-all duration-200 hover:border-[rgba(129,140,248,0.40)] hover:bg-[rgba(129,140,248,0.10)] hover:text-[#c7d2fe] disabled:opacity-50"
+            >
+              {q}
+            </button>
+          ))}
+        </div>
 
         <Card variant="hero">
           <div className="flex items-center gap-3">
@@ -246,13 +244,13 @@ function AiBubble({ message }: { message: Message }) {
       </div>
 
       <Card
-        className={`max-w-xl ${
+        className={`max-w-2xl ${
           isError ? 'border-[rgba(248,113,113,0.20)] bg-[rgba(248,113,113,0.08)]' : ''
         }`}
       >
         {/* Answer */}
         <p
-          className={`text-sm leading-relaxed ${
+          className={`whitespace-pre-line text-sm leading-relaxed ${
             isError ? 'text-[rgba(254,202,202,0.92)]' : 'text-[rgba(255,255,255,0.7)]'
           }`}
         >

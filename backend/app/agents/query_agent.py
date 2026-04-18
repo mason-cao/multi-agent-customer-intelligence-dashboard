@@ -204,11 +204,12 @@ def _handle_top_risk_customers(engine) -> Dict[str, Any]:
     """Top 10 highest-risk customers with their recommended actions."""
     df = pd.read_sql(
         text(
-            "SELECT cp.customer_id, cp.churn_probability, cp.risk_tier, "
+            "SELECT cp.customer_id, c.name, c.company, cp.churn_probability, cp.risk_tier, "
             "cp.top_risk_factors, "
             "r.action_label, r.urgency_score, r.primary_driver, "
             "cs.segment_name "
             "FROM churn_predictions cp "
+            "JOIN customers c ON cp.customer_id = c.customer_id "
             "JOIN recommendations r ON cp.customer_id = r.customer_id "
             "JOIN customer_segments cs ON cp.customer_id = cs.customer_id "
             "ORDER BY cp.churn_probability DESC "
@@ -217,17 +218,26 @@ def _handle_top_risk_customers(engine) -> Dict[str, Any]:
         engine,
     )
     rows = df.to_dict("records")
-    answer = f"Top 10 highest-risk customers (by churn probability):\n"
+    if not rows:
+        return {
+            "answer_text": "No high-risk customers are available in this workspace yet.",
+            "structured_result": [],
+            "source_tables": "customers,churn_predictions,recommendations,customer_segments",
+            "row_count": 0,
+        }
+
+    answer = "Top 10 highest-risk customers by churn probability:\n"
     for i, r in enumerate(rows, 1):
         answer += (
-            f"  {i}. {r['customer_id']}: {r['churn_probability']:.1%} churn risk "
-            f"({r['risk_tier']}), action: {r['action_label']}, "
-            f"segment: {r['segment_name']}\n"
+            f"  {i}. {r['name']} at {r['company']}: "
+            f"{r['churn_probability']:.1%} churn risk ({r['risk_tier']}). "
+            f"Recommended action: {r['action_label']}. "
+            f"Segment: {r['segment_name']}.\n"
         )
     return {
         "answer_text": answer.strip(),
         "structured_result": rows,
-        "source_tables": "churn_predictions,recommendations,customer_segments",
+        "source_tables": "customers,churn_predictions,recommendations,customer_segments",
         "row_count": len(rows),
     }
 
