@@ -1,4 +1,8 @@
 import axios from 'axios';
+import {
+  ACTIVE_WORKSPACE_STORAGE_KEY,
+  WORKSPACE_MISSING_EVENT,
+} from '../constants/workspace';
 
 const api = axios.create({
   baseURL: '/api',
@@ -9,7 +13,7 @@ const api = axios.create({
 
 // Attach active workspace ID so dashboard routes read from the correct DB
 api.interceptors.request.use((config) => {
-  const workspaceId = localStorage.getItem('luminosity_active_workspace');
+  const workspaceId = localStorage.getItem(ACTIVE_WORKSPACE_STORAGE_KEY);
   if (workspaceId) {
     config.headers['X-Workspace-ID'] = workspaceId;
   }
@@ -21,15 +25,26 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (
+    const detail = error.response?.data?.detail;
+    const requestUrl = error.config?.url ?? '';
+    const workspaceDatabaseMissing =
       error.response?.status === 404 &&
-      typeof error.response?.data?.detail === 'string' &&
-      error.response.data.detail.includes('Workspace database not found')
-    ) {
-      console.warn('[client interceptor] Workspace DB not found — redirect triggered by:', error.config?.url);
-      localStorage.removeItem('luminosity_active_workspace');
-      window.location.href = '/workspaces';
-      return new Promise(() => {}); // halt further processing
+      typeof detail === 'string' &&
+      detail.includes('Workspace database not found');
+    const workspaceRecordMissing =
+      error.response?.status === 404 &&
+      typeof detail === 'string' &&
+      detail.includes("This workspace doesn't exist") &&
+      requestUrl.startsWith('/workspaces/');
+
+    if (workspaceDatabaseMissing || workspaceRecordMissing) {
+      const workspaceId = localStorage.getItem(ACTIVE_WORKSPACE_STORAGE_KEY);
+      localStorage.removeItem(ACTIVE_WORKSPACE_STORAGE_KEY);
+      window.dispatchEvent(
+        new CustomEvent(WORKSPACE_MISSING_EVENT, {
+          detail: { workspaceId },
+        }),
+      );
     }
     return Promise.reject(error);
   },
