@@ -61,6 +61,11 @@ export default function Layout() {
     activeWorkspace.status === 'generating' ||
     activeWorkspace.status === 'failed' ||
     (activeWorkspace.status === 'ready' && wasGenerating);
+  const dashboardPageKey = [
+    location.pathname,
+    activeWorkspace.id,
+    activeWorkspace.completed_at ?? activeWorkspace.status,
+  ].join(':');
 
   return (
     <div className="relative flex h-screen bg-app-gradient">
@@ -73,8 +78,8 @@ export default function Layout() {
             {showGeneration ? (
               <GenerationView workspace={activeWorkspace} onComplete={() => setWasGenerating(false)} />
             ) : activeWorkspace.status === 'ready' ? (
-              <ErrorBoundary key={location.pathname}>
-                <div key={location.pathname} className="page-transition">
+              <ErrorBoundary key={dashboardPageKey}>
+                <div key={dashboardPageKey} className="page-transition">
                   <Outlet />
                 </div>
               </ErrorBoundary>
