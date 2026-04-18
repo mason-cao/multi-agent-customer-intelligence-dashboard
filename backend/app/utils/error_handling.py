@@ -1,6 +1,7 @@
 """Standardized error handling for API route endpoints."""
 
 import functools
+import inspect
 
 import structlog
 from fastapi import HTTPException
@@ -16,6 +17,21 @@ def handle_errors(endpoint_name: str):
     """
 
     def decorator(func):
+        if inspect.iscoroutinefunction(func):
+            @functools.wraps(func)
+            async def async_wrapper(*args, **kwargs):
+                try:
+                    return await func(*args, **kwargs)
+                except HTTPException:
+                    raise
+                except Exception:
+                    logger.exception(f"{endpoint_name}_failed")
+                    raise HTTPException(
+                        status_code=500, detail="Internal server error"
+                    )
+
+            return async_wrapper
+
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             try:
