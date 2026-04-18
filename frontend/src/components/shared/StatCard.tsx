@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
@@ -35,7 +36,7 @@ export default function StatCard({
     ? sparkline.data.map((v) => ({ value: v }))
     : undefined;
 
-  const sparkId = `stat-spark-${title.replace(/\s+/g, '-').toLowerCase()}`;
+  const sparkId = `stat-spark-${useId().replace(/:/g, '')}`;
 
   const numericTarget = typeof value === 'number' ? value : NaN;
   const animated = useCountUp(Number.isFinite(numericTarget) ? numericTarget : 0);
