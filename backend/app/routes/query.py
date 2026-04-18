@@ -4,14 +4,14 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.utils.error_handling import handle_errors
-from app.schemas.query import QueryRequest
+from app.schemas.query import QueryRequest, QueryResultItem
 
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/api/query", tags=["query"])
 
 
-@router.post("")
+@router.post("", response_model=QueryResultItem)
 @handle_errors("submit_query")
 def submit_query(body: QueryRequest, db: Session = Depends(get_db)):
     """Submit a natural language question to the QueryAgent."""

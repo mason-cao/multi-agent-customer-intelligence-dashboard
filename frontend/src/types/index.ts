@@ -162,7 +162,7 @@ export interface QueryResult {
   matched_intent: string;
   query_status: string;
   answer_text: string;
-  structured_result: Record<string, unknown> | null;
+  structured_result: unknown | null;
   source_tables: string | null;
   row_count: number | null;
   execution_ms: number | null;
