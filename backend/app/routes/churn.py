@@ -14,6 +14,18 @@ from app.models.subscription import Subscription
 router = APIRouter(prefix="/api/churn", tags=["churn"])
 
 
+def _parse_risk_factors(raw_value) -> list[dict]:
+    """Parse risk-factor JSON defensively for dashboard routes."""
+    try:
+        factors = json.loads(raw_value) if isinstance(raw_value, str) else raw_value
+    except (json.JSONDecodeError, TypeError):
+        return []
+
+    if not isinstance(factors, list):
+        return []
+    return [factor for factor in factors if isinstance(factor, dict)]
+
+
 @router.get("/distribution", response_model=list[ChurnDistribution])
 @handle_errors("get_churn_distribution")
 def get_churn_distribution(db: Session = Depends(get_db)):
@@ -93,8 +105,8 @@ def get_at_risk_customers(
 
     result = []
     for r in rows:
-        factors = json.loads(r.top_risk_factors) if r.top_risk_factors else []
-        top_factor = factors[0]["descriptor"] if factors else "N/A"
+        factors = _parse_risk_factors(r.top_risk_factors)
+        top_factor = factors[0].get("descriptor") if factors else None
         result.append(
             {
                 "customer_id": r.customer_id,
@@ -102,7 +114,7 @@ def get_at_risk_customers(
                 "company": r.company,
                 "churn_probability": round(r.churn_probability, 4),
                 "risk_tier": r.risk_tier,
-                "top_risk_factor": top_factor,
+                "top_risk_factor": top_factor or "N/A",
                 "mrr": round(float(r.total_mrr or 0), 2),
             }
         )
@@ -123,15 +135,13 @@ def get_feature_importance(db: Session = Depends(get_db)):
     # and average the absolute SHAP importance across all customers
     feature_stats: dict[str, list[float]] = {}
     for (factors_json,) in rows:
-        try:
-            factors = json.loads(factors_json) if isinstance(factors_json, str) else factors_json
-        except (json.JSONDecodeError, TypeError):
-            continue
-        if not isinstance(factors, list):
-            continue
+        factors = _parse_risk_factors(factors_json)
         for f in factors:
             name = f.get("feature", "")
-            imp = abs(f.get("importance", 0))
+            try:
+                imp = abs(float(f.get("importance", 0)))
+            except (TypeError, ValueError):
+                continue
             if name not in feature_stats:
                 feature_stats[name] = []
             feature_stats[name].append(imp)
