@@ -22,6 +22,15 @@ from app.routes.sentiment import router as sentiment_router
 logger = structlog.get_logger(__name__)
 
 
+def parse_cors_origins(raw_origins: str) -> list[str]:
+    """Parse a comma-separated CORS origin list from configuration."""
+    return [
+        origin.strip()
+        for origin in raw_origins.split(",")
+        if origin.strip()
+    ]
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
@@ -46,7 +55,9 @@ app = FastAPI(
 
 # CORS: allow_headers=["*"] is required for the custom X-Workspace-ID header.
 # In production, set CORS_ORIGINS to the deployed frontend URL.
-cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+cors_origins = parse_cors_origins(
+    os.getenv("CORS_ORIGINS", "http://localhost:5173")
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
