@@ -6,6 +6,7 @@ never touch production data/ files.
 """
 
 import pytest
+import pytest_asyncio
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -68,7 +69,7 @@ def test_app(test_data_dir):
     return app
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def client(test_app):
     """Async HTTP client wired to the test app."""
     import httpx
