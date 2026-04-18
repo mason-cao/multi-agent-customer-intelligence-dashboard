@@ -77,6 +77,34 @@ async def test_create_workspace_random_scenario(client):
 
 
 @pytest.mark.asyncio
+async def test_create_workspace_rejects_unknown_scenario(client):
+    resp = await client.post("/api/workspaces", json={
+        "name": "Typo Test",
+        "scenario": "velocitty_saas",
+    })
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_workspace_rejects_blank_name(client):
+    resp = await client.post("/api/workspaces", json={
+        "name": "   ",
+        "scenario": "velocity_saas",
+    })
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_workspace_trims_name(client):
+    resp = await client.post("/api/workspaces", json={
+        "name": "  Trimmed WS  ",
+        "scenario": "velocity_saas",
+    })
+    assert resp.status_code == 201
+    assert resp.json()["name"] == "Trimmed WS"
+
+
+@pytest.mark.asyncio
 async def test_regeneration_clears_stale_completion_state(client):
     create = await client.post("/api/workspaces", json={
         "name": "Regenerate Test",
