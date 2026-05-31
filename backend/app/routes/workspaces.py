@@ -80,7 +80,8 @@ def get_workspace_detail(workspace_id: str):
 
     # Detect timed-out generation on poll
     if ws.status == "generating":
-        from app.services.workspace_generator import GENERATION_TIMEOUT_SECONDS
+        from app.services.workspace_generator import generation_timeout_seconds
+        limit = generation_timeout_seconds(ws.customer_count)
         if not ws.generation_started_at:
             update_workspace_status(
                 workspace_id, "failed",
@@ -93,10 +94,10 @@ def get_workspace_detail(workspace_id: str):
             if started.tzinfo is None:
                 started = started.replace(tzinfo=timezone.utc)
             elapsed = (datetime.now(timezone.utc) - started).total_seconds()
-            if elapsed > GENERATION_TIMEOUT_SECONDS:
+            if elapsed > limit:
                 update_workspace_status(
                     workspace_id, "failed",
-                    error_message=f"Timeout: generation exceeded {GENERATION_TIMEOUT_SECONDS}s limit after {int(elapsed)}s",
+                    error_message=f"Timeout: generation exceeded {limit}s limit after {int(elapsed)}s",
                 )
                 ws = get_workspace(workspace_id)
 

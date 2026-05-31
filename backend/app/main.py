@@ -40,8 +40,17 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
 
     # Initialize workspace metadata database
-    from app.services.workspace_manager import init_metadata_db
+    from app.services.workspace_manager import (
+        init_metadata_db,
+        reconcile_orphaned_workspaces,
+    )
     init_metadata_db()
+
+    # Generation runs in daemon threads that don't survive a restart; fail any
+    # workspace left mid-generation so it never hangs forever.
+    reconciled = reconcile_orphaned_workspaces()
+    if reconciled:
+        logger.info("reconciled_orphaned_workspaces", count=reconciled)
 
     yield
 

@@ -57,6 +57,7 @@ class WorkspaceResponse(BaseModel):
     completed_at: Optional[datetime] = None
     generation_started_at: Optional[datetime] = None
     error_message: Optional[str] = None
+    pipeline_warnings: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -87,6 +88,12 @@ class WorkspaceResponse(BaseModel):
         if "generate_data" in msg or "generate_dataset" in msg:
             return "Something went wrong while generating company data. You can try again."
         return "Something went wrong while setting up this workspace. You can try again."
+
+    @computed_field
+    @property
+    def health(self) -> str:
+        """'degraded' when a ready workspace finished with pipeline warnings."""
+        return "degraded" if self.status == "ready" and self.pipeline_warnings else "ok"
 
 
 class WorkspaceListResponse(BaseModel):

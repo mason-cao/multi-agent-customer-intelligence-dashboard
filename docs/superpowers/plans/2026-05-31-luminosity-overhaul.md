@@ -47,11 +47,29 @@ Reference: approved high-level plan at `~/.claude/plans/load-claude-md-and-readm
 
 ---
 
+## Design Skills Toolkit (for Commits 3, 4, 6)
+
+More UI skills are available than the four originally named. Curated set for this project — a premium **dark-glass analytics dashboard redesign** (keep the identity):
+
+- **`redesign-existing-projects`** — audit-first redesign of an existing app (our exact situation). Use first to frame each UI commit.
+- **`impeccable`** — hierarchy, IA, color, spacing, motion, reusable tokens/design systems.
+- **`high-end-visual-design`** — "make it feel expensive": fonts, shadows, card structure, animation; blocks cheap defaults.
+- **`ui-ux-pro-max`** — styles, palettes, font pairings, **25 chart types**, accessibility (use for the chart-palette fix).
+- **`frontend-design`** — distinctive, production-grade, anti-generic output.
+- **`design-taste-frontend`** — the anti-slop "taste" skill (audit-first on redesigns).
+- **`minimalist-ui`** — restraint for dense analytics surfaces.
+- **`react-components`** — clean reusable component implementation (StatCard/Card/DataTable).
+- **`gpt-taste`** — GSAP motion + editorial typography polish (use sparingly).
+
+Not applicable here: `shadcn-ui` (custom CSS + Tailwind v4, no shadcn), `industrial-brutalist-ui` (wrong aesthetic), `image`/`imagegen-*`/`stitch-*` (image/reference generation, not a code refactor).
+
+---
+
 ## Commit 3 — refactor(ui): unified design tokens & glass system (single source of truth)
 
 **Why:** 4 competing color sources, 6 overlapping glass variants, no type/spacing scale.
 
-**Design skills:** invoke `impeccable` / `frontend-design` / `ui-ux-pro-max` for palette + scale decisions (keep dark glassmorphism).
+**Design skills:** lead with `redesign-existing-projects` + `impeccable`; pull palette/typography/chart decisions from `ui-ux-pro-max` + `high-end-visual-design`; sanity-check against `design-taste-frontend` / `minimalist-ui`. Keep the dark glassmorphism identity.
 
 **Files:**
 - Modify: `frontend/src/index.css` — refined cohesive palette; type/spacing/radius/shadow tokens; semantic + chart-color CSS vars; collapse glass variants to ~3 (`glass`, `glass-elevated`, `glass-overlay`) with aliases for old names.
@@ -67,7 +85,7 @@ Reference: approved high-level plan at `~/.claude/plans/load-claude-md-and-readm
 
 **Why:** hardcoded hex/rgba, `?? '#6b7280'` fallbacks, ad-hoc badges scattered everywhere.
 
-**Design skills:** continue with the design skills.
+**Design skills:** `impeccable` + `react-components` for the component sweep; `high-end-visual-design` for the badge/card polish (see Design Skills Toolkit above).
 
 **Files:**
 - Modify: `frontend/src/components/shared/*` (StatCard, Card, ChartCard, DataTable, Badge, PageHeader, EmptyState), `frontend/src/components/layout/*` (Sidebar, Header, Layout), `frontend/src/pages/*` — replace hardcoded values with tokens; one Badge pattern; remove gray fallbacks.
@@ -96,6 +114,8 @@ Reference: approved high-level plan at `~/.claude/plans/load-claude-md-and-readm
 ---
 
 ## Commit 6 — feat(query): Ask Anything UI (structured rendering, follow-ups, suggestions, drill-down)
+
+**Design skills:** `impeccable` + `ui-ux-pro-max` (result tables/cards/charts), `react-components` for the renderers (see Design Skills Toolkit above).
 
 **Files:**
 - Modify: `frontend/src/pages/AskAnything.tsx` — render `structured_result` as tables/metric cards/charts by `result_kind` (reuse DataTable/StatCard/charts); follow-up chips; suggestions from `/query/suggestions`; drill-down links; better loading/errors.

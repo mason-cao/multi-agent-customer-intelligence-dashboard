@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Loader2,
   Sparkles,
+  AlertTriangle,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Workspace } from '../types/workspace';
@@ -437,6 +438,25 @@ export default function GenerationView({
             </span>{' '}
             customers &middot; Generated in {formatTime(generatedSeconds)}
           </p>
+
+          {workspace.pipeline_warnings && (
+            <div className="mx-auto mt-5 max-w-sm rounded-lg border border-[rgba(251,191,36,0.25)] bg-[rgba(251,191,36,0.08)] px-4 py-3 text-left">
+              <div className="flex items-center gap-2 text-[var(--color-warning)]">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="text-xs font-semibold uppercase tracking-wide">
+                  Completed with warnings
+                </span>
+              </div>
+              <ul className="mt-2 space-y-1 text-xs text-[rgba(255,255,255,0.6)]">
+                {workspace.pipeline_warnings
+                  .split('\n')
+                  .filter(Boolean)
+                  .map((warning, i) => (
+                    <li key={i}>{warning}</li>
+                  ))}
+              </ul>
+            </div>
+          )}
 
           <button
             onClick={() => {

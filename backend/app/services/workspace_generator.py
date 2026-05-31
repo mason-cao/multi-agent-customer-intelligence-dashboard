@@ -15,7 +15,9 @@ import json
 import sys
 import threading
 import time
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional, Tuple
 
 from sqlalchemy.orm import sessionmaker
 
@@ -38,18 +40,63 @@ if SCRIPTS_DIR not in sys.path:
 
 # ── Constants ──────────────────────────────────────────────────
 TOTAL_STAGES = 14
-GENERATION_TIMEOUT_SECONDS = 300  # 5 minutes
+
+
+@dataclass(frozen=True)
+class AgentSpec:
+    """One node in the pipeline DAG.
+
+    `critical=True` agents produce data the dashboard depends on, so a hard
+    failure must stop the run. Non-critical agents (narrative, audit, query
+    indexing) degrade gracefully — a failure is recorded as a warning but the
+    workspace still completes.
+    """
+
+    label: str
+    module: str
+    class_name: str
+    critical: bool
+
 
 PIPELINE = [
-    ("BehaviorAgent", "app.agents.behavior_agent", "BehaviorAgent"),
-    ("SegmentationAgent", "app.agents.segmentation_agent", "SegmentationAgent"),
-    ("SentimentAgent", "app.agents.sentiment_agent", "SentimentAgent"),
-    ("ChurnAgent", "app.agents.churn_agent", "ChurnAgent"),
-    ("RecommendationAgent", "app.agents.recommendation_agent", "RecommendationAgent"),
-    ("NarrativeAgent", "app.agents.narrative_agent", "NarrativeAgent"),
-    ("AuditAgent", "app.agents.audit_agent", "AuditAgent"),
-    ("QueryAgent", "app.agents.query_agent", "QueryAgent"),
+    AgentSpec("BehaviorAgent", "app.agents.behavior_agent", "BehaviorAgent", True),
+    AgentSpec("SegmentationAgent", "app.agents.segmentation_agent", "SegmentationAgent", True),
+    AgentSpec("SentimentAgent", "app.agents.sentiment_agent", "SentimentAgent", True),
+    AgentSpec("ChurnAgent", "app.agents.churn_agent", "ChurnAgent", True),
+    AgentSpec("RecommendationAgent", "app.agents.recommendation_agent", "RecommendationAgent", True),
+    AgentSpec("NarrativeAgent", "app.agents.narrative_agent", "NarrativeAgent", False),
+    AgentSpec("AuditAgent", "app.agents.audit_agent", "AuditAgent", False),
+    AgentSpec("QueryAgent", "app.agents.query_agent", "QueryAgent", False),
 ]
+
+
+def generation_timeout_seconds(customer_count: int) -> int:
+    """Generous timeout budget that scales with workspace size.
+
+    Data generation and the ML/SHAP agents grow with customer count, so a
+    fixed 5-minute cap killed legitimate large runs. Floor of 15 minutes,
+    plus ~0.25s per customer, so a 5k workspace gets ~30 minutes.
+    """
+    return max(900, 600 + int((customer_count or 0) * 0.25))
+
+
+def classify_agent_outcome(
+    label: str, critical: bool, status: str
+) -> Tuple[str, Optional[str]]:
+    """Decide what a single agent's `_status` means for the run.
+
+    Returns (action, message) where action is:
+      - "ok":    agent completed cleanly
+      - "warn":  degraded — record a warning but keep going
+      - "fatal": a required agent failed — abort the run
+    """
+    if status == "completed":
+        return "ok", None
+    if status == "failed" and critical:
+        return "fatal", f"{label} failed and is required for the dashboard"
+    if status == "failed":
+        return "warn", f"{label} failed (non-critical) — its section may be unavailable"
+    return "warn", f"{label} completed with warnings"
 
 
 def start_generation(workspace_id: str) -> bool:
@@ -96,17 +143,18 @@ def _run_generation(workspace_id: str):
     try:
         gen_start = time.monotonic()
 
-        def _check_timeout():
-            if time.monotonic() - gen_start > GENERATION_TIMEOUT_SECONDS:
-                raise TimeoutError(
-                    f"Generation exceeded {GENERATION_TIMEOUT_SECONDS}s limit"
-                )
-
         ws = get_workspace(workspace_id)
         if not ws:
             return
 
         config = json.loads(ws.config_json) if ws.config_json else {}
+        timeout_limit = generation_timeout_seconds(config.get("customer_count", 5000))
+
+        def _check_timeout():
+            if time.monotonic() - gen_start > timeout_limit:
+                raise TimeoutError(
+                    f"Generation exceeded {timeout_limit}s limit"
+                )
 
         # ── Phase 1: Synthetic Data Generation (stages 1-7) ────────
         _check_timeout()
@@ -154,12 +202,13 @@ def _run_generation(workspace_id: str):
 
         # ── Phase 2: Agent Pipeline (stages 8-14) ─────────────────
         WsSession = sessionmaker(bind=ws_engine)
+        warnings: list[str] = []
 
-        for i, (label, module_path, class_name) in enumerate(PIPELINE):
+        for i, spec in enumerate(PIPELINE):
             _check_timeout()
             # Stages 8-13: individual agents, stage 14: finalize
             if i <= 5:
-                stage_name = f"Running {label}"
+                stage_name = f"Running {spec.label}"
                 stage_index = 8 + i
             elif i == 6:
                 stage_name = "Finalizing workspace"
@@ -176,22 +225,37 @@ def _run_generation(workspace_id: str):
                     total_stages=TOTAL_STAGES,
                 )
 
-            module = importlib.import_module(module_path)
-            agent_class = getattr(module, class_name)
+            module = importlib.import_module(spec.module)
+            agent_class = getattr(module, spec.class_name)
             agent = agent_class()
 
             db = WsSession()
             try:
-                agent.execute(db)
+                result = agent.execute(db)
             finally:
                 db.close()
+
+            # BaseAgent.execute swallows agent exceptions and returns a status
+            # dict — inspect it so a crashed agent doesn't silently yield a
+            # "ready" workspace with empty tables.
+            agent_status = (result or {}).get("_status", "failed")
+            action, message = classify_agent_outcome(
+                spec.label, spec.critical, agent_status
+            )
+            if action == "fatal":
+                raise RuntimeError(message)
+            if action == "warn":
+                warnings.append(message)
 
         # ── Done ───────────────────────────────────────────────────
         # Guard: if poll-side timeout already marked this failed, don't override
         ws_final = get_workspace(workspace_id)
         if ws_final and ws_final.status == "failed":
             return
-        update_workspace_status(workspace_id, "ready")
+        update_workspace_status(
+            workspace_id, "ready",
+            pipeline_warnings="\n".join(warnings) if warnings else None,
+        )
 
     except Exception as e:
         error_msg = f"{type(e).__name__}: {str(e)}"

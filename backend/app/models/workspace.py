@@ -29,3 +29,4 @@ class Workspace(WorkspaceBase):
     seed = Column(Integer, nullable=True)
     config_json = Column(Text, nullable=True)
     error_message = Column(Text, nullable=True)
+    pipeline_warnings = Column(Text, nullable=True)

@@ -1,10 +1,30 @@
 import { useState } from 'react';
 import { Outlet, useLocation, Navigate } from 'react-router-dom';
+import { AlertTriangle } from 'lucide-react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import ErrorBoundary from '../ErrorBoundary';
 import GenerationView from '../../pages/GenerationView';
 import { useActiveWorkspace } from '../../contexts/workspaceContextValue';
+
+function DegradedBanner({ warnings }: { warnings: string | null }) {
+  const items = (warnings ?? '').split('\n').filter(Boolean);
+  return (
+    <div className="mb-6 rounded-lg border border-[rgba(251,191,36,0.25)] bg-[rgba(251,191,36,0.08)] px-4 py-3">
+      <div className="flex items-center gap-2 text-[var(--color-warning)]">
+        <AlertTriangle className="h-4 w-4" />
+        <span className="text-xs font-semibold uppercase tracking-wide">
+          Some insights are limited
+        </span>
+      </div>
+      <p className="mt-1 text-xs text-[rgba(255,255,255,0.6)]">
+        This workspace finished, but one or more non-critical agents had issues.
+        Affected sections may be incomplete.
+        {items.length > 0 && ` (${items.join('; ')})`}
+      </p>
+    </div>
+  );
+}
 
 function BackgroundSystem() {
   return (
@@ -80,6 +100,9 @@ export default function Layout() {
             ) : activeWorkspace.status === 'ready' ? (
               <ErrorBoundary key={dashboardPageKey}>
                 <div key={dashboardPageKey} className="page-transition">
+                  {activeWorkspace.health === 'degraded' && (
+                    <DegradedBanner warnings={activeWorkspace.pipeline_warnings} />
+                  )}
                   <Outlet />
                 </div>
               </ErrorBoundary>

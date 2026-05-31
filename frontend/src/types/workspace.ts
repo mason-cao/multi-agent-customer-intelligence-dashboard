@@ -14,6 +14,8 @@ export interface Workspace {
   generation_started_at: string | null;
   error_message: string | null;
   user_message: string | null;
+  pipeline_warnings: string | null;
+  health: 'ok' | 'degraded';
 }
 
 export interface WorkspaceListResponse {

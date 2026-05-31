@@ -105,14 +105,17 @@ def generate_random_scenario() -> dict:
 def init_metadata_db():
     """Create the workspace metadata tables (with column migrations)."""
     WorkspaceBase.metadata.create_all(bind=metadata_engine)
-    # Migration: add generation_started_at if missing (existing DBs)
+    # Lightweight column migrations for existing DBs
     from sqlalchemy import inspect, text
     columns = [c['name'] for c in inspect(metadata_engine).get_columns('workspaces')]
-    if 'generation_started_at' not in columns:
-        with metadata_engine.begin() as conn:
-            conn.execute(text(
-                'ALTER TABLE workspaces ADD COLUMN generation_started_at DATETIME'
-            ))
+    migrations = {
+        'generation_started_at': 'ALTER TABLE workspaces ADD COLUMN generation_started_at DATETIME',
+        'pipeline_warnings': 'ALTER TABLE workspaces ADD COLUMN pipeline_warnings TEXT',
+    }
+    for column, ddl in migrations.items():
+        if column not in columns:
+            with metadata_engine.begin() as conn:
+                conn.execute(text(ddl))
 
 
 def list_workspaces() -> list[Workspace]:
@@ -239,6 +242,7 @@ def update_workspace_status(
     stage_index: Optional[int] = None,
     total_stages: Optional[int] = None,
     error_message: Optional[str] = None,
+    pipeline_warnings: Optional[str] = None,
 ) -> Optional[Workspace]:
     """Update workspace status and progress fields."""
     db = MetadataSession()
@@ -252,6 +256,7 @@ def update_workspace_status(
             ws.generation_started_at = datetime.now(timezone.utc)
             ws.completed_at = None
             ws.error_message = None
+            ws.pipeline_warnings = None
         if current_stage is not None:
             ws.current_stage = current_stage
         if stage_index is not None:
@@ -260,12 +265,39 @@ def update_workspace_status(
             ws.total_stages = total_stages
         if error_message is not None:
             ws.error_message = error_message
+        if pipeline_warnings is not None:
+            ws.pipeline_warnings = pipeline_warnings
         if status == "ready":
             ws.completed_at = datetime.now(timezone.utc)
             ws.error_message = None
         db.commit()
         db.refresh(ws)
         return ws
+    finally:
+        db.close()
+
+
+def reconcile_orphaned_workspaces() -> int:
+    """Fail workspaces stuck in 'generating' with no live worker.
+
+    Generation runs in a daemon thread that does not survive a process
+    restart (dev `--reload`, Railway redeploy). Any workspace still
+    'generating' at startup has no worker producing progress, so mark it
+    failed cleanly instead of leaving it stuck forever. Returns the count
+    reconciled.
+    """
+    db = MetadataSession()
+    try:
+        stuck = db.query(Workspace).filter(Workspace.status == "generating").all()
+        for ws in stuck:
+            ws.status = "failed"
+            ws.error_message = (
+                "Setup was interrupted by a server restart. You can try again."
+            )
+            ws.completed_at = datetime.now(timezone.utc)
+        if stuck:
+            db.commit()
+        return len(stuck)
     finally:
         db.close()
 
