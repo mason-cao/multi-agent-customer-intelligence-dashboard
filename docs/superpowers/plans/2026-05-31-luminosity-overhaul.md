@@ -127,7 +127,36 @@ Not applicable here: `shadcn-ui` (custom CSS + Tailwind v4, no shadcn), `industr
 
 ---
 
-## Commit 7 — chore(architecture): pipeline/audit observability + doc reconciliation
+## Commit 7 — chore(brand): rename "Luminosity Intelligence" → "Nova Core" (no discrepancies)
+
+**Why:** Rebrand the product to **Nova Core**. Every brand string, identifier, and URL reference must be consistent across the entire codebase — no leftover "Luminosity".
+
+**Brand strings → "Nova Core"** (or "Nova Core" where "Luminosity Intelligence" appears, "Nova Core" for short "Luminosity"):
+- Docs: `README.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `frontend/README.md`, `session_summary.md`.
+- Frontend UI: `frontend/index.html` (`<title>`), `frontend/src/components/layout/Sidebar.tsx:52`, `frontend/src/pages/WorkspaceHub.tsx:266`, `frontend/src/pages/NotFound.tsx:29`.
+- Backend: `backend/app/main.py:59` (FastAPI `title`), docstrings/comments in `backend/app/agents/base.py`, `backend/app/services/llm_client.py`, `backend/app/utils/logging.py`, `scripts/generate_data.py`, `scripts/run_pipeline.py`, `scripts/validate_data.py`, `backend/tests/conftest.py`.
+
+**Functional identifiers (rename + update every reference):**
+- `frontend/src/constants/workspace.ts` — `ACTIVE_WORKSPACE_STORAGE_KEY: 'luminosity_active_workspace' → 'novacore_active_workspace'`; `WORKSPACE_MISSING_EVENT: 'luminosity:workspace-missing' → 'novacore:workspace-missing'`. (Changing the storage key resets the active-workspace selection once — acceptable.) Update the matching mention in `CLAUDE.md`.
+- `backend/pyproject.toml` — `name = "luminosity-intelligence" → "nova-core"`; then `pip install -e ".[dev]"` to regenerate metadata and delete the stale `backend/luminosity_intelligence.egg-info/`.
+- `backend/tests/conftest.py` — temp dir label `"luminosity_test"` (cosmetic).
+
+**URLs — make consistent, do NOT break live infra:**
+- The deployment URLs are real endpoints, *not* derived from the product name. **Do not blindly rewrite them** or the API proxy breaks:
+  - `frontend/vercel.json` → Railway destination `…multi-agent-customer-intelligence-dashboard-production.up.railway.app…`
+  - `README.md` live-demo link + `git clone` URL; `session_summary.md` GitHub links.
+- Only change these if the GitHub repo / Vercel project / Railway service are *actually* renamed — and then change clone URL, live-demo link, and `vercel.json` destination **in lockstep**. Otherwise leave them and note the brand≠infra distinction. (Decision point — confirm with Mason at execution time.)
+
+**Verification:**
+- `grep -rni luminosity` over source (exclude `node_modules`, `dist`, `*.egg-info`, lockfiles, and this plan doc's filename) returns **zero** matches.
+- `cd backend && pytest -q`; `cd frontend && npm run build && npm run lint`.
+- Manual: app title bar, sidebar, hub, and 404 page all read "Nova Core"; workspace selection still loads after the storage-key change.
+
+**Suggested commit:** `chore(brand): rename Luminosity Intelligence to Nova Core`
+
+---
+
+## Commit 8 — chore(architecture): pipeline/audit observability + doc reconciliation
 
 **Files:**
 - Modify: `frontend/src/pages/AgentAudit.tsx` — surface per-agent status (completed/partial/failed) + duration clearly (lineage legibility).

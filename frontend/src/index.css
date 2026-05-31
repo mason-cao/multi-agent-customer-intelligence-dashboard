@@ -21,32 +21,98 @@
 /* ── Design System Tokens ────────────────────────────────────── */
 
 @theme {
-  /* Background — ultra-deep for maximum panel contrast */
+  /* ── Background — ultra-deep, indigo-tinted for maximum panel contrast ── */
   --color-bg-start: #030712;
   --color-bg-mid: #0a0f1f;
   --color-bg-end: #110d25;
 
-  /* Primary accent (indigo) */
+  /* ── Brand accents (cool, identity-defining) ── */
+  --color-primary-300: #a5b4fc;
   --color-primary-400: #818cf8;
   --color-primary-500: #6366f1;
   --color-primary-600: #4f46e5;
+  --color-accent-violet: #a78bfa;
+  --color-accent-cyan: #22d3ee;
 
-  /* Semantic */
+  /* ── Semantic — one set reused by UI, badges, and charts ── */
   --color-success: #34d399;
+  --color-success-soft: #6ee7b7;
   --color-warning: #fbbf24;
+  --color-warning-strong: #fb923c; /* escalation step, e.g. churn-risk "high" */
   --color-danger: #f87171;
+  --color-danger-soft: #fca5a5;
+  --color-info: #60a5fa;
+  --color-muted: #94a3b8;
 
-  /* Glass — dark-tinted translucent fills with subtle edge definition */
+  /* ── Categorical chart palette — mirrors CATEGORICAL in utils/colors.ts ── */
+  --color-chart-1: #818cf8;
+  --color-chart-2: #34d399;
+  --color-chart-3: #22d3ee;
+  --color-chart-4: #fbbf24;
+  --color-chart-5: #a78bfa;
+  --color-chart-6: #60a5fa;
+  --color-chart-7: #f87171;
+  --color-chart-8: #c084fc;
+
+  /* ── Glass — dark-tinted translucent fills with subtle edge definition ── */
   --color-glass-bg: rgba(12, 16, 36, 0.55);
   --color-glass-bg-hover: rgba(12, 16, 36, 0.65);
   --color-glass-border: rgba(255, 255, 255, 0.10);
   --color-glass-border-hover: rgba(255, 255, 255, 0.18);
 
-  /* Text hierarchy — tuned for deep background contrast */
+  /* ── Text hierarchy — tuned for deep background contrast ── */
   --color-text-primary: rgba(255, 255, 255, 0.95);
   --color-text-secondary: rgba(255, 255, 255, 0.60);
   --color-text-tertiary: rgba(255, 255, 255, 0.38);
   --color-text-accent: #a5b4fc;
+
+  /* ── Radius scale — additive utilities: rounded-control / -card / -pill ── */
+  --radius-control: 0.75rem;
+  --radius-card: 1rem;
+  --radius-pill: 9999px;
+
+  /* ── Elevation ladder — shadow-glass / -glass-elevated / -glass-overlay ── */
+  --shadow-glass:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.10),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.04),
+    0 2px 8px rgba(6, 8, 20, 0.5),
+    0 8px 32px rgba(6, 8, 20, 0.25);
+  --shadow-glass-elevated:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.05),
+    0 4px 16px rgba(6, 8, 20, 0.5),
+    0 16px 64px rgba(6, 8, 20, 0.3);
+  --shadow-glass-overlay:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.10),
+    0 16px 48px rgba(6, 8, 20, 0.6),
+    0 32px 100px rgba(6, 8, 20, 0.3),
+    0 0 1px rgba(255, 255, 255, 0.08);
+
+  /* ── Display type tokens — text-display / text-stat / text-eyebrow ── */
+  --text-display: 2.25rem;
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -0.02em;
+  --text-stat: 1.875rem;
+  --text-stat--line-height: 1.15;
+  --text-stat--letter-spacing: -0.015em;
+  --text-eyebrow: 0.6875rem;
+  --text-eyebrow--line-height: 1;
+  --text-eyebrow--letter-spacing: 0.08em;
+}
+
+/* ── Glass material ───────────────────────────────────────────────
+   One frosted look, expressed at three elevation tiers (glass /
+   glass-elevated / glass-overlay) plus modifiers (hover, input,
+   nested, hero). Every tier draws its blur, edge, and noise from
+   these shared variables — change the material here, not per class. */
+:root {
+  --glass-blur: 20px;
+  --glass-blur-strong: 32px;
+  --glass-saturate: 1.4;
+  --glass-edge: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.06) 40%, rgba(255, 255, 255, 0.03) 100%);
+  --glass-edge-elevated: linear-gradient(135deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.08) 40%, rgba(255, 255, 255, 0.03) 100%);
+  --glass-edge-overlay: linear-gradient(135deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0.02) 100%);
+  --glass-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
 }
 
 /* ── Base ─────────────────────────────────────────────────────── */
@@ -92,16 +158,12 @@ button {
   position: relative;
   background:
     var(--color-glass-bg) padding-box,
-    linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.06) 40%, rgba(255, 255, 255, 0.03) 100%) border-box;
+    var(--glass-edge) border-box;
   border: 1px solid transparent;
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  border-radius: 1rem;
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.10),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.04),
-    0 2px 8px rgba(6, 8, 20, 0.5),
-    0 8px 32px rgba(6, 8, 20, 0.25);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-glass);
 }
 
 /* Interactive glass cards — hover lift with accent glow */
@@ -127,49 +189,43 @@ button {
   transition-duration: 100ms;
 }
 
-/* Shell surfaces — sidebar, header, navigation */
+/* TIER 2 — Shell surfaces (sidebar, header, navigation). Full-height chrome,
+   so no radius; lightest of the overlay family. */
 .glass-surface {
   background:
     rgba(8, 12, 28, 0.75) padding-box,
-    linear-gradient(135deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0.02) 100%) border-box;
+    var(--glass-edge-overlay) border-box;
   border: 1px solid transparent;
-  backdrop-filter: blur(32px) saturate(1.2);
-  -webkit-backdrop-filter: blur(32px) saturate(1.2);
+  backdrop-filter: blur(var(--glass-blur-strong)) saturate(1.2);
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(1.2);
 }
 
-/* Elevated panels — KPIs, hero cards, important content */
+/* TIER 2 — Elevated panels — KPIs, hero cards, important content */
 .glass-elevated {
   position: relative;
   background:
     rgba(12, 16, 36, 0.38) padding-box,
-    linear-gradient(135deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.08) 40%, rgba(255, 255, 255, 0.03) 100%) border-box;
+    var(--glass-edge-elevated) border-box;
   border: 1px solid transparent;
   backdrop-filter: blur(24px) saturate(1.8);
   -webkit-backdrop-filter: blur(24px) saturate(1.8);
-  border-radius: 1rem;
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.05),
-    0 4px 16px rgba(6, 8, 20, 0.5),
-    0 16px 64px rgba(6, 8, 20, 0.3),
-    0 0 40px rgba(129, 140, 248, 0.08);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-glass-elevated), 0 0 40px rgba(129, 140, 248, 0.08);
 }
 
-/* Modal / overlay panels */
+/* TIER 3 — Floating overlays: modals, dropdowns, popovers.
+   `.glass-strong` is the legacy alias; both resolve to the same surface. */
+.glass-overlay,
 .glass-strong {
   position: relative;
   background:
     rgba(8, 12, 28, 0.85) padding-box,
-    linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.02) 100%) border-box;
+    var(--glass-edge-overlay) border-box;
   border: 1px solid transparent;
-  backdrop-filter: blur(32px) saturate(1.4);
-  -webkit-backdrop-filter: blur(32px) saturate(1.4);
-  border-radius: 1rem;
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.10),
-    0 16px 48px rgba(6, 8, 20, 0.6),
-    0 32px 100px rgba(6, 8, 20, 0.3),
-    0 0 1px rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(var(--glass-blur-strong)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(1.4);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-glass-overlay);
 }
 
 /* Form inputs */
@@ -178,7 +234,7 @@ button {
     rgba(12, 16, 36, 0.60) padding-box,
     linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%) border-box;
   border: 1px solid transparent;
-  border-radius: 0.75rem;
+  border-radius: var(--radius-control);
   color: var(--color-text-primary);
   transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
   backdrop-filter: blur(12px);
@@ -199,16 +255,17 @@ button {
     inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
 }
 
-/* Hero glass — premium accent-bordered panels for key surfaces */
+/* MODIFIER — Hero glass: an accent (conic-bordered) treatment over Tier 2,
+   for the few key surfaces that lead a page. Use sparingly. */
 .glass-hero {
   position: relative;
   background:
     rgba(12, 16, 36, 0.50) padding-box,
-    conic-gradient(from 220deg, #818cf8, #a78bfa, #06b6d4, #818cf8) border-box;
+    conic-gradient(from 220deg, var(--color-primary-400), var(--color-accent-violet), #06b6d4, var(--color-primary-400)) border-box;
   border: 1px solid transparent;
   backdrop-filter: blur(24px) saturate(1.8);
   -webkit-backdrop-filter: blur(24px) saturate(1.8);
-  border-radius: 1rem;
+  border-radius: var(--radius-card);
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.06),
@@ -221,7 +278,7 @@ button {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-image: var(--glass-noise);
   opacity: 0.03;
   mix-blend-mode: overlay;
   pointer-events: none;
@@ -235,12 +292,13 @@ button {
 /* Noise texture overlay — adds materiality to glass panels */
 .glass::after,
 .glass-elevated::after,
+.glass-overlay::after,
 .glass-strong::after {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-image: var(--glass-noise);
   opacity: 0.03;
   mix-blend-mode: overlay;
   pointer-events: none;
@@ -250,6 +308,7 @@ button {
 /* Ensure content stacks above noise layer */
 .glass > *,
 .glass-elevated > *,
+.glass-overlay > *,
 .glass-strong > * {
   position: relative;
   z-index: 1;
@@ -264,7 +323,7 @@ button {
   border: 1px solid transparent;
   backdrop-filter: blur(8px) saturate(1.2);
   -webkit-backdrop-filter: blur(8px) saturate(1.2);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-control);
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.08),
     0 2px 6px rgba(6, 8, 20, 0.3);
@@ -337,18 +396,21 @@ button {
 
 .glass::-webkit-scrollbar,
 .glass-elevated::-webkit-scrollbar,
+.glass-overlay::-webkit-scrollbar,
 .glass-strong::-webkit-scrollbar,
 .glass-hero::-webkit-scrollbar {
   width: 6px;
 }
 .glass::-webkit-scrollbar-track,
 .glass-elevated::-webkit-scrollbar-track,
+.glass-overlay::-webkit-scrollbar-track,
 .glass-strong::-webkit-scrollbar-track,
 .glass-hero::-webkit-scrollbar-track {
   background: transparent;
 }
 .glass::-webkit-scrollbar-thumb,
 .glass-elevated::-webkit-scrollbar-thumb,
+.glass-overlay::-webkit-scrollbar-thumb,
 .glass-strong::-webkit-scrollbar-thumb,
 .glass-hero::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.10);
@@ -356,6 +418,7 @@ button {
 }
 .glass::-webkit-scrollbar-thumb:hover,
 .glass-elevated::-webkit-scrollbar-thumb:hover,
+.glass-overlay::-webkit-scrollbar-thumb:hover,
 .glass-strong::-webkit-scrollbar-thumb:hover,
 .glass-hero::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.18);

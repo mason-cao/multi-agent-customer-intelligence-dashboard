@@ -1,13 +1,7 @@
-export const CHART_COLORS = [
-  '#818cf8', // indigo-400 (primary)
-  '#34d399', // emerald-400 (success)
-  '#fbbf24', // amber-400 (warning)
-  '#f87171', // red-400 (danger)
-  '#a78bfa', // violet-400
-  '#60a5fa', // blue-400
-  '#fb923c', // orange-400
-  '#f472b6', // pink-400
-];
+import { CATEGORICAL } from '../../utils/colors';
+
+/** Ordered chart-series palette. Single source lives in `utils/colors.ts`. */
+export const CHART_COLORS = CATEGORICAL;
 
 export const AXIS_STYLE = {
   stroke: 'rgba(255,255,255,0.08)',
