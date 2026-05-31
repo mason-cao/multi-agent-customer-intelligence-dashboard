@@ -127,6 +127,27 @@ async def test_regeneration_clears_stale_completion_state(client):
 
 
 @pytest.mark.asyncio
+async def test_datetime_fields_serialize_as_utc(client):
+    """Naive UTC datetimes must serialize with an explicit UTC marker so the
+    browser does not reinterpret them as local time (the '60m elapsed' bug)."""
+    create = await client.post("/api/workspaces", json={
+        "name": "Timezone Test",
+        "scenario": "velocity_saas",
+    })
+    ws_id = create.json()["id"]
+
+    from app.services.workspace_manager import update_workspace_status
+
+    update_workspace_status(ws_id, "generating")
+
+    resp = await client.get(f"/api/workspaces/{ws_id}")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["created_at"].endswith("Z"), body["created_at"]
+    assert body["generation_started_at"].endswith("Z"), body["generation_started_at"]
+
+
+@pytest.mark.asyncio
 async def test_dashboard_routes_reject_invalid_workspace_header(client):
     resp = await client.get(
         "/api/overview/kpis",

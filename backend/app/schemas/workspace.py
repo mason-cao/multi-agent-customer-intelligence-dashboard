@@ -1,9 +1,15 @@
 """Pydantic schemas for workspace API requests and responses."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, computed_field, field_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    computed_field,
+    field_serializer,
+    field_validator,
+)
 
 
 WorkspaceScenario = Literal[
@@ -53,6 +59,21 @@ class WorkspaceResponse(BaseModel):
     error_message: Optional[str] = None
 
     model_config = {"from_attributes": True}
+
+    @field_serializer("created_at", "completed_at", "generation_started_at")
+    def _serialize_utc(self, value: Optional[datetime]) -> Optional[str]:
+        """Emit ISO-8601 with an explicit UTC marker.
+
+        SQLite returns naive datetimes (stored as UTC). Without a timezone
+        marker, the browser's `new Date(...)` parses them as *local* time,
+        which inflated the generation elapsed counter by the client's UTC
+        offset (the "60m 6s" bug). Treat naive values as UTC and append "Z".
+        """
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
     @computed_field
     @property

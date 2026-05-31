@@ -313,7 +313,7 @@ export default function GenerationView({
   // Elapsed time counter
   useEffect(() => {
     const timer = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startTime) / 1000));
+      setElapsed(Math.max(0, Math.floor((Date.now() - startTime) / 1000)));
     }, 1000);
     return () => clearInterval(timer);
   }, [startTime]);
@@ -366,6 +366,20 @@ export default function GenerationView({
     const s = seconds % 60;
     return m > 0 ? `${m}m ${s}s` : `${s}s`;
   };
+
+  // Final duration is derived from the recorded timestamps (accurate) rather
+  // than the live counter, which can drift if the tab was backgrounded.
+  const generatedSeconds =
+    workspace.completed_at && workspace.generation_started_at
+      ? Math.max(
+          0,
+          Math.round(
+            (new Date(workspace.completed_at).getTime() -
+              new Date(workspace.generation_started_at).getTime()) /
+              1000
+          )
+        )
+      : elapsed;
 
   // ── Failed state ─────────────────────────────────────
   if (workspace.status === 'failed') {
@@ -421,11 +435,16 @@ export default function GenerationView({
             <span className="font-mono">
               {workspace.customer_count.toLocaleString()}
             </span>{' '}
-            customers &middot; Generated in {formatTime(elapsed)}
+            customers &middot; Generated in {formatTime(generatedSeconds)}
           </p>
 
           <button
-            onClick={() => navigate('/')}
+            onClick={() => {
+              // Clear the "was generating" flag so Layout swaps to the
+              // dashboard; navigate('/') alone is a no-op when already at '/'.
+              onComplete?.();
+              navigate('/');
+            }}
             className="btn-primary mt-6"
           >
             Enter Dashboard
