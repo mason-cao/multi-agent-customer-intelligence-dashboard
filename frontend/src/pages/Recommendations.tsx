@@ -18,15 +18,14 @@ import {
   useRecommendationSummary,
   useTopRecommendations,
 } from '../api/hooks';
+import Badge, { type BadgeTone } from '../components/shared/Badge';
 
-const CATEGORY_BADGE: Record<string, string> = {
-  retention: 'bg-[rgba(248,113,113,0.15)] text-[#f87171]',
-  growth: 'bg-[rgba(52,211,153,0.15)] text-[#34d399]',
-  monitoring: 'bg-[rgba(148,163,184,0.15)] text-[#94a3b8]',
-  support: 'bg-[rgba(251,191,36,0.15)] text-[#fbbf24]',
+const CATEGORY_TONE: Record<string, BadgeTone> = {
+  retention: 'danger',
+  growth: 'success',
+  monitoring: 'muted',
+  support: 'warning',
 };
-
-const DEFAULT_BADGE = 'bg-[rgba(148,163,184,0.15)] text-[#94a3b8]';
 
 function humanize(value: string | null | undefined): string {
   if (!value) return 'Not specified';
@@ -75,8 +74,8 @@ export default function Recommendations() {
           <Card><Skeleton className="h-64 w-full" /></Card>
         </div>
       ) : isError ? (
-        <Card className="border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.1)]">
-          <p className="flex items-center gap-2 text-sm text-[rgba(248,113,113,0.9)]">
+        <Card className="border-danger/20 bg-danger/10">
+          <p className="flex items-center gap-2 text-sm text-danger">
             <AlertTriangle className="h-4 w-4" />
             Failed to load recommendation data.
           </p>
@@ -92,40 +91,40 @@ export default function Recommendations() {
           {/* Summary KPIs */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Card hover>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
                 Total Recommendations
               </p>
               <p className="mt-2 font-mono text-3xl font-bold text-white">
                 {summary.total_recommendations.toLocaleString()}
               </p>
-              <p className="mt-2 text-xs leading-5 text-[rgba(255,255,255,0.58)]">
+              <p className="mt-2 text-xs leading-5 text-[var(--color-text-secondary)]">
                 Customers with a recommended next action.
               </p>
             </Card>
             <Card hover>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
                 Avg Urgency Score
               </p>
               <p className="mt-2 font-mono text-3xl font-bold text-white">
                 {summary.avg_urgency.toFixed(1)}
               </p>
-              <p className="mt-2 text-xs leading-5 text-[rgba(255,255,255,0.58)]">
+              <p className="mt-2 text-xs leading-5 text-[var(--color-text-secondary)]">
                 0-100 score; higher means stronger need to act.
               </p>
             </Card>
             <Card hover>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
                 Categories
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {Object.entries(summary.category_distribution).map(([cat, count]) => (
-                  <span
+                  <Badge
                     key={cat}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${CATEGORY_BADGE[cat] ?? DEFAULT_BADGE}`}
-                  >
-                    <span>{humanize(cat)}</span>
-                    <span className="font-mono opacity-80">{count}</span>
-                  </span>
+                    tone={CATEGORY_TONE[cat] ?? 'muted'}
+                    label={humanize(cat)}
+                    count={count}
+                    size="md"
+                  />
                 ))}
               </div>
             </Card>
@@ -198,27 +197,28 @@ export default function Recommendations() {
                       topRecs.map((r) => (
                         <tr
                           key={r.recommendation_id}
-                          className="border-b border-[rgba(255,255,255,0.06)] transition-colors hover:bg-[rgba(255,255,255,0.04)] last:border-0"
+                          className="border-b border-white/[0.06] transition-colors hover:bg-white/5 last:border-0"
                         >
                           <td className="py-2.5 font-medium text-white">
                             {r.action_label}
                           </td>
                           <td className="py-2.5">
-                            <span
-                              className={`inline-flex min-w-20 justify-center rounded-full px-2.5 py-1 text-[10px] font-semibold ${CATEGORY_BADGE[r.action_category] ?? DEFAULT_BADGE}`}
-                            >
-                              {humanize(r.action_category)}
-                            </span>
+                            <Badge
+                              tone={CATEGORY_TONE[r.action_category] ?? 'muted'}
+                              label={humanize(r.action_category)}
+                              size="md"
+                              className="min-w-20 justify-center"
+                            />
                           </td>
                           <td className="py-2.5">
-                            <span className="inline-flex rounded-full border border-[rgba(255,255,255,0.10)] bg-[rgba(255,255,255,0.05)] px-2.5 py-1 font-mono text-[11px] font-semibold text-white">
+                            <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-[11px] font-semibold text-white">
                               P{r.action_priority}
                             </span>
                           </td>
-                          <td className="max-w-[220px] py-2.5 text-xs leading-5 text-[rgba(255,255,255,0.72)]">
+                          <td className="max-w-[220px] py-2.5 text-xs leading-5 text-[var(--color-text-secondary)]">
                             <p>{humanize(r.primary_driver)}</p>
                             {r.secondary_driver && (
-                              <p className="mt-1 text-[rgba(255,255,255,0.46)]">
+                              <p className="mt-1 text-[var(--color-text-tertiary)]">
                                 Also: {humanize(r.secondary_driver)}
                               </p>
                             )}
@@ -226,14 +226,14 @@ export default function Recommendations() {
                           <td className="py-2.5 text-right font-mono text-sm font-semibold text-white">
                             {r.urgency_score.toFixed(1)}
                           </td>
-                          <td className="py-2.5 text-xs text-[rgba(255,255,255,0.7)]">
+                          <td className="py-2.5 text-xs text-[var(--color-text-secondary)]">
                             {r.target_timeframe}
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={6} className="py-8 text-center text-sm text-[rgba(255,255,255,0.45)]">
+                        <td colSpan={6} className="py-8 text-center text-sm text-[var(--color-text-tertiary)]">
                           No priority recommendations available
                         </td>
                       </tr>

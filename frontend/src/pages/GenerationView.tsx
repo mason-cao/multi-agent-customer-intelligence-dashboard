@@ -174,8 +174,8 @@ function ProgressRing({
     ? 'var(--color-success)'
     : 'var(--color-primary-400)';
   const glowColor = isComplete
-    ? 'rgba(52,211,153,0.4)'
-    : 'rgba(129,140,248,0.3)';
+    ? 'color-mix(in oklab, var(--color-success) 40%, transparent)'
+    : 'color-mix(in oklab, var(--color-primary-400) 30%, transparent)';
 
   return (
     <svg
@@ -265,7 +265,7 @@ function StageRow({
       <div
         className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md ${
           status === 'current'
-            ? 'bg-[rgba(129,140,248,0.12)]'
+            ? 'bg-primary-400/15'
             : 'bg-[rgba(255,255,255,0.04)]'
         }`}
       >
@@ -387,7 +387,7 @@ export default function GenerationView({
     return (
       <div className="flex min-h-full flex-col items-center justify-center px-8 py-12">
         <div className="w-full max-w-lg text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[rgba(248,113,113,0.1)] ring-1 ring-[rgba(248,113,113,0.2)]">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-danger/10 ring-1 ring-danger/20">
             <Shield className="h-8 w-8 text-[var(--color-danger)]" />
           </div>
           <h2 className="mt-5 text-xl font-bold text-white">
@@ -418,7 +418,7 @@ export default function GenerationView({
           <div className="relative mx-auto w-fit">
             <Sparkles className="absolute -left-8 -top-4 h-5 w-5 animate-pulse text-[var(--color-primary-400)] opacity-60" />
             <Sparkles className="absolute -right-8 top-0 h-4 w-4 animate-pulse text-[var(--color-success)] opacity-50 [animation-delay:0.3s]" />
-            <Sparkles className="absolute -bottom-2 -left-4 h-3 w-3 animate-pulse text-[#a78bfa] opacity-40 [animation-delay:0.6s]" />
+            <Sparkles className="absolute -bottom-2 -left-4 h-3 w-3 animate-pulse text-accent-violet opacity-40 [animation-delay:0.6s]" />
 
             <div className="relative">
               <ProgressRing progress={100} isComplete />
@@ -440,7 +440,7 @@ export default function GenerationView({
           </p>
 
           {workspace.pipeline_warnings && (
-            <div className="mx-auto mt-5 max-w-sm rounded-lg border border-[rgba(251,191,36,0.25)] bg-[rgba(251,191,36,0.08)] px-4 py-3 text-left">
+            <div className="mx-auto mt-5 max-w-sm rounded-lg border border-warning/25 bg-warning/10 px-4 py-3 text-left">
               <div className="flex items-center gap-2 text-[var(--color-warning)]">
                 <AlertTriangle className="h-4 w-4" />
                 <span className="text-xs font-semibold uppercase tracking-wide">

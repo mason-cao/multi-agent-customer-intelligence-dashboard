@@ -18,7 +18,7 @@ import Card from '../components/shared/Card';
 import ChartCard from '../components/shared/ChartCard';
 import EmptyState from '../components/shared/EmptyState';
 import { useSegmentSummary } from '../api/hooks';
-import { SEGMENT_COLORS } from '../utils/colors';
+import { SEGMENT_COLORS, PALETTE } from '../utils/colors';
 import { GlassTooltip, TOOLTIP_STYLE } from '../components/charts';
 import { formatCurrency, formatPercent } from '../utils/formatters';
 
@@ -110,8 +110,8 @@ export default function Segments() {
           </div>
         </>
       ) : isError ? (
-        <Card className="border-[rgba(248,113,113,0.2)]">
-          <p className="flex items-center gap-2 text-sm text-[rgba(248,113,113,0.9)]">
+        <Card className="border-danger/20">
+          <p className="flex items-center gap-2 text-sm text-danger">
             <AlertTriangle className="h-4 w-4" />
             Failed to load segment data. Ensure the backend is running and
             agents have been executed.
@@ -147,7 +147,7 @@ export default function Segments() {
                     {segments.map((seg) => (
                       <Cell
                         key={seg.segment_name}
-                        fill={SEGMENT_COLORS[seg.segment_name] ?? '#6b7280'}
+                        fill={SEGMENT_COLORS[seg.segment_name] ?? PALETTE.muted}
                       />
                     ))}
                   </Pie>
@@ -167,7 +167,7 @@ export default function Segments() {
                     iconType="circle"
                     iconSize={8}
                     formatter={(value: string) => (
-                      <span className="text-xs text-[rgba(255,255,255,0.7)]">
+                      <span className="text-xs text-[var(--color-text-secondary)]">
                         {value}
                       </span>
                     )}
@@ -187,7 +187,7 @@ export default function Segments() {
                     y="55%"
                     textAnchor="middle"
                     dominantBaseline="central"
-                    className="fill-[rgba(255,255,255,0.45)] text-xs"
+                    className="fill-[var(--color-text-tertiary)] text-xs"
                   >
                     customers
                   </text>
@@ -212,7 +212,7 @@ export default function Segments() {
                   />
                   {segments.map((seg) => {
                     const color =
-                      SEGMENT_COLORS[seg.segment_name] ?? '#6b7280';
+                      SEGMENT_COLORS[seg.segment_name] ?? PALETTE.muted;
                     return (
                       <Radar
                         key={seg.segment_name}
@@ -234,7 +234,7 @@ export default function Segments() {
                     iconType="circle"
                     iconSize={8}
                     formatter={(value: string) => (
-                      <span className="text-xs text-[rgba(255,255,255,0.7)]">
+                      <span className="text-xs text-[var(--color-text-secondary)]">
                         {value}
                       </span>
                     )}
@@ -250,7 +250,7 @@ export default function Segments() {
               const pct =
                 total > 0 ? (seg.customer_count / total) * 100 : 0;
               const color =
-                SEGMENT_COLORS[seg.segment_name] ?? '#6b7280';
+                SEGMENT_COLORS[seg.segment_name] ?? PALETTE.muted;
               return (
                 <Card
                   key={seg.segment_name}
@@ -267,7 +267,7 @@ export default function Segments() {
                         {seg.segment_name}
                       </h3>
                     </div>
-                    <span className="rounded-full bg-[rgba(255,255,255,0.1)] px-2 py-0.5 text-[11px] font-medium text-[rgba(255,255,255,0.7)]">
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-medium text-[var(--color-text-secondary)]">
                       {pct.toFixed(1)}%
                     </span>
                   </div>
@@ -275,13 +275,13 @@ export default function Segments() {
                   <p className="mt-3 font-mono text-2xl font-bold text-white">
                     {seg.customer_count.toLocaleString()}
                   </p>
-                  <p className="text-xs text-[rgba(255,255,255,0.45)]">
+                  <p className="text-xs text-[var(--color-text-tertiary)]">
                     customers
                   </p>
 
-                  <div className="mt-4 grid grid-cols-3 gap-4 border-t border-[rgba(255,255,255,0.1)] pt-4">
+                  <div className="mt-4 grid grid-cols-3 gap-4 border-t border-white/10 pt-4">
                     <div>
-                      <p className="flex items-center gap-1.5 text-[10px] font-medium text-[rgba(255,255,255,0.56)]">
+                      <p className="flex items-center gap-1.5 text-[10px] font-medium text-[var(--color-text-secondary)]">
                         <DollarSign className="h-3 w-3" /> Avg Rev
                       </p>
                       <p className="mt-1.5 font-mono text-sm font-semibold text-white">
@@ -289,7 +289,7 @@ export default function Segments() {
                       </p>
                     </div>
                     <div>
-                      <p className="flex items-center gap-1.5 text-[10px] font-medium text-[rgba(255,255,255,0.56)]">
+                      <p className="flex items-center gap-1.5 text-[10px] font-medium text-[var(--color-text-secondary)]">
                         <Activity className="h-3 w-3" /> Engage
                       </p>
                       <p className="mt-1.5 font-mono text-sm font-semibold text-white">
@@ -297,7 +297,7 @@ export default function Segments() {
                       </p>
                     </div>
                     <div>
-                      <p className="flex items-center gap-1.5 text-[10px] font-medium text-[rgba(255,255,255,0.56)]">
+                      <p className="flex items-center gap-1.5 text-[10px] font-medium text-[var(--color-text-secondary)]">
                         <Users className="h-3 w-3" /> Churn
                       </p>
                       <p className="mt-1.5 font-mono text-sm font-semibold text-white">

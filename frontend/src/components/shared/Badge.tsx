@@ -1,64 +1,71 @@
+import type { LucideIcon } from 'lucide-react';
+
+/** Semantic tones map to design tokens (see index.css `@theme`). */
+export type BadgeTone = 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'muted';
+
 interface BadgeProps {
   label: string;
+  /** Semantic tone — preferred for status/severity/category badges. */
+  tone?: BadgeTone;
+  /** Explicit color (hex/rgb/rgba) for data-driven categories (segments,
+   *  risk tiers, sentiment). Takes precedence over `tone`. */
   color?: string;
-  variant?: 'solid' | 'subtle';
+  variant?: 'subtle' | 'solid';
   size?: 'sm' | 'md';
+  icon?: LucideIcon;
+  /** Leading status dot in the badge color. */
+  dot?: boolean;
+  /** Optional trailing count, rendered monospaced (e.g. category tallies). */
+  count?: number | string;
+  uppercase?: boolean;
   className?: string;
 }
 
-function getSubtleBackground(color: string) {
-  const rgbaMatch = color.match(/^rgba\((.+),\s*[\d.]+\)$/i);
-  if (rgbaMatch) return `rgba(${rgbaMatch[1]}, 0.15)`;
-
-  const rgbMatch = color.match(/^rgb\((.+)\)$/i);
-  if (rgbMatch) return `rgba(${rgbMatch[1]}, 0.15)`;
-
-  const hexMatch = color.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
-  if (hexMatch) {
-    const raw = hexMatch[1];
-    const hex = raw.length === 3
-      ? raw.split('').map((char) => char + char).join('')
-      : raw;
-    const value = Number.parseInt(hex, 16);
-    const r = (value >> 16) & 255;
-    const g = (value >> 8) & 255;
-    const b = value & 255;
-    return `rgba(${r}, ${g}, ${b}, 0.15)`;
-  }
-
-  return color;
-}
+const TONE_VAR: Record<BadgeTone, string> = {
+  primary: 'var(--color-primary-400)',
+  success: 'var(--color-success)',
+  warning: 'var(--color-warning)',
+  danger: 'var(--color-danger)',
+  info: 'var(--color-info)',
+  muted: 'var(--color-muted)',
+};
 
 export default function Badge({
   label,
-  color = 'rgba(129,140,248,1)',
+  tone = 'primary',
+  color,
   variant = 'subtle',
   size = 'sm',
+  icon: Icon,
+  dot = false,
+  count,
+  uppercase = false,
   className = '',
 }: BadgeProps) {
+  const c = color ?? TONE_VAR[tone];
   const sizeClasses = size === 'sm' ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs';
 
-  if (variant === 'solid') {
-    return (
-      <span
-        className={`inline-flex items-center rounded-full font-medium ${sizeClasses} ${className}`}
-        style={{ backgroundColor: color, color: '#fff' }}
-      >
-        {label}
-      </span>
-    );
-  }
+  const style: React.CSSProperties =
+    variant === 'solid'
+      ? { backgroundColor: c, color: 'var(--color-bg-start)' }
+      : { backgroundColor: `color-mix(in oklab, ${c} 15%, transparent)`, color: c };
 
-  // Subtle variant: use the color at low opacity for bg, full for text
   return (
     <span
-      className={`inline-flex items-center rounded-full font-medium ${sizeClasses} ${className}`}
-      style={{
-        backgroundColor: getSubtleBackground(color),
-        color: color,
-      }}
+      className={`inline-flex items-center gap-1.5 rounded-full font-medium ${sizeClasses} ${
+        uppercase ? 'uppercase tracking-wide' : ''
+      } ${className}`}
+      style={style}
     >
+      {dot && (
+        <span
+          className="h-1.5 w-1.5 shrink-0 rounded-full"
+          style={{ backgroundColor: variant === 'solid' ? 'var(--color-bg-start)' : c }}
+        />
+      )}
+      {Icon && <Icon className="h-3.5 w-3.5 shrink-0" />}
       {label}
+      {count != null && <span className="font-mono opacity-70">{count}</span>}
     </span>
   );
 }

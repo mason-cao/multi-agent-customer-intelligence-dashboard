@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import Card from './Card';
 import useCountUp from '../../hooks/useCountUp';
+import { PALETTE } from '../../utils/colors';
 
 interface StatCardProps {
   title: string;
@@ -28,13 +29,7 @@ export default function StatCard({
 }: StatCardProps) {
   const sparkColor =
     sparkline?.color ??
-    (trend && trend.value >= 0
-      ? '#5eead4'
-      : '#fb7185');
-  const sparkShadow =
-    trend && trend.value < 0
-      ? 'rgba(248, 113, 113, 0.55)'
-      : 'rgba(45, 212, 191, 0.50)';
+    (trend && trend.value >= 0 ? PALETTE.success : PALETTE.danger);
 
   const sparkData = sparkline
     ? sparkline.data.map((v) => ({ value: v }))
@@ -61,9 +56,9 @@ export default function StatCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             {Icon && (
-              <Icon className="h-3.5 w-3.5 text-[rgba(255,255,255,0.45)]" />
+              <Icon className="h-3.5 w-3.5 text-[var(--color-text-tertiary)]" />
             )}
-            <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.62)]">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">
               {title}
             </p>
           </div>
@@ -71,7 +66,7 @@ export default function StatCard({
             {displayValue}
           </p>
           {trend && (
-            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[rgba(255,255,255,0.68)]">
+            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--color-text-secondary)]">
               {trend.value > 0 && (
                 <TrendingUp className="h-3 w-3 text-[var(--color-success)]" />
               )}
@@ -98,7 +93,7 @@ export default function StatCard({
         {sparkData && (
           <div
             className="h-[58px] w-[88px] shrink-0"
-            style={{ filter: `drop-shadow(0 0 10px ${sparkShadow})` }}
+            style={{ filter: `drop-shadow(0 0 10px color-mix(in oklab, ${sparkColor} 50%, transparent))` }}
           >
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <AreaChart data={sparkData} margin={{ top: 5, right: 2, bottom: 5, left: 2 }}>

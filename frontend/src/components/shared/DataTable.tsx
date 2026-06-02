@@ -60,13 +60,13 @@ export default function DataTable<T extends Record<string, unknown>>({
               <tr
                 key={rowIdx}
                 className={`transition-colors ${
-                  rowIdx % 2 === 1 ? 'bg-[rgba(255,255,255,0.02)]' : ''
+                  rowIdx % 2 === 1 ? 'bg-white/[0.02]' : ''
                 }`}
               >
                 {columns.map((col) => (
                   <td
                     key={col.key}
-                    className={`text-[rgba(255,255,255,0.7)] ${alignClass(col.align)}`}
+                    className={`text-[var(--color-text-secondary)] ${alignClass(col.align)}`}
                   >
                     {col.render
                       ? col.render(row[col.key], row)
@@ -81,8 +81,8 @@ export default function DataTable<T extends Record<string, unknown>>({
 
       {/* Pagination */}
       {pageSize && totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between border-t border-[rgba(255,255,255,0.06)] px-4 pt-4">
-          <p className="text-xs text-[rgba(255,255,255,0.4)]">
+        <div className="mt-4 flex items-center justify-between border-t border-white/[0.06] px-4 pt-4">
+          <p className="text-xs text-[var(--color-text-tertiary)]">
             Page {page + 1} of {totalPages} &middot;{' '}
             <span className="font-mono">{data.length}</span> total
           </p>
@@ -90,14 +90,14 @@ export default function DataTable<T extends Record<string, unknown>>({
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-[rgba(255,255,255,0.4)] transition hover:bg-[rgba(255,255,255,0.06)] hover:text-white disabled:opacity-30"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-tertiary)] transition hover:bg-white/5 hover:text-white disabled:opacity-30"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-[rgba(255,255,255,0.4)] transition hover:bg-[rgba(255,255,255,0.06)] hover:text-white disabled:opacity-30"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-tertiary)] transition hover:bg-white/5 hover:text-white disabled:opacity-30"
             >
               <ChevronRight className="h-4 w-4" />
             </button>

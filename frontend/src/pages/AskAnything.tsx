@@ -122,7 +122,7 @@ export default function AskAnything() {
         {!hasMessages && !isPending ? (
           // Empty state with sparkles
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[rgba(129,140,248,0.08)] ring-1 ring-[rgba(129,140,248,0.12)]">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-400/10 ring-1 ring-primary-400/15">
               <Sparkles className="h-7 w-7 text-[var(--color-primary-400)]" />
             </div>
             <h3 className="mt-5 text-sm font-semibold text-white">
@@ -146,7 +146,7 @@ export default function AskAnything() {
             {/* Loading indicator */}
             {isPending && (
               <div className="flex items-start gap-3">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[rgba(129,140,248,0.12)]">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary-400/15">
                   <Sparkles className="h-3.5 w-3.5 text-[var(--color-primary-400)]" />
                 </div>
                 <Card className="max-w-lg">
@@ -174,7 +174,7 @@ export default function AskAnything() {
               key={q}
               onClick={() => handleSubmit(q)}
               disabled={isPending}
-              className="rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.035)] px-3 py-1.5 text-[11px] text-[rgba(255,255,255,0.58)] transition-all duration-200 hover:border-[rgba(129,140,248,0.40)] hover:bg-[rgba(129,140,248,0.10)] hover:text-[#c7d2fe] disabled:opacity-50"
+              className="rounded-full border border-white/[0.12] bg-white/[0.035] px-3 py-1.5 text-[11px] text-[var(--color-text-secondary)] transition-all duration-200 hover:border-primary-400/40 hover:bg-primary-400/10 hover:text-[var(--color-text-accent)] disabled:opacity-50"
             >
               {q}
             </button>
@@ -233,7 +233,7 @@ function AiBubble({ message }: { message: Message }) {
       {/* AI avatar */}
       <div
         className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full ${
-          isError ? 'bg-[rgba(248,113,113,0.12)]' : 'bg-[rgba(129,140,248,0.12)]'
+          isError ? 'bg-danger/15' : 'bg-primary-400/15'
         }`}
       >
         {isError ? (
@@ -245,7 +245,7 @@ function AiBubble({ message }: { message: Message }) {
 
       <Card
         className={`max-w-2xl ${
-          isError ? 'border-[rgba(248,113,113,0.20)] bg-[rgba(248,113,113,0.08)]' : ''
+          isError ? 'border-danger/20 bg-danger/10' : ''
         }`}
       >
         {/* Answer */}

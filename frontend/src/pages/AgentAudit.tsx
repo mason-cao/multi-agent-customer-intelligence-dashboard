@@ -14,15 +14,15 @@ import StatCard from '../components/shared/StatCard';
 import ChartCard from '../components/shared/ChartCard';
 import EmptyState from '../components/shared/EmptyState';
 import { AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE } from '../components/charts';
+import Badge, { type BadgeTone } from '../components/shared/Badge';
+import { PALETTE } from '../utils/colors';
 import { useAgentsSummary } from '../api/hooks';
 
-const SEVERITY_BADGE: Record<string, string> = {
-  critical: 'bg-[rgba(248,113,113,0.15)] text-[#f87171]',
-  warning: 'bg-[rgba(251,191,36,0.15)] text-[#fbbf24]',
-  info: 'bg-[rgba(148,163,184,0.15)] text-[#94a3b8]',
+const SEVERITY_TONE: Record<string, BadgeTone> = {
+  critical: 'danger',
+  warning: 'warning',
+  info: 'muted',
 };
-
-const DEFAULT_SEVERITY = 'bg-[rgba(148,163,184,0.15)] text-[#94a3b8]';
 
 function Skeleton({ className = '' }: { className?: string }) {
   return <div className={`rounded-md shimmer ${className}`} />;
@@ -57,8 +57,8 @@ export default function AgentAudit() {
           <Card><Skeleton className="h-64 w-full" /></Card>
         </div>
       ) : isError ? (
-        <Card className="border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.1)]">
-          <p className="flex items-center gap-2 text-sm text-[rgba(248,113,113,0.9)]">
+        <Card className="border-danger/20 bg-danger/10">
+          <p className="flex items-center gap-2 text-sm text-danger">
             <AlertTriangle className="h-4 w-4" />
             Failed to load audit data.
           </p>
@@ -74,8 +74,8 @@ export default function AgentAudit() {
           {/* Audit KPIs */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard title="Total Checks" value={data.audit.total_checks} variant="default" />
-            <StatCard title="Passed" value={data.audit.passed} glowColor="rgba(52,211,153,0.12)" variant="default" />
-            <StatCard title="Failed" value={data.audit.failed} glowColor="rgba(248,113,113,0.12)" variant="default" />
+            <StatCard title="Passed" value={data.audit.passed} glowColor="color-mix(in oklab, var(--color-success) 14%, transparent)" variant="default" />
+            <StatCard title="Failed" value={data.audit.failed} glowColor="color-mix(in oklab, var(--color-danger) 14%, transparent)" variant="default" />
             <StatCard
               title="Pass Rate"
               value={`${data.audit.total_checks > 0 ? ((data.audit.passed / data.audit.total_checks) * 100).toFixed(0) : 0}%`}
@@ -117,14 +117,14 @@ export default function AgentAudit() {
                   <Bar
                     dataKey="passed"
                     stackId="a"
-                    fill="#34d399"
+                    fill={PALETTE.success}
                     radius={[0, 0, 0, 0]}
                     barSize={16}
                   />
                   <Bar
                     dataKey="failed"
                     stackId="a"
-                    fill="#f87171"
+                    fill={PALETTE.danger}
                     radius={[0, 4, 4, 0]}
                     barSize={16}
                   />
@@ -150,35 +150,29 @@ export default function AgentAudit() {
                       data.runs.map((r) => (
                         <tr
                           key={r.id}
-                          className="border-b border-[rgba(255,255,255,0.06)] transition-colors hover:bg-[rgba(255,255,255,0.04)] last:border-0"
+                          className="border-b border-white/[0.06] transition-colors hover:bg-white/5 last:border-0"
                         >
                           <td className="py-2.5 font-medium capitalize text-white">
                             {r.agent_name}
                           </td>
                           <td className="py-2.5">
                             {r.status === 'completed' ? (
-                              <span className="inline-flex items-center gap-1.5 rounded-full bg-[rgba(52,211,153,0.12)] px-2.5 py-1 text-xs font-medium text-[#34d399]">
-                                <CheckCircle className="h-3.5 w-3.5" />
-                                Completed
-                              </span>
+                              <Badge tone="success" icon={CheckCircle} label="Completed" size="md" />
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 rounded-full bg-[rgba(248,113,113,0.12)] px-2.5 py-1 text-xs font-medium text-[#f87171]">
-                                <XCircle className="h-3.5 w-3.5" />
-                                {r.status}
-                              </span>
+                              <Badge tone="danger" icon={XCircle} label={r.status} size="md" className="capitalize" />
                             )}
                           </td>
-                          <td className="py-2.5 text-right font-mono text-[rgba(255,255,255,0.7)]">
+                          <td className="py-2.5 text-right font-mono text-[var(--color-text-secondary)]">
                             {r.duration_ms != null
                               ? r.duration_ms >= 1000
                                 ? `${(r.duration_ms / 1000).toFixed(1)}s`
                                 : `${r.duration_ms}ms`
                               : '—'}
                           </td>
-                          <td className="py-2.5 text-right font-mono text-[rgba(255,255,255,0.7)]">
+                          <td className="py-2.5 text-right font-mono text-[var(--color-text-secondary)]">
                             {r.tokens_used ?? 0}
                           </td>
-                          <td className="py-2.5 text-xs text-[rgba(255,255,255,0.45)]">
+                          <td className="py-2.5 text-xs text-[var(--color-text-tertiary)]">
                             {r.completed_at
                               ? new Date(r.completed_at).toLocaleString()
                               : '—'}
@@ -187,7 +181,7 @@ export default function AgentAudit() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={5} className="py-8 text-center text-sm text-[rgba(255,255,255,0.45)]">
+                        <td colSpan={5} className="py-8 text-center text-sm text-[var(--color-text-tertiary)]">
                           No agent runs recorded
                         </td>
                       </tr>
@@ -201,7 +195,7 @@ export default function AgentAudit() {
           {/* Detailed checks */}
           <Card className="mt-6">
             <div className="panel-title-bar">
-              <ShieldCheck className="h-4 w-4 text-[#34d399]" />
+              <ShieldCheck className="h-4 w-4 text-success" />
               <h3 className="text-sm font-semibold">
                 All Audit Checks
               </h3>
@@ -222,36 +216,37 @@ export default function AgentAudit() {
                     data.checks.map((c) => (
                       <tr
                         key={c.audit_id}
-                        className="border-b border-[rgba(255,255,255,0.06)] transition-colors hover:bg-[rgba(255,255,255,0.04)] last:border-0"
+                        className="border-b border-white/[0.06] transition-colors hover:bg-white/5 last:border-0"
                       >
-                        <td className="py-2 text-xs font-medium capitalize text-[rgba(255,255,255,0.7)]">
+                        <td className="py-2 text-xs font-medium capitalize text-[var(--color-text-secondary)]">
                           {c.check_category}
                         </td>
                         <td className="py-2 text-xs text-white">
                           {c.check_name}
                         </td>
                         <td className="py-2">
-                          <span
-                            className={`inline-flex min-w-16 justify-center rounded-full px-2.5 py-1 text-[10px] font-semibold ${SEVERITY_BADGE[c.severity] ?? DEFAULT_SEVERITY}`}
-                          >
-                            {c.severity}
-                          </span>
+                          <Badge
+                            tone={SEVERITY_TONE[c.severity] ?? 'muted'}
+                            label={c.severity}
+                            size="md"
+                            className="min-w-16 justify-center capitalize"
+                          />
                         </td>
                         <td className="py-2">
                           {c.passed ? (
-                            <CheckCircle className="h-4 w-4 text-[#34d399]" />
+                            <CheckCircle className="h-4 w-4 text-success" />
                           ) : (
-                            <XCircle className="h-4 w-4 text-[#f87171]" />
+                            <XCircle className="h-4 w-4 text-danger" />
                           )}
                         </td>
-                        <td className="max-w-sm truncate py-2 text-xs text-[rgba(255,255,255,0.7)]">
+                        <td className="max-w-sm truncate py-2 text-xs text-[var(--color-text-secondary)]">
                           {c.audit_message}
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-sm text-[rgba(255,255,255,0.45)]">
+                      <td colSpan={5} className="py-8 text-center text-sm text-[var(--color-text-tertiary)]">
                         No audit checks recorded
                       </td>
                     </tr>

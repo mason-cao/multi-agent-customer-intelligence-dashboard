@@ -10,7 +10,7 @@ export default function PageHeader({ title, description }: PageHeaderProps) {
         {title}
       </h2>
       {description && (
-        <p className="mt-1.5 text-sm leading-relaxed text-[rgba(255,255,255,0.45)]">
+        <p className="mt-1.5 text-sm leading-relaxed text-[var(--color-text-tertiary)]">
           {description}
         </p>
       )}

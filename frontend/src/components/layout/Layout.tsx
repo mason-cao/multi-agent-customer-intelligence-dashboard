@@ -10,7 +10,7 @@ import { useActiveWorkspace } from '../../contexts/workspaceContextValue';
 function DegradedBanner({ warnings }: { warnings: string | null }) {
   const items = (warnings ?? '').split('\n').filter(Boolean);
   return (
-    <div className="mb-6 rounded-lg border border-[rgba(251,191,36,0.25)] bg-[rgba(251,191,36,0.08)] px-4 py-3">
+    <div className="mb-6 rounded-lg border border-warning/25 bg-warning/10 px-4 py-3">
       <div className="flex items-center gap-2 text-[var(--color-warning)]">
         <AlertTriangle className="h-4 w-4" />
         <span className="text-xs font-semibold uppercase tracking-wide">

@@ -30,13 +30,13 @@ export default class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="flex h-full items-center justify-center p-8">
           <div className="max-w-sm text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[rgba(248,113,113,0.15)]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-danger/15">
               <AlertTriangle className="h-7 w-7 text-[var(--color-danger)]" strokeWidth={1.5} />
             </div>
             <h2 className="mt-5 text-sm font-semibold text-white">
               Something went wrong
             </h2>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-[rgba(255,255,255,0.38)]">
+            <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--color-text-tertiary)]">
               This page encountered an unexpected error. Try navigating back or
               returning to the workspace hub.
             </p>

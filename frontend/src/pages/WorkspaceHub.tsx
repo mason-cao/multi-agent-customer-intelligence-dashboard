@@ -28,6 +28,7 @@ import {
   useDeleteWorkspace,
 } from '../api/workspaces';
 import type { Workspace, Scenario, CreateWorkspaceInput } from '../types/workspace';
+import { PALETTE } from '../utils/colors';
 
 // ── Constants ────────────────────────────────────────────
 
@@ -49,54 +50,54 @@ interface ScenarioMeta {
 const SCENARIO_META: Record<string, ScenarioMeta> = {
   velocity_saas: {
     icon: Rocket,
-    accentHex: '#34d399',
-    iconBg: 'bg-[rgba(52,211,153,0.12)]',
-    accentText: 'text-[#34d399]',
-    barGradient: 'from-[#34d399] to-[#6ee7b7]',
+    accentHex: PALETTE.success,
+    iconBg: 'bg-success/15',
+    accentText: 'text-success',
+    barGradient: 'from-success to-success/30',
   },
   atlas_enterprise: {
     icon: Building2,
-    accentHex: '#60a5fa',
-    iconBg: 'bg-[rgba(96,165,250,0.12)]',
-    accentText: 'text-[#60a5fa]',
-    barGradient: 'from-[#60a5fa] to-[#93c5fd]',
+    accentHex: PALETTE.blue,
+    iconBg: 'bg-info/15',
+    accentText: 'text-info',
+    barGradient: 'from-info to-info/30',
   },
   beacon_analytics: {
     icon: BarChart3,
-    accentHex: '#fbbf24',
-    iconBg: 'bg-[rgba(251,191,36,0.12)]',
-    accentText: 'text-[#fbbf24]',
-    barGradient: 'from-[#fbbf24] to-[#fcd34d]',
+    accentHex: PALETTE.warning,
+    iconBg: 'bg-warning/15',
+    accentText: 'text-warning',
+    barGradient: 'from-warning to-warning/30',
   },
   meridian_data: {
     icon: Heart,
-    accentHex: '#a78bfa',
-    iconBg: 'bg-[rgba(167,139,250,0.12)]',
-    accentText: 'text-[#a78bfa]',
-    barGradient: 'from-[#a78bfa] to-[#c4b5fd]',
+    accentHex: PALETTE.violet,
+    iconBg: 'bg-accent-violet/15',
+    accentText: 'text-accent-violet',
+    barGradient: 'from-accent-violet to-accent-violet/30',
   },
   custom: {
     icon: Sliders,
-    accentHex: '#818cf8',
-    iconBg: 'bg-[rgba(129,140,248,0.12)]',
-    accentText: 'text-[#818cf8]',
-    barGradient: 'from-[#818cf8] to-[#a5b4fc]',
+    accentHex: PALETTE.indigo,
+    iconBg: 'bg-primary-400/15',
+    accentText: 'text-primary-400',
+    barGradient: 'from-primary-400 to-primary-400/30',
   },
   random: {
     icon: Sparkles,
-    accentHex: '#f472b6',
-    iconBg: 'bg-[rgba(244,114,182,0.12)]',
-    accentText: 'text-[#f472b6]',
-    barGradient: 'from-[#f472b6] to-[#f9a8d4]',
+    accentHex: PALETTE.cyan,
+    iconBg: 'bg-accent-cyan/15',
+    accentText: 'text-accent-cyan',
+    barGradient: 'from-accent-cyan to-accent-cyan/30',
   },
 };
 
 const DEFAULT_META: ScenarioMeta = {
   icon: Building2,
-  accentHex: '#818cf8',
-  iconBg: 'bg-[rgba(129,140,248,0.12)]',
-  accentText: 'text-[#818cf8]',
-  barGradient: 'from-[#818cf8] to-[#a5b4fc]',
+  accentHex: PALETTE.indigo,
+  iconBg: 'bg-primary-400/15',
+  accentText: 'text-primary-400',
+  barGradient: 'from-primary-400 to-primary-400/30',
 };
 
 function getMeta(scenario: string): ScenarioMeta {
@@ -316,7 +317,7 @@ export default function WorkspaceHub() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.6)] p-4 backdrop-blur-sm">
           <div className="glass-strong w-full max-w-sm rounded-xl p-6">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[rgba(248,113,113,0.15)]">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-danger/15">
                 <Trash2 className="h-5 w-5 text-[var(--color-danger)]" />
               </div>
               <div>
@@ -342,7 +343,7 @@ export default function WorkspaceHub() {
               <button
                 onClick={handleDelete}
                 disabled={deleteMutation.isPending}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[var(--color-danger)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#ef4444] disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white transition hover:brightness-95 disabled:opacity-50"
               >
                 {deleteMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -413,7 +414,7 @@ function ListView({
         </div>
       ) : workspaces.length === 0 ? (
         <div className="glass-elevated mt-12 flex flex-col items-center px-6 py-20">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[rgba(129,140,248,0.08)] ring-1 ring-[rgba(129,140,248,0.12)]">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-400/10 ring-1 ring-primary-400/15">
             <LayoutDashboard
               className="h-7 w-7 text-[var(--color-primary-400)]"
               strokeWidth={1.5}
@@ -451,10 +452,10 @@ function ListView({
           {/* New workspace CTA card */}
           <button
             onClick={onCreateNew}
-            className={`animate-fade-in-up stagger-${Math.min(workspaces.length + 1, 5)} group flex flex-col items-center justify-center rounded-xl border border-dashed border-[rgba(255,255,255,0.10)] p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-primary-400)] hover:bg-[rgba(129,140,248,0.06)] hover:shadow-[0_0_20px_rgba(129,140,248,0.08)]`}
+            className={`animate-fade-in-up stagger-${Math.min(workspaces.length + 1, 5)} group flex flex-col items-center justify-center rounded-xl border border-dashed border-[rgba(255,255,255,0.10)] p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-primary-400)] hover:bg-primary-400/[0.06] hover:shadow-[0_0_20px_rgba(129,140,248,0.08)]`}
             style={{ minHeight: '180px' }}
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[rgba(255,255,255,0.04)] ring-1 ring-[rgba(255,255,255,0.08)] transition-all group-hover:bg-[rgba(129,140,248,0.10)] group-hover:ring-[rgba(129,140,248,0.20)]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[rgba(255,255,255,0.04)] ring-1 ring-[rgba(255,255,255,0.08)] transition-all group-hover:bg-primary-400/10 group-hover:ring-primary-400/20">
               <Plus className="h-5 w-5 text-[rgba(255,255,255,0.30)] transition-colors group-hover:text-[var(--color-primary-400)]" />
             </div>
             <p className="mt-3 text-sm font-medium text-[rgba(255,255,255,0.30)] transition-colors group-hover:text-[var(--color-primary-400)]">
@@ -518,7 +519,7 @@ function WorkspaceCard({
                 e.stopPropagation();
                 onDelete();
               }}
-              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-[rgba(255,255,255,0.3)] transition hover:bg-[rgba(248,113,113,0.12)] hover:text-[var(--color-danger)]"
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-[rgba(255,255,255,0.3)] transition hover:bg-danger/15 hover:text-[var(--color-danger)]"
               title="Delete workspace"
             >
               <Trash2 className="h-3 w-3" />
@@ -654,7 +655,7 @@ function FailedStatus({
       </p>
       <button
         onClick={onRetry}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--color-danger)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#ef4444]"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white transition hover:brightness-95"
       >
         <RefreshCw className="h-3.5 w-3.5" />
         Retry Generation
@@ -669,7 +670,7 @@ function CreatedStatus({ onGenerate }: { onGenerate: () => void }) {
       <p className="text-xs text-[rgba(255,255,255,0.5)]">Not generated yet</p>
       <button
         onClick={onGenerate}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--color-primary-400)] bg-[rgba(129,140,248,0.1)] px-4 py-2 text-sm font-medium text-[var(--color-primary-400)] transition hover:bg-[rgba(129,140,248,0.18)]"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--color-primary-400)] bg-primary-400/10 px-4 py-2 text-sm font-medium text-[var(--color-primary-400)] transition hover:bg-primary-400/20"
       >
         <Play className="h-3.5 w-3.5" />
         Generate Data
@@ -772,7 +773,7 @@ function CreateView({
           <div className="flex items-start gap-3">
             <div
               className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg transition-colors ${
-                isCustom ? 'bg-[rgba(129,140,248,0.12)]' : 'bg-[rgba(255,255,255,0.04)] ring-1 ring-[rgba(255,255,255,0.08)] group-hover:bg-[rgba(255,255,255,0.08)]'
+                isCustom ? 'bg-primary-400/15' : 'bg-[rgba(255,255,255,0.04)] ring-1 ring-[rgba(255,255,255,0.08)] group-hover:bg-[rgba(255,255,255,0.08)]'
               }`}
             >
               <Sliders
@@ -807,8 +808,8 @@ function CreateView({
           className={`animate-fade-in-up stagger-${scenarios.length + 2} glass glass-hover group rounded-xl border border-[rgba(255,255,255,0.08)] p-6 text-left transition-all duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0`}
         >
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[rgba(244,114,182,0.08)] ring-1 ring-[rgba(244,114,182,0.12)] transition-colors group-hover:bg-[rgba(244,114,182,0.14)]">
-              <Sparkles className="h-5 w-5 text-[#f472b6]" />
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-accent-cyan/10 ring-1 ring-accent-cyan/15 transition-colors group-hover:bg-accent-cyan/15">
+              <Sparkles className="h-5 w-5 text-accent-cyan" />
             </div>
             <div className="flex-1">
               <h3 className="text-sm font-semibold text-white">
@@ -910,7 +911,7 @@ function CreateView({
               className="glass-input mt-1.5 w-full max-w-md px-4 py-2.5 text-sm"
             >
               {INDUSTRIES.map((ind) => (
-                <option key={ind} value={ind} className="bg-[#1e1b4b] text-white">
+                <option key={ind} value={ind} className="bg-[var(--color-bg-end)] text-white">
                   {ind}
                 </option>
               ))}
@@ -984,7 +985,7 @@ function CreateView({
 
       {/* Error */}
       {error && (
-        <div className="mt-4 rounded-lg border border-[rgba(248,113,113,0.3)] bg-[rgba(248,113,113,0.1)] p-3">
+        <div className="mt-4 rounded-lg border border-danger/30 bg-danger/10 p-3">
           <p className="flex items-center gap-2 text-sm text-[var(--color-danger)]">
             <AlertTriangle className="h-4 w-4 flex-shrink-0" />
             Failed to create workspace. Please try again.

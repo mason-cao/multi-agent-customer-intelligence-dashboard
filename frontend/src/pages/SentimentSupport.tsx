@@ -18,7 +18,7 @@ import StatCard from '../components/shared/StatCard';
 import ChartCard from '../components/shared/ChartCard';
 import EmptyState from '../components/shared/EmptyState';
 import { useSentimentSummary } from '../api/hooks';
-import { SENTIMENT_COLORS } from '../utils/colors';
+import { SENTIMENT_COLORS, PALETTE } from '../utils/colors';
 import { AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE } from '../components/charts';
 
 function Skeleton({ className = '' }: { className?: string }) {
@@ -61,7 +61,7 @@ export default function SentimentSupport() {
         .map((label) => ({
           name: LABEL_DISPLAY[label] ?? label,
           value: summary.distribution[label] ?? 0,
-          color: SENTIMENT_COLORS[label] ?? '#94a3b8',
+          color: SENTIMENT_COLORS[label] ?? PALETTE.muted,
         }))
     : [];
 
@@ -99,8 +99,8 @@ export default function SentimentSupport() {
           </div>
         </div>
       ) : isError ? (
-        <Card className="border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.1)]">
-          <p className="flex items-center gap-2 text-sm text-[rgba(248,113,113,0.9)]">
+        <Card className="border-danger/20 bg-danger/10">
+          <p className="flex items-center gap-2 text-sm text-danger">
             <AlertTriangle className="h-4 w-4" />
             Failed to load sentiment data.
           </p>
@@ -205,7 +205,7 @@ export default function SentimentSupport() {
                 </ResponsiveContainer>
               ) : (
                 <div className="flex h-64 items-center justify-center">
-                  <p className="text-sm text-[rgba(255,255,255,0.45)]">
+                  <p className="text-sm text-[var(--color-text-tertiary)]">
                     No distribution data
                   </p>
                 </div>
@@ -270,7 +270,7 @@ export default function SentimentSupport() {
                 </ResponsiveContainer>
               ) : (
                 <div className="flex h-64 items-center justify-center">
-                  <p className="text-sm text-[rgba(255,255,255,0.45)]">
+                  <p className="text-sm text-[var(--color-text-tertiary)]">
                     No topics extracted from feedback
                   </p>
                 </div>

@@ -17,7 +17,8 @@ import {
   useAtRiskCustomers,
   useFeatureImportance,
 } from '../api/hooks';
-import { RISK_COLORS } from '../utils/colors';
+import Badge from '../components/shared/Badge';
+import { RISK_COLORS, PALETTE } from '../utils/colors';
 import { formatCurrency } from '../utils/formatters';
 import { AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE } from '../components/charts';
 
@@ -65,8 +66,8 @@ export default function ChurnRetention() {
           <Card><Skeleton className="h-64 w-full" /></Card>
         </div>
       ) : isError ? (
-        <Card className="border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.1)]">
-          <p className="flex items-center gap-2 text-sm text-[rgba(248,113,113,0.9)]">
+        <Card className="border-danger/20 bg-danger/10">
+          <p className="flex items-center gap-2 text-sm text-danger">
             <AlertTriangle className="h-4 w-4" />
             Failed to load churn analysis data.
           </p>
@@ -91,24 +92,24 @@ export default function ChurnRetention() {
                   key={tier.risk_tier}
                   hover
                   className={`animate-fade-in-up stagger-${i + 1}`}
-                  style={{ '--glass-hover-glow': hexToRgba(RISK_COLORS[colorKey] ?? '#6b7280', 0.12) } as React.CSSProperties}
+                  style={{ '--glass-hover-glow': hexToRgba(RISK_COLORS[colorKey] ?? PALETTE.muted, 0.12) } as React.CSSProperties}
                 >
                   <div className="flex items-center gap-2">
                     <span
                       className="h-2.5 w-2.5 rounded-full"
-                      style={{ backgroundColor: RISK_COLORS[colorKey] ?? '#6b7280' }}
+                      style={{ backgroundColor: RISK_COLORS[colorKey] ?? PALETTE.muted }}
                     />
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
                       {tier.risk_tier}
                     </p>
                   </div>
                   <p className="mt-2 font-mono text-3xl font-bold text-white">
                     {tier.count.toLocaleString()}
                   </p>
-                  <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[rgba(255,255,255,0.7)]">
-                    <span className="font-mono text-[rgba(255,255,255,0.82)]">{pct}%</span>
+                  <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--color-text-secondary)]">
+                    <span className="font-mono text-white/80">{pct}%</span>
                     <span>of customers</span>
-                    <span className="font-mono text-[rgba(255,255,255,0.82)]">{formatCurrency(tier.mrr_at_risk)}</span>
+                    <span className="font-mono text-white/80">{formatCurrency(tier.mrr_at_risk)}</span>
                     <span>MRR</span>
                   </p>
                 </Card>
@@ -133,31 +134,28 @@ export default function ChurnRetention() {
                   <tbody>
                     {atRisk?.length ? (
                       atRisk.map((c) => {
-                        const riskColor = RISK_COLORS[c.risk_tier.toLowerCase()] ?? '#6b7280';
+                        const riskColor = RISK_COLORS[c.risk_tier.toLowerCase()] ?? PALETTE.muted;
                         return (
                           <tr
                             key={c.customer_id}
-                            className="border-b border-[rgba(255,255,255,0.06)] last:border-0 transition-colors hover:bg-[rgba(255,255,255,0.04)]"
+                            className="border-b border-white/[0.06] last:border-0 transition-colors hover:bg-white/5"
                           >
                             <td className="py-2.5 font-medium text-white">
                               {c.name}
                             </td>
-                            <td className="py-2.5 text-[rgba(255,255,255,0.6)]">{c.company}</td>
+                            <td className="py-2.5 text-[var(--color-text-secondary)]">{c.company}</td>
                             <td className="py-2.5 text-right">
-                              <span
-                                className="inline-flex min-w-14 justify-center rounded-full px-2.5 py-1 font-mono text-xs font-semibold"
-                                style={{
-                                  backgroundColor: hexToRgba(riskColor, 0.15),
-                                  color: riskColor,
-                                }}
-                              >
-                                {(c.churn_probability * 100).toFixed(1)}%
-                              </span>
+                              <Badge
+                                color={riskColor}
+                                label={`${(c.churn_probability * 100).toFixed(1)}%`}
+                                size="md"
+                                className="min-w-14 justify-center font-mono"
+                              />
                             </td>
-                            <td className="py-2.5 text-right font-mono text-[rgba(255,255,255,0.7)]">
+                            <td className="py-2.5 text-right font-mono text-[var(--color-text-secondary)]">
                               {formatCurrency(c.mrr)}
                             </td>
-                            <td className="py-2.5 text-xs text-[rgba(255,255,255,0.7)]">
+                            <td className="py-2.5 text-xs text-[var(--color-text-secondary)]">
                               {c.top_risk_factor}
                             </td>
                           </tr>
@@ -165,7 +163,7 @@ export default function ChurnRetention() {
                       })
                     ) : (
                       <tr>
-                        <td colSpan={5} className="py-8 text-center text-sm text-[rgba(255,255,255,0.45)]">
+                        <td colSpan={5} className="py-8 text-center text-sm text-[var(--color-text-tertiary)]">
                           No at-risk customers identified
                         </td>
                       </tr>
@@ -209,14 +207,14 @@ export default function ChurnRetention() {
                     />
                     <Bar
                       dataKey="importance"
-                      fill="#818cf8"
+                      fill={PALETTE.indigo}
                       radius={[0, 4, 4, 0]}
                       barSize={20}
                     />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="py-8 text-center text-sm text-[rgba(255,255,255,0.45)]">
+                <p className="py-8 text-center text-sm text-[var(--color-text-tertiary)]">
                   No feature importance data available
                 </p>
               )}
