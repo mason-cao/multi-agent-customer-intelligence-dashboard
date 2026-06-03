@@ -156,6 +156,8 @@ export interface CustomerListResponse {
 }
 
 // Query
+export type QueryResultKind = 'metric' | 'list' | 'table' | 'distribution' | 'text';
+
 export interface QueryResult {
   query_id: string;
   original_question: string;
@@ -168,4 +170,12 @@ export interface QueryResult {
   execution_ms: number | null;
   query_version: string;
   executed_at: string;
+  result_kind?: QueryResultKind | null;
+  suggested_followups?: string[];
+}
+
+export interface QuerySuggestion {
+  intent: string;
+  label: string;
+  example: string;
 }

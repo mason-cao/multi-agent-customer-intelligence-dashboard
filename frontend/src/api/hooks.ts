@@ -13,6 +13,7 @@ import type {
   AgentsSummary,
   CustomerListResponse,
   QueryResult,
+  QuerySuggestion,
 } from '../types';
 
 // ── Overview ──────────────────────────────────────────────
@@ -195,5 +196,18 @@ export function useAskQuestion() {
       const { data } = await api.post('/query', { question });
       return data;
     },
+  });
+}
+
+export function useQuerySuggestions() {
+  // Suggestions come from the static intent registry, so they don't depend on
+  // the active workspace and can be cached for the session.
+  return useQuery<QuerySuggestion[]>({
+    queryKey: ['query', 'suggestions'],
+    queryFn: async () => {
+      const { data } = await api.get('/query/suggestions');
+      return data;
+    },
+    staleTime: Infinity,
   });
 }
