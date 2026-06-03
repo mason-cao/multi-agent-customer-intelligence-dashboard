@@ -387,6 +387,45 @@ class LLMClient:
             f"LLM call failed after 3 attempts ({self._provider}): {last_error}"
         ) from last_error
 
+    def route_query(self, question: str, allowed_intents: list) -> Optional[dict]:
+        """Map a question to ONE whitelisted intent (+ simple params) via the LLM.
+
+        Returns ``{"intent": str, "params": dict}`` or ``None``. Returns ``None``
+        in mock mode (the deterministic engine stays authoritative) and on any
+        failure or out-of-whitelist answer. The model can only choose an intent
+        and extract scalar params — it never produces SQL.
+        """
+        if self.is_mock:
+            return None
+        system = (
+            "You are a query router for a customer-intelligence analytics tool. "
+            "Map the user's question to exactly one intent from the allowed list, "
+            "or 'unsupported' if none fit. Optionally extract params: 'limit' (int) "
+            "for top-N questions, 'query' (string) for a customer name/company/id. "
+            "Respond with ONLY a JSON object of the form "
+            '{"intent": "<intent>", "params": {"limit": <int?>, "query": "<str?>"}}.'
+        )
+        prompt = f"Allowed intents: {', '.join(allowed_intents)}\nQuestion: {question}"
+        try:
+            resp = self.complete(
+                prompt=prompt,
+                system=system,
+                json_mode=True,
+                prompt_type="query_routing",
+                max_tokens=200,
+            )
+            data = resp.raw_json if resp.raw_json is not None else _parse_json(resp.content)
+            if not isinstance(data, dict):
+                return None
+            intent = data.get("intent")
+            if not isinstance(intent, str) or intent not in allowed_intents:
+                return None
+            params = data.get("params")
+            return {"intent": intent, "params": params if isinstance(params, dict) else {}}
+        except Exception as e:
+            logger.warning("query_routing_failed", error=str(e))
+            return None
+
 
 # ---------------------------------------------------------------------------
 # Helpers

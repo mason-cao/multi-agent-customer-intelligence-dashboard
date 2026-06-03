@@ -1,32 +1,32 @@
 """
 QueryAgent -- controlled natural-language analytics query layer.
 
-Approach: Intent classification via keyword matching, routed to whitelisted
-query handlers. Every question maps to exactly one named handler with a
-pre-built read-only SQL query. No user text ever composes SQL.
+Approach: Scored keyword intent classification, routed to whitelisted query
+handlers. Every question maps to exactly one named handler with a pre-built
+read-only SQL query. User text never composes SQL; the only values that reach
+SQL are bound parameters (e.g. top-N limits, a customer search term).
 
-Supported intents (10):
-  1. churn_by_segment       — Avg churn risk per segment
-  2. top_risk_customers     — Highest-risk customers with their actions
-  3. recommendation_dist    — Recommendation action distribution
-  4. sentiment_by_segment   — Avg sentiment per segment
-  5. segment_overview       — Segment sizes and key metrics
-  6. priority_actions       — Highest-priority retention actions this week
-  7. executive_insights     — Current executive narrative summaries
-  8. audit_findings         — Current audit warnings and failures
-  9. high_risk_negative     — High-risk + negative-sentiment customer actions
-  10. customer_summary      — Aggregated intelligence summary across all outputs
+14 intents are supported (see INTENT_REGISTRY), including per-segment churn /
+sentiment / revenue, segment + industry breakdowns, top-risk customers,
+priority actions, recommendation distribution, executive insights, audit
+findings, high-risk-negative actions, a full summary, customer lookup, and
+support-ticket topics. Each carries a result_kind (rendering hint) and
+suggested follow-ups.
+
+Resolution is deterministic and zero-key by default. When a real LLM provider
+is configured, it may OPTIONALLY route an otherwise-unmatched question to one
+of these whitelisted intents and extract bound params — it never emits SQL.
+The mock / no-key path is unchanged and always available.
 
 Unsupported questions fail safely with an honest explanation of what IS
 supported. No arbitrary SQL, no mutations, no unbounded execution.
-
-No LLM calls for core resolution. Fully deterministic. Zero API keys required.
 
 Inputs:  A question string + all upstream agent output tables (read-only)
 Outputs: query_results (one row per query invocation)
 Phase:   5 (runs on-demand, after pipeline agents)
 """
 
+import inspect
 import json
 import re
 import time
@@ -41,121 +41,211 @@ from app.agents.base import BaseAgent
 
 
 # ── Version ───────────────────────────────────────────────────────
-QUERY_VERSION = "intent-v1"
+QUERY_VERSION = "intent-v2"
 
 
 # ── Intent definitions ────────────────────────────────────────────
-# Each intent has keyword patterns (any match triggers) and a description
-# for traceability. Patterns are evaluated in order; first match wins.
+# Each intent declares weighted keyword phrases. classify_intent() scores
+# every intent by the weights of the phrases present in the (normalized)
+# question and picks the best-scoring one — so rewordings still resolve.
+# Registry order is the tie-breaker (earlier wins on equal scores), so more
+# specific intents are listed first.
+#
+# `kw` entries are (phrase, weight). Phrases are matched as substrings of the
+# normalized question (lowercased, punctuation -> spaces). `result_kind` tells
+# the frontend how to render, `followups` seeds guided next questions, and
+# `label`/`example` drive the /suggestions endpoint.
 
 INTENT_REGISTRY: List[Dict[str, Any]] = [
     {
+        "intent": "high_risk_negative",
+        "kw": [("negative sentiment", 3), ("high risk", 2), ("at risk", 1),
+               ("unhappy", 2), ("frustrated", 2), ("negative", 1)],
+        "description": "Actions for high-risk negative-sentiment customers",
+        "result_kind": "table",
+        "label": "High-risk + unhappy",
+        "example": "What should we do for high-risk customers with negative sentiment?",
+        "followups": ["Show the top 10 highest-risk customers",
+                      "How does sentiment vary by segment?"],
+    },
+    {
+        "intent": "customer_lookup",
+        "kw": [("look up", 3), ("lookup", 3), ("who is", 3), ("customer named", 3),
+               ("show me customer", 3), ("find", 2), ("search", 2), ("profile", 2),
+               ("details for", 2), ("customer", 1)],
+        "description": "Look up a specific customer by name, company, or ID",
+        "result_kind": "table",
+        "label": "Find a customer",
+        "example": "Look up customer Jordan Lee",
+        "followups": ["Show the top 10 highest-risk customers",
+                      "Give me an overall customer intelligence summary"],
+    },
+    {
+        "intent": "ticket_topics",
+        "kw": [("ticket", 3), ("support topic", 3), ("topics", 2), ("complaint", 2),
+               ("support", 1)],
+        "description": "Most common support ticket topics",
+        "result_kind": "distribution",
+        "label": "Support topics",
+        "example": "What are the most common support ticket topics?",
+        "followups": ["How does sentiment vary by segment?",
+                      "What should we prioritize this week?"],
+    },
+    {
+        "intent": "industry_breakdown",
+        "kw": [("industry", 3), ("industries", 3), ("vertical", 2), ("sector", 2)],
+        "description": "Customer count, revenue, and churn broken down by industry",
+        "result_kind": "table",
+        "label": "By industry",
+        "example": "How does churn vary by industry?",
+        "followups": ["Break down revenue by segment",
+                      "Which segment has the highest churn risk?"],
+    },
+    {
         "intent": "audit_findings",
-        "patterns": [
-            r"\baudit\b",
-            r"\bvalidation\b.*\b(result|finding|warning|fail)",
-            r"\btrust\b.*\b(check|score|result)",
-        ],
-        "description": "Retrieve current audit warnings and failures",
+        "kw": [("audit", 3), ("validation", 2), ("data quality", 2),
+               ("trust", 1), ("warning", 1)],
+        "description": "Current audit warnings and failures",
+        "result_kind": "table",
+        "label": "Audit findings",
+        "example": "Are there any audit warnings?",
+        "followups": ["Give me an overall customer intelligence summary",
+                      "What are the most important executive insights?"],
     },
     {
         "intent": "executive_insights",
-        "patterns": [
-            r"\bexecutive\b",
-            r"\bnarrative\b",
-            r"\binsight[s]?\b.*\b(important|key|main|top|now|current)",
-            r"\b(important|key|main)\b.*\binsight",
-            r"\bsummar(y|ize)\b.*\b(executive|overall|business)",
-            r"\bfinding[s]?\b.*\b(matter|important|key)",
-        ],
+        "kw": [("executive", 3), ("narrative", 2), ("key insight", 2),
+               ("what matters", 2), ("headline", 2), ("insight", 1)],
         "description": "Current executive narrative summaries",
-    },
-    {
-        "intent": "high_risk_negative",
-        "patterns": [
-            r"\bhigh.risk\b.*\bnegative\b",
-            r"\bnegative.sentiment\b.*\b(risk|churn|action)",
-            r"\b(risk|churn)\b.*\bnegative.sentiment\b",
-            r"\bnegative\b.*\b(customer|action|recommend)",
-        ],
-        "description": "Actions for high-risk negative-sentiment customers",
-    },
-    {
-        "intent": "top_risk_customers",
-        "patterns": [
-            r"\btop\b.*\b(risk|churn)",
-            r"\bhighest.risk\b.*\bcustomer",
-            r"\briskiest\b",
-            r"\bcritical\b.*\bcustomer",
-            r"\bmost\b.*\b(risk|danger|churn)",
-        ],
-        "description": "Highest-risk customers with recommended actions",
+        "result_kind": "list",
+        "label": "Executive insights",
+        "example": "What are the most important executive insights right now?",
+        "followups": ["Give me an overall customer intelligence summary",
+                      "What should we prioritize this week?"],
     },
     {
         "intent": "priority_actions",
-        "patterns": [
-            r"\bprioritiz",
-            r"\bpriority\b.*\b(action|retention|this week|immediate)",
-            r"\bthis week\b",
-            r"\bimmediate\b.*\baction",
-            r"\burgent\b",
-            r"\bwhat\b.*\bshould\b.*\b(do|act|focus)",
-        ],
+        "kw": [("prioritize", 3), ("this week", 3), ("what should we do", 3),
+               ("priority", 2), ("urgent", 2), ("immediate", 2),
+               ("focus on", 2), ("act now", 2)],
         "description": "Highest-priority retention actions for this week",
-    },
-    {
-        "intent": "churn_by_segment",
-        "patterns": [
-            r"\bchurn\b.*\bsegment",
-            r"\bsegment\b.*\bchurn",
-            r"\brisk\b.*\bsegment",
-            r"\bsegment\b.*\brisk",
-            r"\bwhich\b.*\bsegment\b.*\b(high|churn|risk)",
-        ],
-        "description": "Average churn risk per customer segment",
-    },
-    {
-        "intent": "sentiment_by_segment",
-        "patterns": [
-            r"\bsentiment\b.*\bsegment",
-            r"\bsegment\b.*\bsentiment",
-            r"\bsentiment\b.*\btrend",
-            r"\bhow\b.*\b(feel|sentiment)\b.*\bsegment",
-        ],
-        "description": "Average sentiment per customer segment",
+        "result_kind": "table",
+        "label": "This week's priorities",
+        "example": "What should we prioritize this week?",
+        "followups": ["Show the top 10 highest-risk customers",
+                      "What actions are most common?"],
     },
     {
         "intent": "recommendation_dist",
-        "patterns": [
-            r"\brecommendation\b.*\b(distribution|common|frequent|breakdown)",
-            r"\baction[s]?\b.*\b(common|frequent|distribution|most)",
-            r"\bmost\b.*\brecommend",
-            r"\bwhat\b.*\brecommend",
-        ],
+        "kw": [("next best action", 3), ("recommend", 2), ("recommendation", 2),
+               ("distribution", 2), ("action", 1), ("common", 1), ("frequent", 1)],
         "description": "Recommendation action distribution",
+        "result_kind": "distribution",
+        "label": "Recommended actions",
+        "example": "What actions are most common?",
+        "followups": ["What should we prioritize this week?",
+                      "Break down revenue by segment"],
     },
     {
         "intent": "segment_overview",
-        "patterns": [
-            r"\bsegment\b.*\b(overview|size|count|breakdown|summary)",
-            r"\bhow\b.*\bmany\b.*\bsegment",
-            r"\bsegment\b.*\b(look|like|distribution)",
-            r"\bcustomer\b.*\bsegment\b",
-        ],
+        "kw": [("segment", 2), ("overview", 2), ("how many", 2),
+               ("size", 1), ("breakdown", 1)],
         "description": "Segment sizes and key metrics",
+        "result_kind": "table",
+        "label": "Segment overview",
+        "example": "Give me a segment overview",
+        "followups": ["Break down revenue by segment",
+                      "Which segment has the highest churn risk?"],
+    },
+    {
+        "intent": "revenue_by_segment",
+        "kw": [("revenue", 2), ("segment", 2), ("mrr", 1), ("spend", 1)],
+        "description": "Total and average revenue per customer segment",
+        "result_kind": "distribution",
+        "label": "Revenue by segment",
+        "example": "Break down revenue by segment",
+        "followups": ["Give me a segment overview",
+                      "Which segment has the highest churn risk?"],
+    },
+    {
+        "intent": "sentiment_by_segment",
+        "kw": [("sentiment", 2), ("segment", 2), ("feel", 1), ("mood", 1), ("happy", 1)],
+        "description": "Average sentiment per customer segment",
+        "result_kind": "distribution",
+        "label": "Sentiment by segment",
+        "example": "How does sentiment vary by segment?",
+        "followups": ["What are the most common support ticket topics?",
+                      "Which segment has the highest churn risk?"],
+    },
+    {
+        "intent": "churn_by_segment",
+        "kw": [("segment", 2), ("churn", 1), ("risk", 1), ("retention", 1)],
+        "description": "Average churn risk per customer segment",
+        "result_kind": "distribution",
+        "label": "Churn by segment",
+        "example": "Which segment has the highest churn risk?",
+        "followups": ["Show the top 10 highest-risk customers",
+                      "Break down revenue by segment"],
+    },
+    {
+        "intent": "top_risk_customers",
+        "kw": [("riskiest", 3), ("most likely to leave", 3), ("highest risk", 2),
+               ("who will churn", 2), ("high risk", 1), ("at risk", 1),
+               ("top", 1), ("customer", 1)],
+        "description": "Highest-risk customers with recommended actions",
+        "result_kind": "table",
+        "label": "Highest-risk customers",
+        "example": "Show the top 10 highest-risk customers",
+        "followups": ["What should we do for high-risk customers with negative sentiment?",
+                      "What should we prioritize this week?"],
     },
     {
         "intent": "customer_summary",
-        "patterns": [
-            r"\b(overall|general|full|complete)\b.*\bsummar",
-            r"\bsummar\b.*\b(customer|intelligence|all|everything)",
-            r"\boverview\b",
-            r"\bdashboard\b",
-            r"\bhow\b.*\b(doing|perform|look)\b.*\b(overall|general)",
-        ],
+        "kw": [("overall", 2), ("summary", 2), ("intelligence", 2), ("dashboard", 2),
+               ("everything", 2), ("snapshot", 2), ("at a glance", 2),
+               ("how are we doing", 3)],
         "description": "Aggregated intelligence summary across all outputs",
+        "result_kind": "metric",
+        "label": "Full summary",
+        "example": "Give me an overall customer intelligence summary",
+        "followups": ["Which segment has the highest churn risk?",
+                      "What are the most important executive insights?"],
     },
 ]
+
+# Per-intent rendering + guidance metadata, keyed by intent for O(1) lookup.
+INTENT_META: Dict[str, Dict[str, Any]] = {
+    e["intent"]: {
+        "result_kind": e["result_kind"],
+        "followups": e["followups"],
+        "label": e["label"],
+        "example": e["example"],
+        "description": e["description"],
+    }
+    for e in INTENT_REGISTRY
+}
+
+# Default follow-ups offered when a question is not understood.
+UNSUPPORTED_FOLLOWUPS = [
+    "Which segment has the highest churn risk?",
+    "Show the top 10 highest-risk customers",
+    "What should we prioritize this week?",
+]
+
+MIN_INTENT_SCORE = 1
+
+
+def _normalize(question: str) -> str:
+    """Lowercase and replace non-alphanumeric runs with single spaces."""
+    return re.sub(r"[^a-z0-9]+", " ", question.lower()).strip()
+
+
+def build_suggestions() -> List[Dict[str, str]]:
+    """Guided prompt suggestions derived from the intent registry."""
+    return [
+        {"intent": e["intent"], "label": e["label"], "example": e["example"]}
+        for e in INTENT_REGISTRY
+    ]
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -200,8 +290,11 @@ def _handle_churn_by_segment(engine) -> Dict[str, Any]:
     }
 
 
-def _handle_top_risk_customers(engine) -> Dict[str, Any]:
-    """Top 10 highest-risk customers with their recommended actions."""
+def _handle_top_risk_customers(engine, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Highest-risk customers with their recommended actions. `params['limit']`
+    (1-50, default 10) controls how many are returned, bound as a SQL param."""
+    limit = int((params or {}).get("limit") or 10)
+    limit = max(1, min(limit, 50))
     df = pd.read_sql(
         text(
             "SELECT cp.customer_id, c.name, c.company, cp.churn_probability, cp.risk_tier, "
@@ -213,9 +306,10 @@ def _handle_top_risk_customers(engine) -> Dict[str, Any]:
             "JOIN recommendations r ON cp.customer_id = r.customer_id "
             "JOIN customer_segments cs ON cp.customer_id = cs.customer_id "
             "ORDER BY cp.churn_probability DESC "
-            "LIMIT 10"
+            "LIMIT :limit"
         ),
         engine,
+        params={"limit": limit},
     )
     rows = df.to_dict("records")
     if not rows:
@@ -226,7 +320,7 @@ def _handle_top_risk_customers(engine) -> Dict[str, Any]:
             "row_count": 0,
         }
 
-    answer = "Top 10 highest-risk customers by churn probability:\n"
+    answer = f"Top {len(rows)} highest-risk customers by churn probability:\n"
     for i, r in enumerate(rows, 1):
         answer += (
             f"  {i}. {r['name']} at {r['company']}: "
@@ -587,6 +681,211 @@ def _handle_customer_summary(engine) -> Dict[str, Any]:
     }
 
 
+def _handle_revenue_by_segment(engine, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Total and average revenue per customer segment, highest total first."""
+    df = pd.read_sql(
+        text(
+            "SELECT cs.segment_name, COUNT(*) as customer_count, "
+            "ROUND(SUM(cf.total_revenue), 2) as total_revenue, "
+            "ROUND(AVG(cf.total_revenue), 2) as avg_revenue "
+            "FROM customer_segments cs "
+            "JOIN customer_features cf ON cs.customer_id = cf.customer_id "
+            "GROUP BY cs.segment_name "
+            "ORDER BY total_revenue DESC"
+        ),
+        engine,
+    )
+    rows = df.to_dict("records")
+    grand_total = sum((r["total_revenue"] or 0) for r in rows)
+    answer = f"Revenue by segment (${grand_total:,.0f} total):\n"
+    for r in rows:
+        pct = (r["total_revenue"] or 0) / grand_total * 100 if grand_total else 0
+        answer += (
+            f"  {r['segment_name']}: ${r['total_revenue']:,.0f} ({pct:.1f}%), "
+            f"${r['avg_revenue']:,.0f} avg across {r['customer_count']:,} customers\n"
+        )
+    return {
+        "answer_text": answer.strip(),
+        "structured_result": rows,
+        "source_tables": "customer_segments,customer_features",
+        "row_count": len(rows),
+    }
+
+
+def _handle_industry_breakdown(engine, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Customer count, average revenue, and average churn per industry."""
+    df = pd.read_sql(
+        text(
+            "SELECT c.industry, COUNT(*) as customer_count, "
+            "ROUND(AVG(cf.total_revenue), 2) as avg_revenue, "
+            "ROUND(AVG(cp.churn_probability), 4) as avg_churn "
+            "FROM customers c "
+            "LEFT JOIN customer_features cf ON c.customer_id = cf.customer_id "
+            "LEFT JOIN churn_predictions cp ON c.customer_id = cp.customer_id "
+            "GROUP BY c.industry "
+            "ORDER BY customer_count DESC"
+        ),
+        engine,
+    )
+    rows = df.to_dict("records")
+    answer = "Customers by industry:\n"
+    for r in rows:
+        answer += (
+            f"  {r['industry']}: {r['customer_count']:,} customers, "
+            f"${(r['avg_revenue'] or 0):,.0f} avg revenue, "
+            f"{(r['avg_churn'] or 0):.1%} avg churn\n"
+        )
+    return {
+        "answer_text": answer.strip(),
+        "structured_result": rows,
+        "source_tables": "customers,customer_features,churn_predictions",
+        "row_count": len(rows),
+    }
+
+
+def _extract_lookup_term(question: str) -> str:
+    """Pull a likely customer name / company / id out of a lookup question."""
+    m = re.search(
+        r"(?:customer named|show me customer|look up|lookup|who is|profile of|"
+        r"details for|about|for|customer)\s+([A-Za-z0-9'.\- ]{2,60})",
+        question,
+        re.I,
+    )
+    if m:
+        term = m.group(1).strip()
+    else:
+        caps = re.findall(r"\b[A-Z][\w'.\-]*(?:\s+[A-Z][\w'.\-]*)*\b", question)
+        term = caps[0] if caps else ""
+    term = re.sub(r"^(customer|client|account)\s+", "", term, flags=re.I).strip()
+    term = re.sub(r"\s+(please|now|today|thanks|thank you).*$", "", term, flags=re.I).strip()
+    return term
+
+
+def _handle_customer_lookup(engine, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Look up specific customers by name/company/id. The search term is always
+    passed as a bound parameter (never interpolated into SQL)."""
+    src = "customers,customer_features,churn_predictions,customer_segments"
+    term = ((params or {}).get("query") or "").strip()
+    if not term:
+        return {
+            "answer_text": "Tell me a customer name, company, or ID to look up.",
+            "structured_result": [],
+            "source_tables": src,
+            "row_count": 0,
+        }
+    df = pd.read_sql(
+        text(
+            "SELECT c.customer_id, c.name, c.company, c.industry, c.plan_tier, "
+            "cf.total_revenue, cf.engagement_score, "
+            "cp.churn_probability, cp.risk_tier, cs.segment_name "
+            "FROM customers c "
+            "LEFT JOIN customer_features cf ON c.customer_id = cf.customer_id "
+            "LEFT JOIN churn_predictions cp ON c.customer_id = cp.customer_id "
+            "LEFT JOIN customer_segments cs ON c.customer_id = cs.customer_id "
+            "WHERE c.name LIKE :like OR c.company LIKE :like OR c.customer_id = :exact "
+            "ORDER BY cp.churn_probability DESC "
+            "LIMIT 10"
+        ),
+        engine,
+        params={"like": f"%{term}%", "exact": term},
+    )
+    rows = df.to_dict("records")
+    if not rows:
+        return {
+            "answer_text": f"No customer matched '{term}'.",
+            "structured_result": [],
+            "source_tables": src,
+            "row_count": 0,
+        }
+    answer = f"{len(rows)} match(es) for '{term}':\n"
+    for r in rows:
+        churn = r.get("churn_probability")
+        churn_txt = (
+            f"{churn:.1%} churn ({r.get('risk_tier')})"
+            if churn is not None
+            else "no churn score"
+        )
+        answer += (
+            f"  {r['name']} at {r['company']} — "
+            f"{r.get('segment_name') or 'unsegmented'}, {churn_txt}\n"
+        )
+    return {
+        "answer_text": answer.strip(),
+        "structured_result": rows,
+        "source_tables": src,
+        "row_count": len(rows),
+    }
+
+
+def _handle_ticket_topics(engine, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Most common support ticket topics (by category), with open counts."""
+    df = pd.read_sql(
+        text(
+            "SELECT category, COUNT(*) as count, "
+            "SUM(CASE WHEN resolution_status != 'resolved' THEN 1 ELSE 0 END) as open_count "
+            "FROM support_tickets "
+            "GROUP BY category "
+            "ORDER BY count DESC"
+        ),
+        engine,
+    )
+    rows = df.to_dict("records")
+    total = sum(r["count"] for r in rows)
+    answer = f"Top support ticket topics ({total:,} tickets):\n"
+    for r in rows:
+        pct = r["count"] / total * 100 if total else 0
+        answer += (
+            f"  {r['category']}: {r['count']:,} ({pct:.1f}%), "
+            f"{int(r['open_count'])} still open\n"
+        )
+    return {
+        "answer_text": answer.strip(),
+        "structured_result": rows,
+        "source_tables": "support_tickets",
+        "row_count": len(rows),
+    }
+
+
+# ── Parameter extraction ──────────────────────────────────────────
+
+
+def extract_params(question: str, intent: str) -> Dict[str, Any]:
+    """Extract safe, bound parameters from a question for the matched intent.
+
+    Returns only scalar values. Callers pass these to handlers as bound SQL
+    params — they are never string-interpolated into SQL.
+    """
+    params: Dict[str, Any] = {}
+    if intent == "top_risk_customers":
+        m = re.search(r"\b(?:top|first|highest|show me)\s+(\d{1,3})\b", question, re.I)
+        if not m:
+            m = re.search(r"\b(\d{1,3})\s+(?:customers?|riskiest|accounts?)\b", question, re.I)
+        if m:
+            params["limit"] = max(1, min(int(m.group(1)), 50))
+    elif intent == "customer_lookup":
+        term = _extract_lookup_term(question)
+        if term:
+            params["query"] = term
+    return params
+
+
+def _sanitize_params(raw: Any) -> Dict[str, Any]:
+    """Whitelist params returned by LLM routing down to safe scalar types,
+    so a model can never smuggle anything into a handler beyond limit/query."""
+    params: Dict[str, Any] = {}
+    if not isinstance(raw, dict):
+        return params
+    limit = raw.get("limit")
+    if isinstance(limit, bool):
+        limit = None
+    if isinstance(limit, int) or (isinstance(limit, str) and limit.isdigit()):
+        params["limit"] = max(1, min(int(limit), 50))
+    query = raw.get("query")
+    if isinstance(query, str) and query.strip():
+        params["query"] = query.strip()[:80]
+    return params
+
+
 # ── Handler dispatch map ──────────────────────────────────────────
 INTENT_HANDLERS = {
     "churn_by_segment": _handle_churn_by_segment,
@@ -599,7 +898,27 @@ INTENT_HANDLERS = {
     "audit_findings": _handle_audit_findings,
     "high_risk_negative": _handle_high_risk_negative,
     "customer_summary": _handle_customer_summary,
+    "revenue_by_segment": _handle_revenue_by_segment,
+    "industry_breakdown": _handle_industry_breakdown,
+    "customer_lookup": _handle_customer_lookup,
+    "ticket_topics": _handle_ticket_topics,
 }
+
+# Columns persisted to the query_results table (response-only fields like
+# result_kind / suggested_followups are intentionally excluded).
+QUERY_RESULT_COLUMNS = [
+    "query_id", "original_question", "matched_intent", "query_status",
+    "answer_text", "structured_result", "source_tables", "row_count",
+    "execution_ms", "query_version", "executed_at",
+]
+
+
+def _call_handler(handler, engine, params: Optional[Dict[str, Any]]):
+    """Invoke a handler, passing params only to handlers that accept them.
+    Keeps older single-arg handlers working without signature churn."""
+    if len(inspect.signature(handler).parameters) >= 2:
+        return handler(engine, params)
+    return handler(engine)
 
 # ── Supported intents list (for unsupported message) ──────────────
 SUPPORTED_DESCRIPTIONS = [entry["description"] for entry in INTENT_REGISTRY]
@@ -612,19 +931,31 @@ SUPPORTED_DESCRIPTIONS = [entry["description"] for entry in INTENT_REGISTRY]
 
 def classify_intent(question: str) -> Tuple[str, str]:
     """
-    Classify a question into a supported intent.
+    Classify a question into a supported intent via keyword scoring.
 
-    Returns (intent_name, intent_description).
-    Returns ("unsupported", description) if no intent matches.
+    Each intent's score is the sum of the weights of its keyword phrases that
+    appear in the normalized question; the highest-scoring intent wins, with
+    registry order breaking ties (earlier entries win). This makes rewordings
+    resolve to the best match rather than the first regex hit.
+
+    Returns (intent_name, intent_description), or ("unsupported", ...) when no
+    intent clears MIN_INTENT_SCORE.
     """
-    q = question.lower().strip()
+    q = _normalize(question)
 
+    best_intent: Optional[str] = None
+    best_score = 0
+    best_desc = ""
     for entry in INTENT_REGISTRY:
-        for pattern in entry["patterns"]:
-            if re.search(pattern, q):
-                return entry["intent"], entry["description"]
+        score = sum(weight for phrase, weight in entry["kw"] if phrase in q)
+        if score > best_score:
+            best_score = score
+            best_intent = entry["intent"]
+            best_desc = entry["description"]
 
-    return "unsupported", "Question does not match any supported query type"
+    if best_intent is None or best_score < MIN_INTENT_SCORE:
+        return "unsupported", "Question does not match any supported query type"
+    return best_intent, best_desc
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -670,8 +1001,10 @@ class QueryAgent(BaseAgent):
             result = self.answer_question(q, engine)
             results.append(result)
 
-        # Write all results to query_results table (DELETE + INSERT preserves ORM constraints)
-        df = pd.DataFrame(results)
+        # Write all results to query_results table (DELETE + INSERT preserves ORM
+        # constraints). Only persisted columns are written — response-only fields
+        # (result_kind, suggested_followups) are dropped here.
+        df = pd.DataFrame(results)[QUERY_RESULT_COLUMNS]
         db.execute(text("DELETE FROM query_results"))
         db.commit()
         df.to_sql("query_results", engine, if_exists="append", index=False)
@@ -699,17 +1032,36 @@ class QueryAgent(BaseAgent):
     # ──────────────────────────────────────────────────────────────
 
     def answer_question(
-        self, question: str, engine
+        self, question: str, engine, llm_client=None
     ) -> Dict[str, Any]:
         """
         Answer a single natural-language question.
 
-        Returns a dict suitable for insertion into query_results.
+        Resolution order:
+          1. Deterministic keyword classifier (always runs — mock-first).
+          2. Optional LLM routing — only when a *real* provider is supplied and
+             the deterministic classifier matched nothing. The model may only
+             choose an intent from the whitelist and extract simple params; it
+             never emits SQL. With no key (mock), this step is skipped.
+
+        Returns a dict for the API response; the persisted-column subset is what
+        run() writes to query_results.
         """
         now = datetime.now(timezone.utc).isoformat()
         start = time.time()
 
         intent, description = classify_intent(question)
+        params = extract_params(question, intent) if intent != "unsupported" else {}
+
+        if (
+            intent == "unsupported"
+            and llm_client is not None
+            and not getattr(llm_client, "is_mock", True)
+        ):
+            routed = llm_client.route_query(question, list(INTENT_HANDLERS.keys()))
+            if routed and routed.get("intent") in INTENT_HANDLERS:
+                intent = routed["intent"]
+                params = _sanitize_params(routed.get("params"))
 
         if intent == "unsupported":
             elapsed_ms = int((time.time() - start) * 1000)
@@ -720,9 +1072,9 @@ class QueryAgent(BaseAgent):
                 "matched_intent": "unsupported",
                 "query_status": "unsupported",
                 "answer_text": (
-                    f"Unsupported query. This system currently supports these question types:\n"
+                    f"I can't answer that one yet. I currently understand these question types:\n"
                     f"{supported_list}\n\n"
-                    f"Try rephrasing your question to match one of these categories."
+                    f"Try one of the suggested questions below."
                 ),
                 "structured_result": json.dumps({"supported_intents": SUPPORTED_DESCRIPTIONS}),
                 "source_tables": None,
@@ -730,11 +1082,14 @@ class QueryAgent(BaseAgent):
                 "execution_ms": elapsed_ms,
                 "query_version": QUERY_VERSION,
                 "executed_at": now,
+                "result_kind": "text",
+                "suggested_followups": list(UNSUPPORTED_FOLLOWUPS),
             }
 
+        meta = INTENT_META.get(intent, {})
         handler = INTENT_HANDLERS[intent]
         try:
-            result = handler(engine)
+            result = _call_handler(handler, engine, params)
             elapsed_ms = int((time.time() - start) * 1000)
 
             self._logger.info(
@@ -759,6 +1114,8 @@ class QueryAgent(BaseAgent):
                 "execution_ms": elapsed_ms,
                 "query_version": QUERY_VERSION,
                 "executed_at": now,
+                "result_kind": result.get("result_kind", meta.get("result_kind", "table")),
+                "suggested_followups": list(meta.get("followups", UNSUPPORTED_FOLLOWUPS)),
             }
         except Exception as exc:
             elapsed_ms = int((time.time() - start) * 1000)
@@ -779,6 +1136,8 @@ class QueryAgent(BaseAgent):
                 "execution_ms": elapsed_ms,
                 "query_version": QUERY_VERSION,
                 "executed_at": now,
+                "result_kind": "text",
+                "suggested_followups": list(meta.get("followups", UNSUPPORTED_FOLLOWUPS)),
             }
 
     # ──────────────────────────────────────────────────────────────

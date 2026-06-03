@@ -1,5 +1,5 @@
 import json
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -28,6 +28,10 @@ class QueryResultItem(BaseModel):
     execution_ms: Optional[int] = None
     query_version: str
     executed_at: str
+    # Rendering hint for the frontend: "metric" | "list" | "table" | "distribution" | "text".
+    result_kind: Optional[str] = None
+    # Guided next-question chips.
+    suggested_followups: List[str] = Field(default_factory=list)
 
     @field_validator("structured_result", mode="before")
     @classmethod
@@ -38,3 +42,11 @@ class QueryResultItem(BaseModel):
             return json.loads(value)
         except json.JSONDecodeError:
             return value
+
+
+class QuerySuggestion(BaseModel):
+    """A guided prompt surfaced by GET /query/suggestions."""
+
+    intent: str
+    label: str
+    example: str
