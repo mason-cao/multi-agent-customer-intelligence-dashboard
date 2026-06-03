@@ -1,5 +1,5 @@
 [project]
-name = "luminosity-intelligence"
+name = "nova-core"
 version = "0.1.0"
 description = "Multi-Agent Customer Intelligence Dashboard"
 requires-python = ">=3.11"

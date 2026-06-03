@@ -1,4 +1,4 @@
-"""Structlog configuration for the Luminosity Intelligence backend."""
+"""Structlog configuration for the Nova Core backend."""
 
 import logging
 import structlog

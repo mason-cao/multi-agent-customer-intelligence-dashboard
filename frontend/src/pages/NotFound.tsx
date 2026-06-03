@@ -26,7 +26,7 @@ export default function NotFound() {
           Page not found
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-[rgba(255,255,255,0.45)]">
-          This route doesn't exist in Luminosity Intelligence. You may have
+          This route doesn't exist in Nova Core. You may have
           followed an outdated link or typed an incorrect URL.
         </p>
         <div className="mt-8 flex items-center justify-center gap-3">

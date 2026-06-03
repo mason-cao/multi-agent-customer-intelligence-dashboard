@@ -1,6 +1,6 @@
 # Architecture
 
-Technical architecture documentation for Luminosity Intelligence.
+Technical architecture documentation for Nova Core.
 
 ---
 

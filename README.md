@@ -1,4 +1,4 @@
-# Luminosity Intelligence
+# Nova Core
 
 **Workspace-Based Customer Intelligence Platform**
 
@@ -12,7 +12,7 @@ A full-stack customer intelligence application where users create workspaces, ge
 
 ## What This Is
 
-Luminosity Intelligence is not a static dashboard with pre-loaded charts. It is an interactive workspace-based application where:
+Nova Core is not a static dashboard with pre-loaded charts. It is an interactive workspace-based application where:
 
 1. A user enters the app and creates a **workspace**
 2. They select a **company scenario** (industry, size, behavioral profile)

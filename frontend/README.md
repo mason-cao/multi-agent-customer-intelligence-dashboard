@@ -1,4 +1,4 @@
-# Luminosity Intelligence — Frontend
+# Nova Core — Frontend
 
 React + TypeScript dashboard for the Multi-Agent Customer Intelligence platform. Built with Vite, Tremor, Tailwind CSS, Recharts, and TanStack Query.
 

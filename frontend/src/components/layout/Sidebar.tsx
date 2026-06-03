@@ -49,10 +49,10 @@ export default function Sidebar({ disabled = false }: { disabled?: boolean }) {
         </div>
         <div className="flex flex-col">
           <span className="text-[13px] font-bold tracking-tight text-white">
-            Luminosity
+            Nova
           </span>
           <span className="text-[9px] font-semibold uppercase tracking-[0.15em] text-[var(--color-text-accent)]">
-            Intelligence
+            Core
           </span>
         </div>
       </div>

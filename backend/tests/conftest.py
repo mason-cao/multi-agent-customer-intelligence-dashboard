@@ -1,5 +1,5 @@
 """
-Test fixtures for Luminosity Intelligence backend.
+Test fixtures for Nova Core backend.
 
 Provides full database isolation using temp directories so tests
 never touch production data/ files.
@@ -14,7 +14,7 @@ from sqlalchemy.orm import sessionmaker
 @pytest.fixture(scope="session")
 def test_data_dir(tmp_path_factory):
     """Create an isolated temp directory and monkeypatch all DB paths."""
-    tmp = tmp_path_factory.mktemp("luminosity_test")
+    tmp = tmp_path_factory.mktemp("novacore_test")
     ws_dir = tmp / "workspaces"
     ws_dir.mkdir()
 
