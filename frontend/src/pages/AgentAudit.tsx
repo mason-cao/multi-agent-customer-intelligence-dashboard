@@ -1,4 +1,5 @@
 import { ShieldCheck, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -23,6 +24,20 @@ const SEVERITY_TONE: Record<string, BadgeTone> = {
   warning: 'warning',
   info: 'muted',
 };
+
+// Per-agent run outcome → tone + icon, so the runs table reflects the real
+// pipeline state (including degraded "partial" runs), not just pass/fail.
+const RUN_STATUS: Record<string, { tone: BadgeTone; icon: LucideIcon; label: string }> = {
+  completed: { tone: 'success', icon: CheckCircle, label: 'Completed' },
+  partial: { tone: 'warning', icon: AlertTriangle, label: 'Partial' },
+  failed: { tone: 'danger', icon: XCircle, label: 'Failed' },
+  running: { tone: 'info', icon: Clock, label: 'Running' },
+};
+
+function RunStatusBadge({ status }: { status: string }) {
+  const meta = RUN_STATUS[status] ?? { tone: 'muted' as BadgeTone, icon: Clock, label: status };
+  return <Badge tone={meta.tone} icon={meta.icon} label={meta.label} size="md" className="capitalize" />;
+}
 
 function Skeleton({ className = '' }: { className?: string }) {
   return <div className={`rounded-md shimmer ${className}`} />;
@@ -156,11 +171,7 @@ export default function AgentAudit() {
                             {r.agent_name}
                           </td>
                           <td className="py-2.5">
-                            {r.status === 'completed' ? (
-                              <Badge tone="success" icon={CheckCircle} label="Completed" size="md" />
-                            ) : (
-                              <Badge tone="danger" icon={XCircle} label={r.status} size="md" className="capitalize" />
-                            )}
+                            <RunStatusBadge status={r.status} />
                           </td>
                           <td className="py-2.5 text-right font-mono text-[var(--color-text-secondary)]">
                             {r.duration_ms != null

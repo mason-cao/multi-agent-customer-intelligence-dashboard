@@ -90,7 +90,12 @@ Two independent database layers serve different purposes:
 - One SQLite file per workspace, created during generation
 - Contains 16 tables: 7 source data + 9 agent output tables
 - Fully isolated — each workspace is a self-contained dataset
-- Managed by `Base` declarative base (shared with the global `workspaces.db` schema)
+- Managed by the `Base` declarative base (distinct from the metadata DB's `WorkspaceBase`)
+
+**3. Global Fallback Database** (`data/nexus.db`)
+- The default session target (`db/database.py`) when a request carries no `X-Workspace-ID` header
+- **Vestigial**: dashboard routes require a workspace and never silently fall back to it (a missing workspace DB returns 404)
+- Shares the `Base` schema with per-workspace DBs but is not populated by the pipeline
 
 ### Schema Overview
 
@@ -191,6 +196,20 @@ Stage 14: AuditAgent + QueryAgent
           ├── AuditAgent reads: all tables → writes: audit_results (45 checks)
           └── QueryAgent: on-demand NL query processing
 ```
+
+### Reliability & Degraded Completion
+
+The pipeline is a declarative spec in `services/workspace_generator.py` (`PIPELINE`), where each agent is an `AgentSpec` carrying a `critical` flag. The generator inspects each agent's `_status` and branches on it:
+
+- **Critical agents** — Behavior, Segmentation, Sentiment, Churn, Recommendation. A failure aborts the run; the workspace is marked `failed` with a message naming the agent.
+- **Non-critical agents** — Narrative, Audit, Query. A `failed`/`partial` outcome does *not* abort: the run still completes to `ready` but is flagged **degraded** — the issue is recorded in `pipeline_warnings` and exposed via the computed `health` field (`"ok" | "degraded"`), so the dashboard can show which sections may be incomplete.
+
+Two guarantees keep a workspace from getting stuck before it reaches a terminal state:
+
+- **Scaled timeout** — `generation_timeout_seconds(customer_count)` grows the budget with workspace size (so large ML/SHAP runs aren't killed prematurely) and is shared by both the worker thread and the poll-side check.
+- **Startup reconciliation** — background threads don't survive a restart, so `reconcile_orphaned_workspaces()` runs on app startup and flips any workspace still marked `generating` to `failed` with a retry message.
+
+Every agent's outcome (status + duration + tokens) is logged to `agent_runs` and surfaced on the **Agent Audit** page, making the lineage of each insight legible.
 
 ### Mock-First LLM Architecture
 

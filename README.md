@@ -85,6 +85,7 @@ All pages render real computed data from backend API endpoints. No hardcoded stu
 - Feature engineering service with pure functions for login, engagement, revenue, support, and activity metrics
 - Global metadata database (`data/workspaces.db`) for workspace management
 - 17 ORM models with full Pydantic schema validation
+- Resilient generation: a critical-agent failure fails the run clearly, while non-critical failures still complete in a visible **degraded** state; the timeout scales with workspace size and interrupted runs are reconciled on restart
 
 ---
 
