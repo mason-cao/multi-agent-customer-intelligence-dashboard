@@ -6,21 +6,25 @@ function easeOutCubic(t: number): number {
 
 export default function useCountUp(target: number, duration = 1200): number {
   const [value, setValue] = useState(0);
+  const valueRef = useRef(0);
   const prevTarget = useRef(target);
 
   useEffect(() => {
-    if (target === 0) {
-      setValue(0);
-      return;
-    }
+    const commitValue = (nextValue: number) => {
+      valueRef.current = nextValue;
+      setValue(nextValue);
+    };
 
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reducedMotion) {
-      setValue(target);
-      return;
+    if (target === 0 || reducedMotion) {
+      const raf = requestAnimationFrame(() => {
+        prevTarget.current = target;
+        commitValue(target);
+      });
+      return () => cancelAnimationFrame(raf);
     }
 
-    const start = prevTarget.current === target ? 0 : value;
+    const start = prevTarget.current === target ? 0 : valueRef.current;
     prevTarget.current = target;
     const startTime = performance.now();
 
@@ -29,7 +33,7 @@ export default function useCountUp(target: number, duration = 1200): number {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
       const eased = easeOutCubic(progress);
-      setValue(start + (target - start) * eased);
+      commitValue(start + (target - start) * eased);
       if (progress < 1) {
         raf = requestAnimationFrame(tick);
       }
@@ -37,7 +41,6 @@ export default function useCountUp(target: number, duration = 1200): number {
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target, duration]);
 
   return value;
