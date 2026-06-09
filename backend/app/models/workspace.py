@@ -28,5 +28,6 @@ class Workspace(WorkspaceBase):
     generation_started_at = Column(DateTime, nullable=True)
     seed = Column(Integer, nullable=True)
     config_json = Column(Text, nullable=True)
+    access_token_hash = Column(String, nullable=True)
     error_message = Column(Text, nullable=True)
     pipeline_warnings = Column(Text, nullable=True)

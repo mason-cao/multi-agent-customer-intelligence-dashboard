@@ -19,6 +19,11 @@ from app.db.workspace_db import (
     metadata_engine,
 )
 from app.models.workspace import Workspace
+from app.security.auth import (
+    generate_workspace_token,
+    hash_workspace_token,
+    workspace_token_matches,
+)
 
 # ── Predefined company archetypes ───────────────────────────────
 
@@ -111,6 +116,7 @@ def init_metadata_db():
     migrations = {
         'generation_started_at': 'ALTER TABLE workspaces ADD COLUMN generation_started_at DATETIME',
         'pipeline_warnings': 'ALTER TABLE workspaces ADD COLUMN pipeline_warnings TEXT',
+        'access_token_hash': 'ALTER TABLE workspaces ADD COLUMN access_token_hash VARCHAR',
     }
     for column, ddl in migrations.items():
         if column not in columns:
@@ -148,6 +154,7 @@ def create_workspace(
 ) -> Workspace:
     """Create a new workspace record in the metadata database."""
     ensure_workspace_dirs()
+    access_token = generate_workspace_token()
 
     # Resolve scenario defaults
     if scenario == "random":
@@ -197,6 +204,7 @@ def create_workspace(
             "include_outage": resolved_outage,
             "scenario_description": scenario_description or "",
         }),
+        access_token_hash=hash_workspace_token(access_token),
     )
 
     db = MetadataSession()
@@ -204,9 +212,33 @@ def create_workspace(
         db.add(workspace)
         db.commit()
         db.refresh(workspace)
+        workspace.access_token = access_token
         return workspace
     finally:
         db.close()
+
+
+def rotate_workspace_access_token(workspace_id: str) -> Optional[str]:
+    """Replace a workspace access token and return the new plaintext token."""
+    access_token = generate_workspace_token()
+    db = MetadataSession()
+    try:
+        ws = db.query(Workspace).filter(Workspace.id == workspace_id).first()
+        if not ws:
+            return None
+        ws.access_token_hash = hash_workspace_token(access_token)
+        db.commit()
+        return access_token
+    finally:
+        db.close()
+
+
+def validate_workspace_access_token(workspace_id: str, access_token: str) -> bool:
+    """Return whether a workspace access token authorizes that workspace."""
+    ws = get_workspace(workspace_id)
+    if not ws:
+        return False
+    return workspace_token_matches(access_token, ws.access_token_hash)
 
 
 def prepare_for_regeneration(workspace_id: str) -> bool:

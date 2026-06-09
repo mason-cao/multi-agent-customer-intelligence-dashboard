@@ -101,6 +101,15 @@ class WorkspaceListResponse(BaseModel):
     total: int
 
 
+class WorkspaceCreateResponse(WorkspaceResponse):
+    access_token: str
+
+
+class WorkspaceAccessTokenResponse(BaseModel):
+    workspace_id: str
+    access_token: str
+
+
 class ScenarioResponse(BaseModel):
     key: str
     company_name: str

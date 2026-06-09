@@ -2,13 +2,21 @@
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
+from app.security.auth import (
+    ADMIN_TOKEN_HEADER,
+    WORKSPACE_ID_HEADER,
+    WORKSPACE_TOKEN_HEADER,
+    require_admin_token,
+)
 from app.utils.error_handling import handle_errors
 
 from app.schemas.workspace import (
     ScenarioResponse,
+    WorkspaceAccessTokenResponse,
     WorkspaceCreate,
+    WorkspaceCreateResponse,
     WorkspaceListResponse,
     WorkspaceResponse,
 )
@@ -18,10 +26,28 @@ from app.services.workspace_manager import (
     delete_workspace,
     get_workspace,
     list_workspaces,
+    rotate_workspace_access_token,
     update_workspace_status,
+    validate_workspace_access_token,
 )
 
 router = APIRouter(prefix="/api/workspaces", tags=["workspaces"])
+
+
+def require_workspace_detail_access(workspace_id: str, request: Request) -> None:
+    """Allow admins or the matching workspace token to read workspace metadata."""
+    if request.headers.get(ADMIN_TOKEN_HEADER):
+        require_admin_token(request)
+        return
+
+    supplied_workspace_id = request.headers.get(WORKSPACE_ID_HEADER)
+    supplied_token = request.headers.get(WORKSPACE_TOKEN_HEADER)
+    if not supplied_token:
+        raise HTTPException(status_code=401, detail="Workspace token required")
+    if supplied_workspace_id and supplied_workspace_id != workspace_id:
+        raise HTTPException(status_code=403, detail="Invalid workspace token")
+    if not validate_workspace_access_token(workspace_id, supplied_token):
+        raise HTTPException(status_code=403, detail="Invalid workspace token")
 
 
 @router.get("/scenarios", response_model=list[ScenarioResponse])
@@ -44,7 +70,7 @@ def get_scenarios():
 
 @router.get("", response_model=WorkspaceListResponse)
 @handle_errors("list_all_workspaces")
-def list_all_workspaces():
+def list_all_workspaces(_: None = Depends(require_admin_token)):
     """List all workspaces ordered by creation date."""
     workspaces = list_workspaces()
     return WorkspaceListResponse(
@@ -53,9 +79,12 @@ def list_all_workspaces():
     )
 
 
-@router.post("", response_model=WorkspaceResponse, status_code=201)
+@router.post("", response_model=WorkspaceCreateResponse, status_code=201)
 @handle_errors("create_new_workspace")
-def create_new_workspace(body: WorkspaceCreate):
+def create_new_workspace(
+    body: WorkspaceCreate,
+    _: None = Depends(require_admin_token),
+):
     """Create a new workspace with the given scenario configuration."""
     ws = create_workspace(
         name=body.name,
@@ -67,13 +96,17 @@ def create_new_workspace(body: WorkspaceCreate):
         include_outage=body.include_outage,
         scenario_description=body.scenario_description,
     )
-    return WorkspaceResponse.model_validate(ws)
+    return WorkspaceCreateResponse.model_validate(ws)
 
 
 @router.get("/{workspace_id}", response_model=WorkspaceResponse)
 @handle_errors("get_workspace_detail")
-def get_workspace_detail(workspace_id: str):
+def get_workspace_detail(
+    workspace_id: str,
+    request: Request,
+):
     """Get workspace details including generation progress."""
+    require_workspace_detail_access(workspace_id, request)
     ws = get_workspace(workspace_id)
     if not ws:
         raise HTTPException(status_code=404, detail="This workspace doesn't exist.")
@@ -106,7 +139,10 @@ def get_workspace_detail(workspace_id: str):
 
 @router.post("/{workspace_id}/generate", response_model=WorkspaceResponse, status_code=202)
 @handle_errors("trigger_generation")
-def trigger_generation(workspace_id: str):
+def trigger_generation(
+    workspace_id: str,
+    _: None = Depends(require_admin_token),
+):
     """Start workspace data generation and agent pipeline.
 
     Accepts 'created', 'failed', or 'ready' status. For 'ready' and
@@ -131,9 +167,25 @@ def trigger_generation(workspace_id: str):
     return WorkspaceResponse.model_validate(ws)
 
 
+@router.post("/{workspace_id}/access-token", response_model=WorkspaceAccessTokenResponse)
+@handle_errors("rotate_workspace_token")
+def rotate_workspace_token(
+    workspace_id: str,
+    _: None = Depends(require_admin_token),
+):
+    """Rotate and return a workspace access token for authorized admins."""
+    token = rotate_workspace_access_token(workspace_id)
+    if not token:
+        raise HTTPException(status_code=404, detail="This workspace doesn't exist.")
+    return WorkspaceAccessTokenResponse(workspace_id=workspace_id, access_token=token)
+
+
 @router.delete("/{workspace_id}", status_code=204)
 @handle_errors("remove_workspace")
-def remove_workspace(workspace_id: str):
+def remove_workspace(
+    workspace_id: str,
+    _: None = Depends(require_admin_token),
+):
     """Delete a workspace and its database file."""
     ws = get_workspace(workspace_id)
     if not ws:

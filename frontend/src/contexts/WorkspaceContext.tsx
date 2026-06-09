@@ -5,6 +5,7 @@ import { useWorkspace } from '../api/workspaces';
 import type { Workspace } from '../types/workspace';
 import { WorkspaceContext } from './workspaceContextValue';
 import {
+  ACTIVE_WORKSPACE_TOKEN_STORAGE_KEY,
   ACTIVE_WORKSPACE_STORAGE_KEY,
   WORKSPACE_MISSING_EVENT,
 } from '../constants/workspace';
@@ -36,6 +37,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     setStoredId(null);
     setLocalWorkspace(null);
     localStorage.removeItem(ACTIVE_WORKSPACE_STORAGE_KEY);
+    localStorage.removeItem(ACTIVE_WORKSPACE_TOKEN_STORAGE_KEY);
   }, [clearDashboardCache]);
 
   useEffect(() => {
@@ -50,6 +52,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     setStoredId(ws.id);
     setLocalWorkspace(ws);
     localStorage.setItem(ACTIVE_WORKSPACE_STORAGE_KEY, ws.id);
+    if (ws.access_token) {
+      localStorage.setItem(ACTIVE_WORKSPACE_TOKEN_STORAGE_KEY, ws.access_token);
+    }
   }, [clearDashboardCache]);
 
   const clearWorkspace = useCallback(() => {

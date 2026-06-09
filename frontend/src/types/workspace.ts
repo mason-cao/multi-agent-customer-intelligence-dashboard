@@ -16,6 +16,7 @@ export interface Workspace {
   user_message: string | null;
   pipeline_warnings: string | null;
   health: 'ok' | 'degraded';
+  access_token?: string;
 }
 
 export interface WorkspaceListResponse {
@@ -42,4 +43,9 @@ export interface CreateWorkspaceInput {
   churn_rate?: number;
   include_outage?: boolean;
   scenario_description?: string;
+}
+
+export interface WorkspaceAccessTokenResponse {
+  workspace_id: string;
+  access_token: string;
 }

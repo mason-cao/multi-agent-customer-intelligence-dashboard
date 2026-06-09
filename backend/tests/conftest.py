@@ -10,6 +10,8 @@ import pytest_asyncio
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+ADMIN_HEADERS = {"X-Admin-Token": "test-admin-token"}
+
 
 @pytest.fixture(scope="session")
 def test_data_dir(tmp_path_factory):
@@ -60,6 +62,9 @@ def test_app(test_data_dir):
     """Import the FastAPI app after DB isolation is in place."""
     from app.db.database import Base, engine
     from app.db.workspace_db import WorkspaceBase, metadata_engine
+    from app.config import settings
+
+    settings.admin_api_token = "test-admin-token"
 
     import app.models  # noqa: F401
     Base.metadata.create_all(bind=engine)
@@ -77,3 +82,21 @@ async def client(test_app):
     transport = httpx.ASGITransport(app=test_app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
+
+
+@pytest.fixture
+def admin_headers():
+    """Headers for test admin workspace-management requests."""
+    return dict(ADMIN_HEADERS)
+
+
+@pytest.fixture(autouse=True)
+def clean_workspaces(test_app):
+    """Keep the shared metadata DB isolated between tests."""
+    from app.services.workspace_manager import delete_workspace, list_workspaces
+
+    for ws in list_workspaces():
+        delete_workspace(ws.id)
+    yield
+    for ws in list_workspaces():
+        delete_workspace(ws.id)

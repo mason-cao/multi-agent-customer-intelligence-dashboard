@@ -2,9 +2,10 @@
 
 import pytest
 
+from tests.helpers import create_workspace_with_token, workspace_session
 
-def _seed_overview_orders():
-    from app.db.database import SessionLocal
+
+def _seed_overview_orders(workspace_id: str):
     from app.models.order import Order
 
     order_ids = [
@@ -12,7 +13,7 @@ def _seed_overview_orders():
         "overview_current_window",
         "overview_prior_window",
     ]
-    db = SessionLocal()
+    db = workspace_session(workspace_id)
     try:
         db.query(Order).filter(Order.order_id.in_(order_ids)).delete(
             synchronize_session=False
@@ -52,11 +53,10 @@ def _seed_overview_orders():
     return order_ids
 
 
-def _cleanup_overview_orders(order_ids: list[str]):
-    from app.db.database import SessionLocal
+def _cleanup_overview_orders(workspace_id: str, order_ids: list[str]):
     from app.models.order import Order
 
-    db = SessionLocal()
+    db = workspace_session(workspace_id)
     try:
         db.query(Order).filter(Order.order_id.in_(order_ids)).delete(
             synchronize_session=False
@@ -68,12 +68,13 @@ def _cleanup_overview_orders(order_ids: list[str]):
 
 @pytest.mark.asyncio
 async def test_overview_kpis_ignore_malformed_order_dates(client):
-    order_ids = _seed_overview_orders()
+    workspace, headers = await create_workspace_with_token(client, "Overview Route Test")
+    order_ids = _seed_overview_orders(workspace["id"])
     try:
-        resp = await client.get("/api/overview/kpis")
+        resp = await client.get("/api/overview/kpis", headers=headers)
         assert resp.status_code == 200
         body = resp.json()
         assert body["monthly_revenue"]["value"] == "$100"
         assert body["monthly_revenue"]["trend"] == 100.0
     finally:
-        _cleanup_overview_orders(order_ids)
+        _cleanup_overview_orders(workspace["id"], order_ids)

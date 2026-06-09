@@ -3,6 +3,8 @@ timeout scaling, and startup reconciliation of orphaned generations."""
 
 import pytest
 
+from tests.conftest import ADMIN_HEADERS
+
 from app.services.workspace_generator import (
     classify_agent_outcome,
     generation_timeout_seconds,
@@ -41,7 +43,7 @@ def test_timeout_scales_with_customer_count_and_has_floor():
 
 @pytest.mark.asyncio
 async def test_reconcile_orphaned_workspaces_fails_stuck_generations(client):
-    create = await client.post("/api/workspaces", json={
+    create = await client.post("/api/workspaces", headers=ADMIN_HEADERS, json={
         "name": "Orphan Test",
         "scenario": "velocity_saas",
     })

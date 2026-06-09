@@ -25,6 +25,7 @@ import {
   useScenarios,
   useCreateWorkspace,
   useGenerateWorkspace,
+  useRotateWorkspaceToken,
   useDeleteWorkspace,
 } from '../api/workspaces';
 import type { Workspace, Scenario, CreateWorkspaceInput } from '../types/workspace';
@@ -127,10 +128,14 @@ export default function WorkspaceHub() {
 
   const createMutation = useCreateWorkspace();
   const generateMutation = useGenerateWorkspace();
+  const rotateTokenMutation = useRotateWorkspaceToken();
   const deleteMutation = useDeleteWorkspace();
 
   const workspaces = useMemo(() => list?.workspaces ?? [], [list?.workspaces]);
-  const isSubmitting = createMutation.isPending || generateMutation.isPending;
+  const isSubmitting =
+    createMutation.isPending ||
+    generateMutation.isPending ||
+    rotateTokenMutation.isPending;
 
   // When generation starts, set workspace as active and navigate to generation view
   useEffect(() => {
@@ -155,6 +160,7 @@ export default function WorkspaceHub() {
   async function handleCreateAndGenerate(body: CreateWorkspaceInput) {
     try {
       const ws = await createMutation.mutateAsync(body);
+      setActiveWorkspace(ws);
       setPendingId(ws.id);
       setView('list');
       setSelectedScenario(null);
@@ -200,13 +206,26 @@ export default function WorkspaceHub() {
     await handleCreateAndGenerate({ name: 'Random', scenario: 'random' });
   }
 
-  function handleEnter(ws: Workspace) {
-    setActiveWorkspace(ws);
-    navigate('/');
+  async function ensureWorkspaceAccess(ws: Workspace): Promise<Workspace> {
+    if (ws.access_token) return ws;
+    const token = await rotateTokenMutation.mutateAsync(ws.id);
+    return { ...ws, access_token: token.access_token };
+  }
+
+  async function handleEnter(ws: Workspace) {
+    try {
+      const authorizedWorkspace = await ensureWorkspaceAccess(ws);
+      setActiveWorkspace(authorizedWorkspace);
+      navigate('/');
+    } catch {
+      // Error handled by mutation state
+    }
   }
 
   async function handleGenerate(ws: Workspace) {
     try {
+      const authorizedWorkspace = await ensureWorkspaceAccess(ws);
+      setActiveWorkspace(authorizedWorkspace);
       await generateMutation.mutateAsync(ws.id);
       setPendingId(ws.id);
     } catch {

@@ -2,13 +2,14 @@
 
 import pytest
 
+from tests.helpers import create_workspace_with_token, workspace_session
 
-def _seed_churn_route_data():
-    from app.db.database import SessionLocal
+
+def _seed_churn_route_data(workspace_id: str):
     from app.models.churn_prediction import ChurnPrediction
     from app.models.customer import Customer
 
-    db = SessionLocal()
+    db = workspace_session(workspace_id)
     customer_ids = ["test_bad_factors", "test_valid_factors"]
     try:
         db.query(ChurnPrediction).filter(
@@ -70,12 +71,11 @@ def _seed_churn_route_data():
     return customer_ids
 
 
-def _cleanup_churn_route_data(customer_ids: list[str]):
-    from app.db.database import SessionLocal
+def _cleanup_churn_route_data(workspace_id: str, customer_ids: list[str]):
     from app.models.churn_prediction import ChurnPrediction
     from app.models.customer import Customer
 
-    db = SessionLocal()
+    db = workspace_session(workspace_id)
     try:
         db.query(ChurnPrediction).filter(
             ChurnPrediction.customer_id.in_(customer_ids)
@@ -90,25 +90,27 @@ def _cleanup_churn_route_data(customer_ids: list[str]):
 
 @pytest.mark.asyncio
 async def test_at_risk_customers_tolerates_malformed_risk_factors(client):
-    customer_ids = _seed_churn_route_data()
+    workspace, headers = await create_workspace_with_token(client, "Churn Route Test")
+    customer_ids = _seed_churn_route_data(workspace["id"])
     try:
-        resp = await client.get("/api/churn/at-risk?limit=2")
+        resp = await client.get("/api/churn/at-risk?limit=2", headers=headers)
         assert resp.status_code == 200
         body = resp.json()
         assert body[0]["customer_id"] == "test_bad_factors"
         assert body[0]["top_risk_factor"] == "N/A"
         assert body[1]["top_risk_factor"] == "Low engagement"
     finally:
-        _cleanup_churn_route_data(customer_ids)
+        _cleanup_churn_route_data(workspace["id"], customer_ids)
 
 
 @pytest.mark.asyncio
 async def test_feature_importance_tolerates_malformed_risk_factors(client):
-    customer_ids = _seed_churn_route_data()
+    workspace, headers = await create_workspace_with_token(client, "Feature Route Test")
+    customer_ids = _seed_churn_route_data(workspace["id"])
     try:
-        resp = await client.get("/api/churn/feature-importance")
+        resp = await client.get("/api/churn/feature-importance", headers=headers)
         assert resp.status_code == 200
         body = resp.json()
         assert body == [{"feature": "engagement_score", "importance": 0.42}]
     finally:
-        _cleanup_churn_route_data(customer_ids)
+        _cleanup_churn_route_data(workspace["id"], customer_ids)

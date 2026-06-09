@@ -1,7 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
 import api from './client';
-import type { Workspace, WorkspaceListResponse, Scenario, CreateWorkspaceInput } from '../types/workspace';
+import type {
+  Workspace,
+  WorkspaceAccessTokenResponse,
+  WorkspaceListResponse,
+  Scenario,
+  CreateWorkspaceInput,
+} from '../types/workspace';
 
 type ApiError = AxiosError<{ detail?: string }>;
 
@@ -80,6 +86,15 @@ export function useGenerateWorkspace() {
           return key !== 'workspaces' && key !== 'health';
         },
       });
+    },
+  });
+}
+
+export function useRotateWorkspaceToken() {
+  return useMutation<WorkspaceAccessTokenResponse, Error, string>({
+    mutationFn: async (workspaceId) => {
+      const { data } = await api.post(`/workspaces/${workspaceId}/access-token`);
+      return data;
     },
   });
 }
