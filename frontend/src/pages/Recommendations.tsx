@@ -61,7 +61,7 @@ export default function Recommendations() {
     <div>
       <PageHeader
         title="Recommendation Center"
-        description="AI-generated actionable recommendations for each segment and customer"
+        description="Action recommendations for each segment and customer"
       />
 
       {isLoading ? (
@@ -84,7 +84,7 @@ export default function Recommendations() {
         <EmptyState
           icon={Lightbulb}
           title="No recommendations generated"
-          description="AI-generated action recommendations will appear here once the recommendation agent has analyzed this workspace's customer data."
+          description="Action recommendations will appear here once the recommendation agent has analyzed this workspace's customer data."
         />
       ) : (
         <>

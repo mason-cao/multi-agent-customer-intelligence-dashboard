@@ -9,7 +9,7 @@ import {
   MessageSquare,
   Star,
   Megaphone,
-  Brain,
+  BarChart3,
   PieChart,
   Heart,
   TrendingDown,
@@ -30,7 +30,7 @@ interface StageMeta {
   icon: LucideIcon;
   label: string;
   description: string;
-  group: 'data' | 'ai';
+  group: 'data' | 'analysis';
 }
 
 const STAGE_ORDER: string[] = [
@@ -101,46 +101,46 @@ const STAGE_META: Record<string, StageMeta> = {
     group: 'data',
   },
   'Running BehaviorAgent': {
-    icon: Brain,
+    icon: BarChart3,
     label: 'Behavior Analysis',
     description: 'Analyzing purchase patterns and engagement signals to build behavioral profiles',
-    group: 'ai',
+    group: 'analysis',
   },
   'Running SegmentationAgent': {
     icon: PieChart,
     label: 'Segmentation',
     description: 'Clustering customers into behavioral segments using engagement and value metrics',
-    group: 'ai',
+    group: 'analysis',
   },
   'Running SentimentAgent': {
     icon: Heart,
     label: 'Sentiment Scoring',
     description: 'Scoring feedback and ticket sentiment to gauge customer satisfaction',
-    group: 'ai',
+    group: 'analysis',
   },
   'Running ChurnAgent': {
     icon: TrendingDown,
     label: 'Churn Prediction',
     description: 'Training ML model to predict churn risk with explainable factors',
-    group: 'ai',
+    group: 'analysis',
   },
   'Running RecommendationAgent': {
     icon: Lightbulb,
     label: 'Recommendations',
     description: 'Generating prioritized action plans for each customer segment',
-    group: 'ai',
+    group: 'analysis',
   },
   'Running NarrativeAgent': {
     icon: FileText,
     label: 'Executive Narrative',
-    description: 'Writing AI-generated executive summary with highlights and concerns',
-    group: 'ai',
+    description: 'Writing executive summary with highlights and concerns',
+    group: 'analysis',
   },
   'Finalizing workspace': {
     icon: Shield,
     label: 'Quality Audit',
     description: 'Running validation checks and indexing query capabilities',
-    group: 'ai',
+    group: 'analysis',
   },
 };
 
@@ -348,8 +348,8 @@ export default function GenerationView({
   const dataStages = STAGE_ORDER.filter(
     (s) => getStageMeta(s).group === 'data'
   );
-  const aiStages = STAGE_ORDER.filter(
-    (s) => getStageMeta(s).group === 'ai'
+  const analysisStages = STAGE_ORDER.filter(
+    (s) => getStageMeta(s).group === 'analysis'
   );
 
   function getStageStatus(
@@ -560,12 +560,12 @@ export default function GenerationView({
           {/* Divider */}
           <div className="my-3 h-px bg-[rgba(255,255,255,0.06)]" />
 
-          {/* AI Analysis group */}
+          {/* Modeling and analysis group */}
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[rgba(255,255,255,0.3)]">
-            AI Analysis
+            Modeling & Analysis
           </p>
           <div className="mt-2">
-            {aiStages.map((stage, i) => (
+            {analysisStages.map((stage, i) => (
               <StageRow
                 key={stage}
                 stageName={stage}

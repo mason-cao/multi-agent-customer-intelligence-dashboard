@@ -32,18 +32,19 @@ When reporting a vulnerability, please include:
 
 After a report is received:
 
-1. I will review the report and confirm whether I can reproduce it.
-2. I will respond as soon as reasonably possible.
-3. If the issue is confirmed, I will work on a fix and update you on the status.
-4. If the report is not accepted as a security issue, I will explain why when possible.
+1. The maintainer will review the report and confirm whether it can be reproduced.
+2. The maintainer will respond as soon as reasonably possible.
+3. If the issue is confirmed, a fix will be prioritized and status updates will be shared when practical.
+4. If the report is not accepted as a security issue, the maintainer will explain why when possible.
 
-Because this is an actively developed student/capstone project, there is **no guaranteed response-time SLA**, but good-faith reports are appreciated and will be taken seriously.
+There is **no guaranteed response-time SLA**, but good-faith reports are appreciated and will be taken seriously.
 
 ## Scope
 
 Examples of issues that may be considered security-related include:
 
 - authentication or authorization bypass
+- workspace token bypass or token leakage
 - sensitive data exposure
 - unsafe query execution
 - injection vulnerabilities

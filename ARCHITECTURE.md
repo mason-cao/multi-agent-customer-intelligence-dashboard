@@ -47,18 +47,20 @@ Vercel serves the static React frontend and proxies all `/api/*` requests to the
 
 ## Request Lifecycle
 
-Every API request from the frontend includes an `X-Workspace-ID` header (set by an Axios interceptor from `localStorage`). The backend uses this header to route the request to the correct per-workspace SQLite database.
+Dashboard API requests include both `X-Workspace-ID` and `X-Workspace-Token` headers, set by the frontend Axios interceptor from the active workspace in `localStorage`. Workspace management requests include `X-Admin-Token`. The backend validates the token before routing a request to the correct per-workspace SQLite database.
 
 ```
 Frontend                        Backend                          Database
    │                               │                                │
    │  GET /api/overview            │                                │
-   │  X-Workspace-ID: abc-123     │                                │
+   │  X-Workspace-ID: abc123def456 │                                │
+   │  X-Workspace-Token: ...       │                                │
    │──────────────────────────────▶│                                │
-   │                               │  get_db() middleware           │
-   │                               │  ─ reads X-Workspace-ID       │
+   │                               │  get_db() dependency           │
+   │                               │  ─ validates workspace token   │
+   │                               │  ─ reads X-Workspace-ID        │
    │                               │  ─ resolves db path            │
-   │                               │    data/workspaces/abc-123.db │
+   │                               │    data/workspaces/{id}.db     │
    │                               │  ─ checks file exists          │
    │                               │──────────────────────────────▶│
    │                               │                                │
@@ -70,7 +72,7 @@ Frontend                        Backend                          Database
    │◀──────────────────────────────│                                │
 ```
 
-If the workspace database file does not exist, the backend returns a 404 with `"Workspace database not found"`. The frontend's Axios response interceptor catches this, clears `localStorage`, and redirects to `/workspaces`.
+If the workspace record or database file does not exist, the backend returns a 404. The frontend response interceptor clears the active workspace from `localStorage` and returns the user to `/workspaces`.
 
 ---
 
@@ -81,7 +83,7 @@ If the workspace database file does not exist, the backend returns a 404 with `"
 Two independent database layers serve different purposes:
 
 **1. Metadata Database** (`data/workspaces.db`)
-- Stores workspace records: id, name, status, config, timestamps, error messages
+- Stores workspace records: id, name, status, config, timestamps, error messages, workspace token hash
 - Single table, managed by `WorkspaceBase` declarative base
 - Shared across all workspaces
 - Created on application startup via lifespan handler
@@ -92,10 +94,10 @@ Two independent database layers serve different purposes:
 - Fully isolated — each workspace is a self-contained dataset
 - Managed by the `Base` declarative base (distinct from the metadata DB's `WorkspaceBase`)
 
-**3. Global Fallback Database** (`data/nexus.db`)
-- The default session target (`db/database.py`) when a request carries no `X-Workspace-ID` header
-- **Vestigial**: dashboard routes require a workspace and never silently fall back to it (a missing workspace DB returns 404)
-- Shares the `Base` schema with per-workspace DBs but is not populated by the pipeline
+**3. Global Schema Database** (`data/nexus.db`)
+- The default SQLAlchemy engine used to create the shared ORM schema at startup
+- Dashboard routes require workspace credentials and never silently fall back to it
+- Shares the `Base` schema with per-workspace DBs but is not populated by the workspace pipeline
 
 ### Schema Overview
 
@@ -132,16 +134,18 @@ The `get_db()` dependency in `backend/app/db/database.py` implements workspace-a
 ```python
 def get_db(request: Request):
     workspace_id = request.headers.get("x-workspace-id")
-    if workspace_id:
-        # Route to per-workspace SQLite file
-        db_path = get_workspace_db_path(workspace_id)
-        if not db_path.exists():
-            raise HTTPException(404, "Workspace database not found")
-        ws_engine = get_workspace_engine(workspace_id)
-        db = sessionmaker(bind=ws_engine)()
-    else:
-        # Fall back to global database
-        db = SessionLocal()
+    workspace_token = request.headers.get("x-workspace-token")
+    if not workspace_id:
+        raise HTTPException(401, "Workspace ID required")
+    if not workspace_token:
+        raise HTTPException(401, "Workspace token required")
+    if not validate_workspace_access_token(workspace_id, workspace_token):
+        raise HTTPException(403, "Invalid workspace token")
+    db_path = get_workspace_db_path(workspace_id)
+    if not db_path.exists():
+        raise HTTPException(404, "Workspace database not found")
+    ws_engine = get_workspace_engine(workspace_id)
+    db = sessionmaker(bind=ws_engine)()
     yield db
 ```
 
@@ -211,15 +215,15 @@ Two guarantees keep a workspace from getting stuck before it reaches a terminal 
 
 Every agent's outcome (status + duration + tokens) is logged to `agent_runs` and surfaced on the **Agent Audit** page, making the lineage of each insight legible.
 
-### Mock-First LLM Architecture
+### Optional Provider Architecture
 
 The `LLMClient` service supports three modes, selected automatically by environment:
 
 1. **Mock mode** (default) — deterministic canned responses, zero cost, fully offline
-2. **Anthropic mode** — Claude 3.5 Sonnet via Anthropic SDK (when `ANTHROPIC_API_KEY` is set)
-3. **OpenAI mode** — GPT-4o-mini via OpenAI SDK (when `OPENAI_API_KEY` is set)
+2. **Anthropic mode** — Anthropic SDK adapter (when `ANTHROPIC_API_KEY` is set)
+3. **OpenAI mode** — OpenAI SDK adapter (when `OPENAI_API_KEY` is set)
 
-LLM calls are used only for narrative generation and query intent classification. All scoring, segmentation, and prediction logic uses rule-based algorithms and scikit-learn models — never LLMs. This means the core intelligence layer is fully deterministic and reproducible.
+Provider calls are used only for narrative generation and query intent classification. All scoring, segmentation, and prediction logic uses rule-based algorithms and scikit-learn models. The core intelligence layer remains deterministic and reproducible.
 
 ### ML Components
 
@@ -336,8 +340,17 @@ The `QueryAgent` uses strict intent classification + whitelisted SQL patterns. N
 
 - All API request/response data is validated through Pydantic schemas
 - Route endpoints use the `@handle_errors` decorator for consistent error handling
-- Workspace IDs are validated as UUIDs before database path resolution
+- Workspace IDs are validated against the generated 12-character hexadecimal format before database path resolution
+- Dashboard routes require a valid per-workspace token before opening a workspace database
+- Workspace management routes require the configured admin token
 - Database file existence is checked before opening connections
+
+### Resource Controls
+
+- `MAX_WORKSPACES` limits the number of retained workspaces
+- `MAX_CONCURRENT_GENERATIONS` limits simultaneous background generation jobs
+- Generation start requests return `429` when capacity is reached
+- Startup reconciliation marks interrupted `generating` workspaces as failed with a retryable message
 
 ### Error Handling
 
@@ -378,5 +391,8 @@ CORS origins are configurable via the `CORS_ORIGINS` environment variable (comma
 | `CORS_ORIGINS` | Railway | No | `http://localhost:5173` |
 | `APP_ENV` | Railway | No | `development` |
 | `LOG_LEVEL` | Railway | No | `INFO` |
+| `ADMIN_API_TOKEN` | Railway | Yes | `""` |
+| `MAX_WORKSPACES` | Railway | No | `25` |
+| `MAX_CONCURRENT_GENERATIONS` | Railway | No | `1` |
 | `ANTHROPIC_API_KEY` | Railway | No | `""` (mock mode) |
 | `OPENAI_API_KEY` | Railway | No | `""` (mock mode) |

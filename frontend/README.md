@@ -1,5 +1,10 @@
-# Nova Core — Frontend
+# Nova Core Frontend
 
-React + TypeScript dashboard for the Multi-Agent Customer Intelligence platform. Built with Vite, Tremor, Tailwind CSS, Recharts, and TanStack Query.
+React, TypeScript, Vite, Tailwind CSS, Recharts, and TanStack Query frontend for Nova Core.
 
-Run `npm run dev` to start the development server on port 5173.
+```bash
+npm install
+VITE_ADMIN_API_TOKEN=dev-admin-token npm run dev
+```
+
+The frontend sends admin and workspace credentials through `src/api/client.ts`.

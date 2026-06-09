@@ -431,8 +431,8 @@ function ListView({
         Workspaces
       </h2>
       <p className="mt-3 max-w-xl text-sm leading-relaxed text-[rgba(255,255,255,0.40)]">
-        Create demo company workspaces with realistic synthetic data. Each
-        workspace runs an 8-agent AI pipeline that generates behavioral
+        Create company workspaces with realistic synthetic data. Each
+        workspace runs an 8-stage intelligence pipeline that generates behavioral
         profiles, segments, churn predictions, and executive insights.
       </p>
 
@@ -468,7 +468,7 @@ function ListView({
           </h3>
           <p className="mt-1.5 max-w-sm text-center text-[13px] leading-relaxed text-[rgba(255,255,255,0.38)]">
             Create your first workspace to generate realistic synthetic company
-            data and explore AI-driven customer intelligence.
+            data and explore customer intelligence.
           </p>
           <button
             type="button"
@@ -884,7 +884,7 @@ function CreateView({
               </p>
               <p className="mt-2 text-[13px] leading-relaxed text-[rgba(255,255,255,0.45)]">
                 Generate a random company with varied size, industry, churn
-                profile, and business story. Great for quick demos.
+                profile, and business story.
               </p>
             </div>
           </div>

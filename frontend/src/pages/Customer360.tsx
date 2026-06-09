@@ -29,7 +29,7 @@ export default function Customer360() {
     <div>
       <PageHeader
         title="Customer 360 Explorer"
-        description="Deep-dive into individual customer profiles, behavior, and AI analysis"
+        description="Deep-dive into individual customer profiles, behavior, and analysis"
       />
 
       {isLoading ? (

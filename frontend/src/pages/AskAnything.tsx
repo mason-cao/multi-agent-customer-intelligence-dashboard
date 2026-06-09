@@ -64,7 +64,7 @@ const DIST_FIELD: Record<string, { label: string; value: string }> = {
 };
 
 interface Message {
-  role: 'user' | 'ai';
+  role: 'user' | 'assistant';
   content: string;
   result?: QueryResult;
   tone?: 'default' | 'error';
@@ -365,12 +365,12 @@ export default function AskAnything() {
 
     mutate(trimmed, {
       onSuccess: (result) => {
-        setMessages((prev) => [...prev, { role: 'ai', content: result.answer_text, result }]);
+        setMessages((prev) => [...prev, { role: 'assistant', content: result.answer_text, result }]);
       },
       onError: (error) => {
         setMessages((prev) => [
           ...prev,
-          { role: 'ai', content: getQueryErrorMessage(error), tone: 'error' },
+          { role: 'assistant', content: getQueryErrorMessage(error), tone: 'error' },
         ]);
       },
     });
@@ -386,7 +386,7 @@ export default function AskAnything() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between">
-        <PageHeader title="Ask Anything" description="AI-powered intelligence queries" />
+        <PageHeader title="Ask Anything" description="Natural language intelligence queries" />
         {hasMessages && (
           <button
             onClick={clearThread}
@@ -437,7 +437,7 @@ export default function AskAnything() {
               msg.role === 'user' ? (
                 <UserBubble key={idx} content={msg.content} />
               ) : (
-                <AiBubble key={idx} message={msg} disabled={isPending} onAsk={handleSubmit} />
+                <AssistantBubble key={idx} message={msg} disabled={isPending} onAsk={handleSubmit} />
               )
             )}
 
@@ -515,7 +515,7 @@ function UserBubble({ content }: { content: string }) {
   );
 }
 
-function AiBubble({
+function AssistantBubble({
   message,
   disabled,
   onAsk,

@@ -59,7 +59,7 @@ export default function AgentAudit() {
     <div>
       <PageHeader
         title="Agent Audit & Explainability"
-        description="Transparency into how AI agents reached their conclusions"
+        description="Transparency into how each pipeline stage reached its conclusions"
       />
 
       {isLoading ? (
