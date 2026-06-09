@@ -22,7 +22,9 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('ErrorBoundary caught:', error, info.componentStack);
+    if (import.meta.env.DEV) {
+      console.error('ErrorBoundary caught:', error, info.componentStack);
+    }
   }
 
   render() {

@@ -57,7 +57,7 @@ export default function Customer360() {
         <>
           {/* Summary bar */}
           <Card className="mb-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-[var(--color-primary-400)]" />
                 <span className="text-sm font-semibold text-white">
@@ -66,6 +66,8 @@ export default function Customer360() {
               </div>
               <div className="flex items-center gap-3">
                 <button
+                  type="button"
+                  aria-label="Previous customer page"
                   onClick={() => setPage(Math.max(0, page - 1))}
                   disabled={page === 0}
                   className="rounded-lg border border-white/15 p-1.5 text-[var(--color-text-secondary)] transition hover:bg-white/[0.08] hover:text-white/80 disabled:opacity-30"
@@ -76,6 +78,8 @@ export default function Customer360() {
                   Page {page + 1} of {totalPages}
                 </span>
                 <button
+                  type="button"
+                  aria-label="Next customer page"
                   onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
                   disabled={page >= totalPages - 1}
                   className="rounded-lg border border-white/15 p-1.5 text-[var(--color-text-secondary)] transition hover:bg-white/[0.08] hover:text-white/80 disabled:opacity-30"

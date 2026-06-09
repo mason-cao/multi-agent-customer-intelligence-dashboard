@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { AreaChart, Area, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area } from 'recharts';
 import Card from './Card';
 import useCountUp from '../../hooks/useCountUp';
 import { PALETTE } from '../../utils/colors';
@@ -34,6 +34,7 @@ export default function StatCard({
   const sparkData = sparkline
     ? sparkline.data.map((v) => ({ value: v }))
     : undefined;
+  const hasSparkline = sparkData && sparkData.length > 0;
 
   const sparkId = `stat-spark-${useId().replace(/:/g, '')}`;
 
@@ -90,32 +91,30 @@ export default function StatCard({
           )}
         </div>
 
-        {sparkData && (
+        {hasSparkline && (
           <div
-            className="h-[58px] w-[88px] shrink-0"
+            className="h-[58px] min-h-[58px] w-[88px] min-w-[88px] shrink-0"
             style={{ filter: `drop-shadow(0 0 10px color-mix(in oklab, ${sparkColor} 50%, transparent))` }}
           >
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-              <AreaChart data={sparkData} margin={{ top: 5, right: 2, bottom: 5, left: 2 }}>
-                <defs>
-                  <linearGradient id={sparkId} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={sparkColor} stopOpacity={0.55} />
-                    <stop offset="72%" stopColor={sparkColor} stopOpacity={0.14} />
-                    <stop offset="100%" stopColor={sparkColor} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke={sparkColor}
-                  strokeWidth={2.4}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill={`url(#${sparkId})`}
-                  isAnimationActive={false}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <AreaChart width={88} height={58} data={sparkData} margin={{ top: 5, right: 2, bottom: 5, left: 2 }}>
+              <defs>
+                <linearGradient id={sparkId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={sparkColor} stopOpacity={0.55} />
+                  <stop offset="72%" stopColor={sparkColor} stopOpacity={0.14} />
+                  <stop offset="100%" stopColor={sparkColor} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke={sparkColor}
+                strokeWidth={2.4}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill={`url(#${sparkId})`}
+                isAnimationActive={false}
+              />
+            </AreaChart>
           </div>
         )}
       </div>

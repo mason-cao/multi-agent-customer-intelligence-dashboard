@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useId, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -130,6 +130,7 @@ export default function WorkspaceHub() {
   const generateMutation = useGenerateWorkspace();
   const rotateTokenMutation = useRotateWorkspaceToken();
   const deleteMutation = useDeleteWorkspace();
+  const isDeleting = deleteMutation.isPending;
 
   const workspaces = useMemo(() => list?.workspaces ?? [], [list?.workspaces]);
   const isSubmitting =
@@ -146,6 +147,19 @@ export default function WorkspaceHub() {
       navigate('/');
     }
   }, [workspaces, pendingId, setActiveWorkspace, navigate]);
+
+  useEffect(() => {
+    if (!deleteTarget) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape' && !isDeleting) {
+        setDeleteTarget(null);
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [deleteTarget, isDeleting]);
 
   function handleSelectScenario(key: string) {
     setSelectedScenario(key);
@@ -334,16 +348,22 @@ export default function WorkspaceHub() {
       {/* ── Delete Confirmation Modal ───────────────────── */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.6)] p-4 backdrop-blur-sm">
-          <div className="glass-strong w-full max-w-sm rounded-xl p-6">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-workspace-title"
+            aria-describedby="delete-workspace-description"
+            className="glass-strong w-full max-w-sm rounded-xl p-6"
+          >
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-danger/15">
                 <Trash2 className="h-5 w-5 text-[var(--color-danger)]" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">
+                <h3 id="delete-workspace-title" className="text-sm font-semibold text-white">
                   Delete workspace
                 </h3>
-                <p className="mt-1 text-sm text-[rgba(255,255,255,0.5)]">
+                <p id="delete-workspace-description" className="mt-1 text-sm text-[rgba(255,255,255,0.5)]">
                   Are you sure you want to delete{' '}
                   <span className="font-medium text-[rgba(255,255,255,0.7)]">
                     {deleteTarget.company_name}
@@ -354,17 +374,21 @@ export default function WorkspaceHub() {
             </div>
             <div className="mt-5 flex gap-3">
               <button
+                type="button"
+                autoFocus
                 onClick={() => setDeleteTarget(null)}
                 className="btn-secondary flex-1"
               >
                 Cancel
               </button>
               <button
+                type="button"
+                aria-label={`Confirm deleting ${deleteTarget.company_name}`}
                 onClick={handleDelete}
-                disabled={deleteMutation.isPending}
+                disabled={isDeleting}
                 className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white transition hover:brightness-95 disabled:opacity-50"
               >
-                {deleteMutation.isPending ? (
+                {isDeleting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Trash2 className="h-3.5 w-3.5" />
@@ -447,6 +471,7 @@ function ListView({
             data and explore AI-driven customer intelligence.
           </p>
           <button
+            type="button"
             onClick={onCreateNew}
             className="btn-primary mt-6"
           >
@@ -470,6 +495,7 @@ function ListView({
 
           {/* New workspace CTA card */}
           <button
+            type="button"
             onClick={onCreateNew}
             className={`animate-fade-in-up stagger-${Math.min(workspaces.length + 1, 5)} group flex flex-col items-center justify-center rounded-xl border border-dashed border-[rgba(255,255,255,0.10)] p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-primary-400)] hover:bg-primary-400/[0.06] hover:shadow-[0_0_20px_rgba(129,140,248,0.08)]`}
             style={{ minHeight: '180px' }}
@@ -534,6 +560,8 @@ function WorkspaceCard({
           {/* Delete button — hidden during generation */}
           {ws.status !== 'generating' && (
             <button
+              type="button"
+              aria-label={`Delete workspace ${ws.company_name}`}
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete();
@@ -593,6 +621,7 @@ function ReadyStatus({
       </p>
       <div className="mt-4 flex gap-2">
         <button
+          type="button"
           onClick={onEnter}
           className="btn-primary flex-1 py-2 text-sm"
         >
@@ -600,6 +629,8 @@ function ReadyStatus({
           <ArrowRight className="h-3.5 w-3.5" />
         </button>
         <button
+          type="button"
+          aria-label={`Regenerate data for ${ws.company_name}`}
           onClick={onRegenerate}
           className="btn-secondary flex h-9 w-9 items-center justify-center !px-0"
           title="Regenerate data"
@@ -673,6 +704,7 @@ function FailedStatus({
         {ws.user_message || 'This workspace failed to set up. You can try again.'}
       </p>
       <button
+        type="button"
         onClick={onRetry}
         className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white transition hover:brightness-95"
       >
@@ -688,6 +720,7 @@ function CreatedStatus({ onGenerate }: { onGenerate: () => void }) {
     <>
       <p className="text-xs text-[rgba(255,255,255,0.5)]">Not generated yet</p>
       <button
+        type="button"
         onClick={onGenerate}
         className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--color-primary-400)] bg-primary-400/10 px-4 py-2 text-sm font-medium text-[var(--color-primary-400)] transition hover:bg-primary-400/20"
       >
@@ -744,11 +777,20 @@ function CreateView({
   onBack: () => void;
 }) {
   const isCustom = selectedScenario === 'custom';
+  const customNameId = useId();
+  const customCountId = useId();
+  const customChurnId = useId();
+  const customIndustryId = useId();
+  const outageLabelId = useId();
+  const outageDescriptionId = useId();
+  const customDescriptionId = useId();
+  const workspaceNameId = useId();
 
   return (
     <div className="animate-fade-in-up">
       {/* Back */}
       <button
+        type="button"
         onClick={onBack}
         className="mb-8 flex items-center gap-1.5 text-sm font-medium text-[rgba(255,255,255,0.5)] transition hover:text-white"
       >
@@ -782,6 +824,8 @@ function CreateView({
 
         {/* Custom scenario card */}
         <button
+          type="button"
+          aria-pressed={isCustom}
           onClick={() => onSelectScenario('custom')}
           className={`animate-fade-in-up stagger-${scenarios.length + 1} glass glass-hover group rounded-xl border p-6 text-left transition-all duration-300 ${
             isCustom
@@ -822,6 +866,7 @@ function CreateView({
 
         {/* Surprise Me card — immediate create+generate */}
         <button
+          type="button"
           onClick={onRandomCreate}
           disabled={isSubmitting}
           className={`animate-fade-in-up stagger-${scenarios.length + 2} glass glass-hover group rounded-xl border border-[rgba(255,255,255,0.08)] p-6 text-left transition-all duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0`}
@@ -855,10 +900,11 @@ function CreateView({
 
           {/* Company name */}
           <div>
-            <label className="block text-xs font-medium text-[rgba(255,255,255,0.7)]">
+            <label htmlFor={customNameId} className="block text-xs font-medium text-[rgba(255,255,255,0.7)]">
               Company Name
             </label>
             <input
+              id={customNameId}
               type="text"
               value={workspaceName}
               onChange={(e) => onChangeName(e.target.value)}
@@ -870,7 +916,7 @@ function CreateView({
           {/* Customer count slider */}
           <div>
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-[rgba(255,255,255,0.7)]">
+              <label htmlFor={customCountId} className="text-xs font-medium text-[rgba(255,255,255,0.7)]">
                 Customer Count
               </label>
               <span className="font-mono text-xs font-semibold text-[var(--color-primary-400)]">
@@ -878,6 +924,7 @@ function CreateView({
               </span>
             </div>
             <input
+              id={customCountId}
               type="range"
               min={100}
               max={10000}
@@ -896,7 +943,7 @@ function CreateView({
           {/* Churn rate slider */}
           <div>
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-[rgba(255,255,255,0.7)]">
+              <label htmlFor={customChurnId} className="text-xs font-medium text-[rgba(255,255,255,0.7)]">
                 Churn Rate
               </label>
               <span className="font-mono text-xs font-semibold text-[var(--color-primary-400)]">
@@ -904,6 +951,7 @@ function CreateView({
               </span>
             </div>
             <input
+              id={customChurnId}
               type="range"
               min={5}
               max={30}
@@ -921,10 +969,11 @@ function CreateView({
 
           {/* Industry dropdown */}
           <div>
-            <label className="block text-xs font-medium text-[rgba(255,255,255,0.7)]">
+            <label htmlFor={customIndustryId} className="block text-xs font-medium text-[rgba(255,255,255,0.7)]">
               Primary Industry
             </label>
             <select
+              id={customIndustryId}
               value={customIndustry}
               onChange={(e) => onChangeIndustry(e.target.value)}
               className="glass-input mt-1.5 w-full max-w-md px-4 py-2.5 text-sm"
@@ -940,15 +989,19 @@ function CreateView({
           {/* Outage toggle */}
           <div className="flex max-w-md items-center justify-between">
             <div>
-              <label className="text-xs font-medium text-[rgba(255,255,255,0.7)]">
+              <p id={outageLabelId} className="text-xs font-medium text-[rgba(255,255,255,0.7)]">
                 Include Q3 Service Outage
-              </label>
-              <p className="mt-0.5 text-[11px] text-[rgba(255,255,255,0.45)]">
+              </p>
+              <p id={outageDescriptionId} className="mt-0.5 text-[11px] text-[rgba(255,255,255,0.45)]">
                 Simulates spike in tickets and negative feedback Aug-Sep 2024
               </p>
             </div>
             <button
               type="button"
+              role="switch"
+              aria-checked={customOutage}
+              aria-labelledby={outageLabelId}
+              aria-describedby={outageDescriptionId}
               onClick={() => onChangeOutage(!customOutage)}
               className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors ${
                 customOutage ? 'bg-[var(--color-primary-400)]' : 'bg-[rgba(255,255,255,0.15)]'
@@ -965,7 +1018,7 @@ function CreateView({
           {/* Scenario description */}
           <div>
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-[rgba(255,255,255,0.7)]">
+              <label htmlFor={customDescriptionId} className="text-xs font-medium text-[rgba(255,255,255,0.7)]">
                 Scenario Description
                 <span className="ml-1 font-normal text-[rgba(255,255,255,0.45)]">(optional)</span>
               </label>
@@ -974,6 +1027,7 @@ function CreateView({
               </span>
             </div>
             <textarea
+              id={customDescriptionId}
               value={customDescription}
               onChange={(e) => {
                 if (e.target.value.length <= 500) onChangeDescription(e.target.value);
@@ -989,10 +1043,11 @@ function CreateView({
       {/* Name input — appears for archetype scenarios (not custom, which has its own) */}
       {selectedScenario && !isCustom && (
         <div className="mt-8 animate-fade-in">
-          <label className="block text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
+          <label htmlFor={workspaceNameId} className="block text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.45)]">
             Workspace Name
           </label>
           <input
+            id={workspaceNameId}
             type="text"
             value={workspaceName}
             onChange={(e) => onChangeName(e.target.value)}
@@ -1015,6 +1070,7 @@ function CreateView({
       {/* Submit */}
       <div className="mt-8">
         <button
+          type="button"
           onClick={onCreate}
           disabled={!selectedScenario || isSubmitting}
           className="btn-primary disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
@@ -1054,6 +1110,8 @@ function ScenarioCard({
 
   return (
     <button
+      type="button"
+      aria-pressed={isSelected}
       onClick={onSelect}
       className={`animate-fade-in-up stagger-${index + 1} glass glass-hover group rounded-xl border p-6 text-left transition-all duration-300 ${
         isSelected

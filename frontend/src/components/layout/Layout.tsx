@@ -88,13 +88,13 @@ export default function Layout() {
   ].join(':');
 
   return (
-    <div className="relative flex h-screen bg-app-gradient">
+    <div className="relative min-h-screen bg-app-gradient">
       <BackgroundSystem />
-      <div className="relative z-10 flex h-screen w-full">
+      <div className="relative z-10 flex min-h-screen w-full flex-col md:h-screen md:flex-row md:overflow-hidden">
         <Sidebar disabled={showGeneration} />
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex min-w-0 flex-1 flex-col md:h-screen">
           {!showGeneration && <Header />}
-          <main className="flex-1 overflow-y-auto p-8">
+          <main className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 md:p-8">
             {showGeneration ? (
               <GenerationView workspace={activeWorkspace} onComplete={() => setWasGenerating(false)} />
             ) : activeWorkspace.status === 'ready' ? (

@@ -41,9 +41,9 @@ export default function Sidebar({ disabled = false }: { disabled?: boolean }) {
   }
 
   return (
-    <aside className="glass-surface flex h-screen w-60 flex-col border-r border-white/[0.06]">
+    <aside className="glass-surface flex w-full flex-shrink-0 flex-col border-b border-white/[0.06] md:h-screen md:w-60 md:border-b-0 md:border-r">
       {/* Logo */}
-      <div className="flex h-14 items-center gap-2.5 border-b border-white/[0.06] px-5">
+      <div className="flex h-14 items-center gap-2.5 border-b border-white/[0.06] px-4 sm:px-5">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--color-primary-400)] to-[var(--color-primary-600)] shadow-[0_0_12px_rgba(99,102,241,0.3)]">
           <LayoutDashboard className="h-3.5 w-3.5 text-white" />
         </div>
@@ -80,6 +80,7 @@ export default function Sidebar({ disabled = false }: { disabled?: boolean }) {
               </div>
             </div>
             <button
+              type="button"
               onClick={handleSwitch}
               className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md bg-white/5 py-1.5 text-[10px] font-medium text-[var(--color-text-tertiary)] transition-colors hover:bg-white/[0.07] hover:text-[var(--color-text-secondary)]"
             >
@@ -91,7 +92,10 @@ export default function Sidebar({ disabled = false }: { disabled?: boolean }) {
       )}
 
       {/* Navigation */}
-      <nav className={`flex-1 space-y-0.5 px-3 pt-4 ${disabled ? 'pointer-events-none opacity-30' : ''}`}>
+      <nav
+        aria-label="Primary"
+        className={`flex gap-1 overflow-x-auto px-3 py-3 md:flex-1 md:flex-col md:space-y-0.5 md:overflow-visible md:py-0 md:pt-4 ${disabled ? 'pointer-events-none opacity-30' : ''}`}
+      >
         {navigation.map((item) => {
           const Icon = item.icon;
           return (
@@ -100,7 +104,7 @@ export default function Sidebar({ disabled = false }: { disabled?: boolean }) {
               to={item.path}
               end={item.path === '/'}
               className={({ isActive }) =>
-                `group flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200 ${
+                `group flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200 md:shrink md:whitespace-normal ${
                   isActive
                     ? 'bg-primary-400/15 text-white shadow-[inset_0_0_0_1px_rgba(129,140,248,0.15),0_0_12px_rgba(129,140,248,0.06)]'
                     : 'text-[var(--color-text-tertiary)] hover:bg-white/5 hover:text-white/80'
@@ -126,7 +130,7 @@ export default function Sidebar({ disabled = false }: { disabled?: boolean }) {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-white/[0.06] px-5 py-3">
+      <div className="hidden border-t border-white/[0.06] px-5 py-3 md:block">
         <div className="flex items-center gap-2">
           <span className="relative flex h-1.5 w-1.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--color-success)] opacity-50" />
