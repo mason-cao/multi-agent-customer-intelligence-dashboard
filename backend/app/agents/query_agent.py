@@ -38,6 +38,7 @@ import pandas as pd
 from sqlalchemy import text
 
 from app.agents.base import BaseAgent
+from app.utils.privacy import text_log_metadata
 
 
 # ── Version ───────────────────────────────────────────────────────
@@ -1095,7 +1096,7 @@ class QueryAgent(BaseAgent):
             self._logger.info(
                 "query_answered",
                 intent=intent,
-                question=question[:80],
+                **text_log_metadata(question),
                 row_count=result.get("row_count"),
                 elapsed_ms=elapsed_ms,
             )
@@ -1122,14 +1123,17 @@ class QueryAgent(BaseAgent):
             self._logger.error(
                 "query_failed",
                 intent=intent,
-                error=str(exc),
+                error_type=type(exc).__name__,
             )
             return {
                 "query_id": str(uuid.uuid4()),
                 "original_question": question,
                 "matched_intent": intent,
                 "query_status": "error",
-                "answer_text": f"Query matched intent '{intent}' but execution failed: {exc}",
+                "answer_text": (
+                    "We couldn't complete that query safely. "
+                    "Try a suggested question or refresh the workspace."
+                ),
                 "structured_result": None,
                 "source_tables": None,
                 "row_count": None,

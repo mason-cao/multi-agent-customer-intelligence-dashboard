@@ -44,6 +44,37 @@ async def test_query_trims_question_and_parses_structured_result(client):
 
 
 @pytest.mark.asyncio
+async def test_query_route_logs_metadata_without_raw_question(client, monkeypatch):
+    workspace, headers = await create_workspace_with_token(client, "Query Log Test")
+    _create_empty_workspace_db(workspace["id"])
+
+    events = []
+
+    class FakeLogger:
+        def info(self, event, **kwargs):
+            events.append((event, kwargs))
+
+    import app.routes.query as query_route
+
+    monkeypatch.setattr(query_route, "logger", FakeLogger())
+
+    resp = await client.post(
+        "/api/query",
+        headers=headers,
+        json={"question": "Look up customer jane@example.com with token secret-123"},
+    )
+
+    assert resp.status_code == 200
+    assert events
+    event_name, fields = events[0]
+    assert event_name == "submit_query"
+    assert "question" not in fields
+    assert fields["question_length"] == 55
+    assert len(fields["question_sha256"]) == 64
+    assert "secret-123" not in str(fields)
+
+
+@pytest.mark.asyncio
 async def test_query_suggestions_endpoint(client):
     resp = await client.get("/api/query/suggestions")
     assert resp.status_code == 200

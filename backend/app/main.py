@@ -22,6 +22,22 @@ from app.routes.sentiment import router as sentiment_router
 logger = structlog.get_logger(__name__)
 
 
+SECURITY_HEADERS = {
+    "Content-Security-Policy": (
+        "default-src 'self'; "
+        "base-uri 'self'; "
+        "object-src 'none'; "
+        "frame-ancestors 'none'; "
+        "form-action 'self'"
+    ),
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+}
+
+
 def parse_cors_origins(raw_origins: str) -> list[str]:
     """Parse a comma-separated CORS origin list from configuration."""
     return [
@@ -62,7 +78,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS: allow_headers=["*"] is required for the custom X-Workspace-ID header.
 # In production, set CORS_ORIGINS to the deployed frontend URL.
 cors_origins = parse_cors_origins(
     os.getenv("CORS_ORIGINS", "http://localhost:5173")
@@ -70,9 +85,23 @@ cors_origins = parse_cors_origins(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Content-Type",
+        "X-Admin-Token",
+        "X-Workspace-ID",
+        "X-Workspace-Token",
+    ],
 )
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    for header, value in SECURITY_HEADERS.items():
+        response.headers.setdefault(header, value)
+    return response
+
 
 app.include_router(overview_router)
 app.include_router(segments_router)

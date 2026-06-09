@@ -3,6 +3,7 @@
 from sqlalchemy import create_engine, text
 
 from app.agents.query_agent import (
+    INTENT_HANDLERS,
     QueryAgent,
     _handle_customer_lookup,
     _handle_industry_breakdown,
@@ -247,6 +248,24 @@ def test_answer_question_supported_has_result_kind():
     assert out["query_status"] == "success"
     assert out["matched_intent"] == "top_risk_customers"
     assert out["result_kind"] in {"metric", "list", "table", "distribution", "text"}
+
+
+def test_answer_question_error_does_not_expose_exception_details(monkeypatch):
+    def broken_handler(_engine, _params=None):
+        raise RuntimeError("database path /private/data/customer.db password=secret")
+
+    monkeypatch.setitem(INTENT_HANDLERS, "top_risk_customers", broken_handler)
+
+    engine = _top_risk_engine()
+    agent = QueryAgent()
+    out = agent.answer_question("show the top 2 riskiest customers", engine)
+
+    assert out["query_status"] == "error"
+    assert out["answer_text"] == (
+        "We couldn't complete that query safely. Try a suggested question or refresh the workspace."
+    )
+    assert "password=secret" not in out["answer_text"]
+    assert "/private/data" not in out["answer_text"]
 
 
 # ── Optional LLM routing falls back cleanly with no key ───────────
