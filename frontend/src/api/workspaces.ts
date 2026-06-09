@@ -74,6 +74,19 @@ export function useCreateWorkspace() {
   });
 }
 
+export function useStartSyntheticWorkspace() {
+  const queryClient = useQueryClient();
+  return useMutation<Workspace, Error>({
+    mutationFn: async () => {
+      const { data } = await api.post('/workspaces/synthetic');
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+    },
+  });
+}
+
 export function useGenerateWorkspace() {
   const queryClient = useQueryClient();
   return useMutation<Workspace, Error, string>({

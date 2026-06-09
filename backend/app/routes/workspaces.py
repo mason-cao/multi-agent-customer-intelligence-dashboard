@@ -103,6 +103,49 @@ def create_new_workspace(
     return WorkspaceCreateResponse.model_validate(ws)
 
 
+@router.post("/synthetic", response_model=WorkspaceCreateResponse, status_code=201)
+@handle_errors("create_public_synthetic_workspace")
+def create_public_synthetic_workspace():
+    """Create and start a bounded synthetic workspace without admin access."""
+    if not settings.public_synthetic_access:
+        raise HTTPException(
+            status_code=403,
+            detail="Synthetic workspace access is disabled.",
+        )
+    if len(list_workspaces()) >= settings.max_workspaces:
+        raise HTTPException(status_code=409, detail="Workspace limit reached.")
+
+    ws = create_workspace(
+        name="Synthetic Workspace",
+        scenario="meridian_data",
+    )
+
+    from app.services.workspace_generator import (
+        GenerationStartStatus,
+        start_generation,
+    )
+
+    result = start_generation(ws.id)
+    if result.status != GenerationStartStatus.STARTED:
+        delete_workspace(ws.id)
+    if result.status == GenerationStartStatus.CAPACITY_REACHED:
+        raise HTTPException(status_code=429, detail=result.detail)
+    if result.status != GenerationStartStatus.STARTED:
+        raise HTTPException(
+            status_code=500,
+            detail="We couldn't start the synthetic workspace. Try again.",
+        )
+
+    started_ws = get_workspace(ws.id)
+    if not started_ws:
+        raise HTTPException(
+            status_code=500,
+            detail="We couldn't load the synthetic workspace. Try again.",
+        )
+    started_ws.access_token = ws.access_token
+    return WorkspaceCreateResponse.model_validate(started_ws)
+
+
 @router.get("/{workspace_id}", response_model=WorkspaceResponse)
 @handle_errors("get_workspace_detail")
 def get_workspace_detail(

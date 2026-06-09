@@ -26,6 +26,7 @@ import {
   useWorkspaces,
   useScenarios,
   useCreateWorkspace,
+  useStartSyntheticWorkspace,
   useGenerateWorkspace,
   useRotateWorkspaceToken,
   useDeleteWorkspace,
@@ -160,6 +161,19 @@ function getCreateErrorMessage(error: unknown): string {
   return detail ?? 'Failed to create workspace. Please try again.';
 }
 
+function getSyntheticErrorMessage(error: unknown): string {
+  const status = getApiErrorStatus(error);
+  const detail = getApiErrorDetail(error);
+
+  if (status === 403) {
+    return detail ?? 'Synthetic workspace access is disabled.';
+  }
+  if (status === 409 || status === 429) {
+    return detail ?? 'Synthetic workspace capacity is temporarily unavailable.';
+  }
+  return detail ?? "We couldn't start the synthetic workspace. Try again.";
+}
+
 // ── Main component ──────────────────────────────────────
 
 export default function WorkspaceHub() {
@@ -191,6 +205,7 @@ export default function WorkspaceHub() {
   const [customDescription, setCustomDescription] = useState('');
 
   const createMutation = useCreateWorkspace();
+  const syntheticMutation = useStartSyntheticWorkspace();
   const generateMutation = useGenerateWorkspace();
   const rotateTokenMutation = useRotateWorkspaceToken();
   const deleteMutation = useDeleteWorkspace();
@@ -199,6 +214,7 @@ export default function WorkspaceHub() {
   const workspaces = useMemo(() => list?.workspaces ?? [], [list?.workspaces]);
   const isSubmitting =
     createMutation.isPending ||
+    syntheticMutation.isPending ||
     generateMutation.isPending ||
     rotateTokenMutation.isPending;
   const adminAccessMessage = workspacesIsError
@@ -207,6 +223,9 @@ export default function WorkspaceHub() {
   const adminAccessNeedsBackendConfig = getApiErrorStatus(workspacesError) === 503;
   const createErrorMessage = createMutation.isError
     ? getCreateErrorMessage(createMutation.error)
+    : null;
+  const syntheticErrorMessage = syntheticMutation.isError
+    ? getSyntheticErrorMessage(syntheticMutation.error)
     : null;
 
   // When generation starts, set workspace as active and navigate to generation view
@@ -289,6 +308,18 @@ export default function WorkspaceHub() {
   async function handleRandomCreate() {
     if (isSubmitting) return;
     await handleCreateAndGenerate({ name: 'Random', scenario: 'random' });
+  }
+
+  async function handleStartSynthetic() {
+    if (isSubmitting) return;
+    try {
+      const ws = await syntheticMutation.mutateAsync();
+      setActiveWorkspace(ws);
+      setPendingId(ws.id);
+      navigate('/');
+    } catch {
+      // Error shown where the synthetic entry point is rendered.
+    }
   }
 
   async function ensureWorkspaceAccess(ws: Workspace): Promise<Workspace> {
@@ -425,6 +456,9 @@ export default function WorkspaceHub() {
             onChangeToken={setAdminTokenInput}
             onSubmit={handleAdminTokenSubmit}
             onClear={handleClearAdminToken}
+            onStartSynthetic={handleStartSynthetic}
+            isStartingSynthetic={syntheticMutation.isPending}
+            syntheticErrorMessage={syntheticErrorMessage}
           />
         ) : (
           <ListView
@@ -435,6 +469,9 @@ export default function WorkspaceHub() {
             onGenerate={handleGenerate}
             onDelete={setDeleteTarget}
             onCreateNew={openCreateView}
+            onStartSynthetic={handleStartSynthetic}
+            isStartingSynthetic={syntheticMutation.isPending}
+            syntheticErrorMessage={syntheticErrorMessage}
           />
         )}
       </div>
@@ -506,6 +543,9 @@ function AdminAccessPanel({
   onChangeToken,
   onSubmit,
   onClear,
+  onStartSynthetic,
+  isStartingSynthetic,
+  syntheticErrorMessage,
 }: {
   message: string;
   token: string;
@@ -513,6 +553,9 @@ function AdminAccessPanel({
   onChangeToken: (token: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onClear: () => void;
+  onStartSynthetic: () => void;
+  isStartingSynthetic: boolean;
+  syntheticErrorMessage: string | null;
 }) {
   return (
     <div className="animate-fade-in-up">
@@ -577,6 +620,43 @@ function AdminAccessPanel({
           management actions.
         </p>
       </form>
+
+      <div className="glass mt-5 max-w-xl rounded-xl p-6">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-primary-400)]">
+          No admin token?
+        </p>
+        <h3 className="mt-2 text-lg font-semibold text-white">
+          Start with a synthetic workspace
+        </h3>
+        <p className="mt-2 text-sm leading-6 text-[rgba(255,255,255,0.48)]">
+          Launch a bounded sample workspace with generated customer data and go
+          straight into the setup flow.
+        </p>
+        <button
+          type="button"
+          onClick={onStartSynthetic}
+          disabled={isStartingSynthetic}
+          className="btn-primary mt-5 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
+        >
+          {isStartingSynthetic ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Starting synthetic workspace...
+            </>
+          ) : (
+            <>
+              Use Synthetic Workspace
+              <Sparkles className="h-4 w-4" />
+            </>
+          )}
+        </button>
+        {syntheticErrorMessage && (
+          <p className="mt-3 flex items-center gap-2 text-sm text-[var(--color-danger)]">
+            <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+            {syntheticErrorMessage}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -591,6 +671,9 @@ function ListView({
   onGenerate,
   onDelete,
   onCreateNew,
+  onStartSynthetic,
+  isStartingSynthetic,
+  syntheticErrorMessage,
 }: {
   workspaces: Workspace[];
   isLoading: boolean;
@@ -599,6 +682,9 @@ function ListView({
   onGenerate: (ws: Workspace) => void;
   onDelete: (ws: Workspace) => void;
   onCreateNew: () => void;
+  onStartSynthetic: () => void;
+  isStartingSynthetic: boolean;
+  syntheticErrorMessage: string | null;
 }) {
   return (
     <div className="animate-fade-in-up">
@@ -613,6 +699,35 @@ function ListView({
         workspace runs an 8-stage intelligence pipeline that generates behavioral
         profiles, segments, churn predictions, and executive insights.
       </p>
+      <div className="mt-6 flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={onCreateNew}
+          className="btn-primary"
+        >
+          <Plus className="h-4 w-4" />
+          New Workspace
+        </button>
+        <button
+          type="button"
+          onClick={onStartSynthetic}
+          disabled={isStartingSynthetic}
+          className="btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isStartingSynthetic ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4" />
+          )}
+          Use Synthetic Workspace
+        </button>
+      </div>
+      {syntheticErrorMessage && (
+        <p className="mt-3 flex items-center gap-2 text-sm text-[var(--color-danger)]">
+          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          {syntheticErrorMessage}
+        </p>
+      )}
 
       {isLoading ? (
         <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -42,6 +42,39 @@ async def test_create_workspace_returns_one_time_access_token(client):
 
 
 @pytest.mark.asyncio
+async def test_public_synthetic_workspace_starts_without_admin_token(client, monkeypatch):
+    import app.services.workspace_generator as generator
+    from app.services.workspace_manager import delete_workspace
+
+    monkeypatch.setattr(settings, "public_synthetic_access", True, raising=False)
+
+    def no_op_generation(_workspace_id: str):
+        return None
+
+    monkeypatch.setattr(generator, "_run_generation", no_op_generation)
+
+    resp = await client.post("/api/workspaces/synthetic")
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["name"] == "Synthetic Workspace"
+    assert body["scenario"] == "meridian_data"
+    assert body["status"] == "generating"
+    assert len(body["access_token"]) >= 43
+
+    delete_workspace(body["id"])
+
+
+@pytest.mark.asyncio
+async def test_public_synthetic_workspace_can_be_disabled(client, monkeypatch):
+    monkeypatch.setattr(settings, "public_synthetic_access", False, raising=False)
+
+    resp = await client.post("/api/workspaces/synthetic")
+
+    assert resp.status_code == 403
+    assert resp.json()["detail"] == "Synthetic workspace access is disabled."
+
+
+@pytest.mark.asyncio
 async def test_admin_can_rotate_workspace_access_token(client):
     create = await client.post("/api/workspaces", headers=ADMIN_HEADERS, json={
         "name": "Rotate Token Test",

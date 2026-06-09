@@ -127,6 +127,7 @@ The backend and frontend admin tokens must match. In shared environments, use a 
 | `LOG_LEVEL` | Backend | No | Logging threshold, default `INFO` |
 | `MAX_WORKSPACES` | Backend | No | Workspace quota, default `25` |
 | `MAX_CONCURRENT_GENERATIONS` | Backend | No | Generation concurrency limit, default `1` |
+| `PUBLIC_SYNTHETIC_ACCESS` | Backend | No | Enables the bounded no-admin synthetic workspace starter, default `true` |
 | `ANTHROPIC_API_KEY` | Backend | No | Optional provider key for narrative/query routing |
 | `OPENAI_API_KEY` | Backend | No | Optional provider key for narrative/query routing |
 
@@ -172,6 +173,7 @@ Production checklist:
 
 - Set a strong `ADMIN_API_TOKEN` on the backend.
 - Set `VITE_ADMIN_API_TOKEN` only for trusted admin-facing deployments.
+- Set `PUBLIC_SYNTHETIC_ACCESS=false` when public visitors should not be able to start bounded synthetic workspaces.
 - Set `CORS_ORIGINS` to the exact frontend origin.
 - Keep the Railway data volume mounted and backed up.
 - Keep Vercel security headers in `frontend/vercel.json` aligned with backend API origin.

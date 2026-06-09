@@ -47,7 +47,7 @@ Vercel serves the static React frontend and proxies all `/api/*` requests to the
 
 ## Request Lifecycle
 
-Dashboard API requests include both `X-Workspace-ID` and `X-Workspace-Token` headers, set by the frontend Axios interceptor from the active workspace in `localStorage`. Workspace management requests include `X-Admin-Token`, either from a trusted frontend build or from the Workspaces screen token prompt. The backend validates the token before routing a request to the correct per-workspace SQLite database.
+Dashboard API requests include both `X-Workspace-ID` and `X-Workspace-Token` headers, set by the frontend Axios interceptor from the active workspace in `localStorage`. Workspace management requests include `X-Admin-Token`, either from a trusted frontend build or from the Workspaces screen token prompt. The no-admin synthetic starter uses a dedicated bounded route and can be disabled with `PUBLIC_SYNTHETIC_ACCESS=false`. The backend validates tokens before routing protected requests to the correct per-workspace SQLite database.
 
 ```
 Frontend                        Backend                          Database
@@ -394,5 +394,6 @@ CORS origins are configurable via the `CORS_ORIGINS` environment variable (comma
 | `ADMIN_API_TOKEN` | Railway | Yes | `""` |
 | `MAX_WORKSPACES` | Railway | No | `25` |
 | `MAX_CONCURRENT_GENERATIONS` | Railway | No | `1` |
+| `PUBLIC_SYNTHETIC_ACCESS` | Railway | No | `true` |
 | `ANTHROPIC_API_KEY` | Railway | No | `""` (mock mode) |
 | `OPENAI_API_KEY` | Railway | No | `""` (mock mode) |

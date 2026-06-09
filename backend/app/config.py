@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     max_workspaces: int = 25
     max_concurrent_generations: int = 1
+    public_synthetic_access: bool = True
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
