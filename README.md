@@ -2,7 +2,7 @@
 
 **Workspace-Based Customer Intelligence Platform**
 
-Nova Core is a full-stack customer intelligence application for creating isolated company workspaces, generating realistic customer datasets, and exploring computed insights through an executive dashboard. The system turns customer profiles, behavior, revenue, support, sentiment, churn risk, recommendations, audit checks, and natural language queries into a single operating view.
+Nova Core is a full-stack customer intelligence application for creating isolated company workspaces, generating realistic customer datasets, and exploring computed insights through an executive dashboard. The system turns customer profiles, behavior, revenue, support, sentiment, churn risk, recommendations, audit checks, and natural language queries into a single operating view. Originally designed as a Capstone Project.
 
 [Live Application](https://multi-agent-customer-intelligence-d.vercel.app)
 
