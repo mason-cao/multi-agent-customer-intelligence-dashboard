@@ -16,11 +16,13 @@ import sys
 import threading
 import time
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Optional, Tuple
 
 from sqlalchemy.orm import sessionmaker
 
+from app.config import settings
 from app.db.workspace_db import (
     ensure_workspace_dirs,
     get_workspace_db_path,
@@ -40,6 +42,24 @@ if SCRIPTS_DIR not in sys.path:
 
 # ── Constants ──────────────────────────────────────────────────
 TOTAL_STAGES = 14
+_GENERATION_LOCK = threading.Lock()
+_ACTIVE_GENERATIONS: set[str] = set()
+
+
+class GenerationStartStatus(str, Enum):
+    """Outcome of attempting to start a workspace generation job."""
+
+    STARTED = "started"
+    NOT_FOUND = "not_found"
+    INVALID_STATUS = "invalid_status"
+    CAPACITY_REACHED = "capacity_reached"
+    START_FAILED = "start_failed"
+
+
+@dataclass(frozen=True)
+class GenerationStartResult:
+    status: GenerationStartStatus
+    detail: str
 
 
 @dataclass(frozen=True)
@@ -80,6 +100,35 @@ def generation_timeout_seconds(customer_count: int) -> int:
     return max(900, 600 + int((customer_count or 0) * 0.25))
 
 
+def active_generation_count() -> int:
+    """Return the number of generation workers reserved in this process."""
+    with _GENERATION_LOCK:
+        return len(_ACTIVE_GENERATIONS)
+
+
+def reset_generation_registry():
+    """Clear in-process generation reservations.
+
+    Used by tests and startup reconciliation. It does not cancel running
+    threads; production recovery of interrupted jobs is handled by workspace
+    status reconciliation.
+    """
+    with _GENERATION_LOCK:
+        _ACTIVE_GENERATIONS.clear()
+
+
+def _release_generation_slot(workspace_id: str):
+    with _GENERATION_LOCK:
+        _ACTIVE_GENERATIONS.discard(workspace_id)
+
+
+def _run_generation_with_release(workspace_id: str):
+    try:
+        _run_generation(workspace_id)
+    finally:
+        _release_generation_slot(workspace_id)
+
+
 def classify_agent_outcome(
     label: str, critical: bool, status: str
 ) -> Tuple[str, Optional[str]]:
@@ -99,39 +148,69 @@ def classify_agent_outcome(
     return "warn", f"{label} completed with warnings"
 
 
-def start_generation(workspace_id: str) -> bool:
+def start_generation(workspace_id: str) -> GenerationStartResult:
     """Start workspace generation in a background thread.
 
     Marks the workspace as 'generating' immediately and spawns the
-    generation thread. Returns False if the workspace doesn't exist
-    or is not in a valid state for generation.
+    generation thread. Returns a status describing whether the job was accepted.
     """
     ws = get_workspace(workspace_id)
     if not ws:
-        return False
+        return GenerationStartResult(
+            GenerationStartStatus.NOT_FOUND,
+            "This workspace doesn't exist.",
+        )
     if ws.status not in ("created", "failed", "ready"):
-        return False
-
-    # For failed/ready workspaces, delete stale DB and reset progress
-    if ws.status in ("failed", "ready"):
-        if not prepare_for_regeneration(workspace_id):
-            return False
-    else:
-        # Fresh workspace — just mark as generating
-        update_workspace_status(
-            workspace_id, "generating",
-            current_stage="Initializing workspace",
-            stage_index=0,
-            total_stages=TOTAL_STAGES,
+        return GenerationStartResult(
+            GenerationStartStatus.INVALID_STATUS,
+            "This workspace is already being set up.",
         )
 
-    thread = threading.Thread(
-        target=_run_generation,
-        args=(workspace_id,),
-        daemon=True,
+    with _GENERATION_LOCK:
+        if workspace_id in _ACTIVE_GENERATIONS:
+            return GenerationStartResult(
+                GenerationStartStatus.INVALID_STATUS,
+                "This workspace is already being set up.",
+            )
+        if len(_ACTIVE_GENERATIONS) >= settings.max_concurrent_generations:
+            return GenerationStartResult(
+                GenerationStartStatus.CAPACITY_REACHED,
+                "Generation capacity reached. Try again later.",
+            )
+        _ACTIVE_GENERATIONS.add(workspace_id)
+
+    try:
+        # For failed/ready workspaces, delete stale DB and reset progress
+        if ws.status in ("failed", "ready"):
+            if not prepare_for_regeneration(workspace_id):
+                _release_generation_slot(workspace_id)
+                return GenerationStartResult(
+                    GenerationStartStatus.NOT_FOUND,
+                    "This workspace doesn't exist.",
+                )
+        else:
+            # Fresh workspace — just mark as generating
+            update_workspace_status(
+                workspace_id, "generating",
+                current_stage="Initializing workspace",
+                stage_index=0,
+                total_stages=TOTAL_STAGES,
+            )
+
+        thread = threading.Thread(
+            target=_run_generation_with_release,
+            args=(workspace_id,),
+            daemon=True,
+        )
+        thread.start()
+    except Exception:
+        _release_generation_slot(workspace_id)
+        raise
+
+    return GenerationStartResult(
+        GenerationStartStatus.STARTED,
+        "Generation started.",
     )
-    thread.start()
-    return True
 
 
 def _run_generation(workspace_id: str):

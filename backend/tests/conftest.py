@@ -94,9 +94,12 @@ def admin_headers():
 def clean_workspaces(test_app):
     """Keep the shared metadata DB isolated between tests."""
     from app.services.workspace_manager import delete_workspace, list_workspaces
+    from app.services.workspace_generator import reset_generation_registry
 
+    reset_generation_registry()
     for ws in list_workspaces():
         delete_workspace(ws.id)
     yield
+    reset_generation_registry()
     for ws in list_workspaces():
         delete_workspace(ws.id)

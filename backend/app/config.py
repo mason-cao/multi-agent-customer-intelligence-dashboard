@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     chroma_persist_dir: str = "data/chroma"
     app_env: str = "development"
     log_level: str = "INFO"
+    max_workspaces: int = 25
+    max_concurrent_generations: int = 1
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

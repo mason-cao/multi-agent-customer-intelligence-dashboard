@@ -2,6 +2,8 @@
 
 import pytest
 
+from app.config import settings
+
 
 ADMIN_HEADERS = {"X-Admin-Token": "test-admin-token"}
 
@@ -113,6 +115,24 @@ async def test_create_workspace(client):
     assert body["industry"] == "Technology"
     assert body["customer_count"] == 1000
     assert "id" in body
+
+
+@pytest.mark.asyncio
+async def test_create_workspace_enforces_workspace_quota(client, monkeypatch):
+    monkeypatch.setattr(settings, "max_workspaces", 1, raising=False)
+
+    first = await client.post("/api/workspaces", headers=ADMIN_HEADERS, json={
+        "name": "Quota One",
+        "scenario": "velocity_saas",
+    })
+    assert first.status_code == 201
+
+    second = await client.post("/api/workspaces", headers=ADMIN_HEADERS, json={
+        "name": "Quota Two",
+        "scenario": "velocity_saas",
+    })
+    assert second.status_code == 409
+    assert second.json()["detail"] == "Workspace limit reached."
 
 
 @pytest.mark.asyncio

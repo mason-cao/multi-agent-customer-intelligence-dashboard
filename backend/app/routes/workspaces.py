@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from app.config import settings
 from app.security.auth import (
     ADMIN_TOKEN_HEADER,
     WORKSPACE_ID_HEADER,
@@ -86,6 +87,9 @@ def create_new_workspace(
     _: None = Depends(require_admin_token),
 ):
     """Create a new workspace with the given scenario configuration."""
+    if len(list_workspaces()) >= settings.max_workspaces:
+        raise HTTPException(status_code=409, detail="Workspace limit reached.")
+
     ws = create_workspace(
         name=body.name,
         scenario=body.scenario,
@@ -157,10 +161,19 @@ def trigger_generation(
             detail="This workspace is already being set up.",
         )
 
-    from app.services.workspace_generator import start_generation
+    from app.services.workspace_generator import (
+        GenerationStartStatus,
+        start_generation,
+    )
 
-    started = start_generation(workspace_id)
-    if not started:
+    result = start_generation(workspace_id)
+    if result.status == GenerationStartStatus.NOT_FOUND:
+        raise HTTPException(status_code=404, detail=result.detail)
+    if result.status == GenerationStartStatus.INVALID_STATUS:
+        raise HTTPException(status_code=409, detail=result.detail)
+    if result.status == GenerationStartStatus.CAPACITY_REACHED:
+        raise HTTPException(status_code=429, detail=result.detail)
+    if result.status != GenerationStartStatus.STARTED:
         raise HTTPException(status_code=500, detail="We couldn't start the setup process. Try again.")
 
     ws = get_workspace(workspace_id)
