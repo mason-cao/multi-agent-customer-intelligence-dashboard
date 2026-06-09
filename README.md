@@ -63,7 +63,7 @@ Workspace management routes require:
 
 - `X-Admin-Token`
 
-The frontend sends these headers through the shared Axios client. Workspace tokens are returned once on create or rotation and then stored client-side for the active workspace.
+The frontend sends these headers through the shared Axios client. Workspace tokens are returned once on create or rotation and then stored client-side for the active workspace. Admin tokens can come from a trusted frontend build or from the Workspaces screen token prompt, which stores the token in that browser.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the detailed topology, data model, pipeline order, and deployment notes.
 
@@ -131,6 +131,8 @@ The backend and frontend admin tokens must match. In shared environments, use a 
 | `OPENAI_API_KEY` | Backend | No | Optional provider key for narrative/query routing |
 
 No external provider key is required for local operation.
+
+`ADMIN_TOKEN` and `VITE_ADMIN_TOKEN` are accepted as compatibility aliases. If a frontend build does not include `VITE_ADMIN_API_TOKEN`, the Workspaces screen prompts for an admin token and stores it in that browser under `novacore_admin_token`.
 
 ---
 

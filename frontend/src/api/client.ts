@@ -15,9 +15,11 @@ const api = axios.create({
 
 // Attach active credentials so the API can enforce admin and workspace access.
 api.interceptors.request.use((config) => {
-  const adminToken =
+  const storedAdminToken = localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
+  const configuredAdminToken =
     import.meta.env.VITE_ADMIN_API_TOKEN ||
-    localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
+    import.meta.env.VITE_ADMIN_TOKEN;
+  const adminToken = storedAdminToken || configuredAdminToken;
   if (adminToken) {
     config.headers['X-Admin-Token'] = adminToken;
   }

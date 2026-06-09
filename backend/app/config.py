@@ -1,3 +1,5 @@
+import os
+
 from pydantic_settings import BaseSettings
 
 
@@ -16,3 +18,8 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def get_admin_api_token() -> str:
+    """Return the configured admin token, accepting the legacy ADMIN_TOKEN alias."""
+    return settings.admin_api_token or os.getenv("ADMIN_TOKEN", "")

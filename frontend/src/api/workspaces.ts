@@ -18,6 +18,11 @@ export function useWorkspaces() {
       const { data } = await api.get('/workspaces');
       return data;
     },
+    retry: (failureCount, error) => {
+      const status = (error as ApiError).response?.status;
+      if (status === 401 || status === 403 || status === 503) return false;
+      return failureCount < 3;
+    },
     refetchInterval: (query) => {
       const list = query.state.data;
       return list?.workspaces.some((ws) => ws.status === 'generating')

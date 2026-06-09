@@ -56,3 +56,21 @@ def test_production_logging_uses_json_renderer():
 
     assert any(isinstance(processor, structlog.processors.JSONRenderer) for processor in processors)
     assert not any(isinstance(processor, structlog.dev.ConsoleRenderer) for processor in processors)
+
+
+def test_admin_token_accepts_legacy_env_alias(monkeypatch):
+    from app.config import get_admin_api_token, settings
+
+    monkeypatch.setattr(settings, "admin_api_token", "", raising=False)
+    monkeypatch.setenv("ADMIN_TOKEN", "legacy-token")
+
+    assert get_admin_api_token() == "legacy-token"
+
+
+def test_admin_api_token_takes_precedence_over_legacy_alias(monkeypatch):
+    from app.config import get_admin_api_token, settings
+
+    monkeypatch.setattr(settings, "admin_api_token", "primary-token", raising=False)
+    monkeypatch.setenv("ADMIN_TOKEN", "legacy-token")
+
+    assert get_admin_api_token() == "primary-token"

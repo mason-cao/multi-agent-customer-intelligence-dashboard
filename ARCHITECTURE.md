@@ -47,7 +47,7 @@ Vercel serves the static React frontend and proxies all `/api/*` requests to the
 
 ## Request Lifecycle
 
-Dashboard API requests include both `X-Workspace-ID` and `X-Workspace-Token` headers, set by the frontend Axios interceptor from the active workspace in `localStorage`. Workspace management requests include `X-Admin-Token`. The backend validates the token before routing a request to the correct per-workspace SQLite database.
+Dashboard API requests include both `X-Workspace-ID` and `X-Workspace-Token` headers, set by the frontend Axios interceptor from the active workspace in `localStorage`. Workspace management requests include `X-Admin-Token`, either from a trusted frontend build or from the Workspaces screen token prompt. The backend validates the token before routing a request to the correct per-workspace SQLite database.
 
 ```
 Frontend                        Backend                          Database

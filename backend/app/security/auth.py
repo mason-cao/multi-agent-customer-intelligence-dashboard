@@ -6,7 +6,7 @@ import secrets
 
 from fastapi import HTTPException, Request
 
-from app.config import settings
+from app.config import get_admin_api_token
 
 ADMIN_TOKEN_HEADER = "x-admin-token"
 WORKSPACE_ID_HEADER = "x-workspace-id"
@@ -33,7 +33,7 @@ def workspace_token_matches(token: str, stored_hash: str | None) -> bool:
 
 def require_admin_token(request: Request) -> None:
     """Require the configured admin token for workspace-management routes."""
-    configured_token = settings.admin_api_token
+    configured_token = get_admin_api_token()
     if not configured_token:
         raise HTTPException(
             status_code=503,

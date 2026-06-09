@@ -1,5 +1,7 @@
 import { useState, useEffect, useId, useMemo } from 'react';
+import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { AxiosError } from 'axios';
 import {
   LayoutDashboard,
   Plus,
@@ -30,6 +32,7 @@ import {
 } from '../api/workspaces';
 import type { Workspace, Scenario, CreateWorkspaceInput } from '../types/workspace';
 import { PALETTE } from '../utils/colors';
+import { ADMIN_TOKEN_STORAGE_KEY } from '../constants/workspace';
 
 // ── Constants ────────────────────────────────────────────
 
@@ -105,12 +108,70 @@ function getMeta(scenario: string): ScenarioMeta {
   return SCENARIO_META[scenario] || DEFAULT_META;
 }
 
+interface ApiErrorBody {
+  detail?: string | Array<{ msg?: string }>;
+}
+
+function getApiErrorStatus(error: unknown): number | undefined {
+  return (error as AxiosError<ApiErrorBody> | null)?.response?.status;
+}
+
+function getApiErrorDetail(error: unknown): string | null {
+  const detail = (error as AxiosError<ApiErrorBody> | null)?.response?.data?.detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    return detail.find((item) => typeof item.msg === 'string')?.msg ?? null;
+  }
+  return null;
+}
+
+function getAdminAccessMessage(error: unknown): string | null {
+  const status = getApiErrorStatus(error);
+  const detail = getApiErrorDetail(error);
+
+  if (status === 401) {
+    return 'Workspace management requires an admin token.';
+  }
+  if (status === 403) {
+    return 'The stored admin token was rejected. Enter the current token and retry.';
+  }
+  if (status === 503) {
+    return 'The backend admin token is not configured. Set ADMIN_API_TOKEN on the backend and restart or redeploy it.';
+  }
+  return detail;
+}
+
+function getCreateErrorMessage(error: unknown): string {
+  const status = getApiErrorStatus(error);
+  const detail = getApiErrorDetail(error);
+
+  if (status === 401) {
+    return 'Workspace creation needs an admin token. Enter it on the Workspaces screen and retry.';
+  }
+  if (status === 403) {
+    return 'The admin token was rejected. Update the stored token and retry.';
+  }
+  if (status === 503) {
+    return 'The backend admin token is not configured. Set ADMIN_API_TOKEN on the backend and restart or redeploy it.';
+  }
+  if (status === 409 && detail) {
+    return detail;
+  }
+  return detail ?? 'Failed to create workspace. Please try again.';
+}
+
 // ── Main component ──────────────────────────────────────
 
 export default function WorkspaceHub() {
   const navigate = useNavigate();
   const { activeWorkspace, setActiveWorkspace, clearWorkspace } = useActiveWorkspace();
-  const { data: list, isLoading } = useWorkspaces();
+  const {
+    data: list,
+    isLoading,
+    isError: workspacesIsError,
+    error: workspacesError,
+    refetch: refetchWorkspaces,
+  } = useWorkspaces();
   const { data: scenarios } = useScenarios();
 
   const [view, setView] = useState<'list' | 'create'>('list');
@@ -118,6 +179,9 @@ export default function WorkspaceHub() {
   const [workspaceName, setWorkspaceName] = useState('');
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Workspace | null>(null);
+  const [adminTokenInput, setAdminTokenInput] = useState(() => {
+    return localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) ?? '';
+  });
 
   // Custom scenario state
   const [customCount, setCustomCount] = useState(2000);
@@ -137,6 +201,13 @@ export default function WorkspaceHub() {
     createMutation.isPending ||
     generateMutation.isPending ||
     rotateTokenMutation.isPending;
+  const adminAccessMessage = workspacesIsError
+    ? getAdminAccessMessage(workspacesError)
+    : null;
+  const adminAccessNeedsBackendConfig = getApiErrorStatus(workspacesError) === 503;
+  const createErrorMessage = createMutation.isError
+    ? getCreateErrorMessage(createMutation.error)
+    : null;
 
   // When generation starts, set workspace as active and navigate to generation view
   useEffect(() => {
@@ -275,6 +346,20 @@ export default function WorkspaceHub() {
     createMutation.reset();
   }
 
+  function handleAdminTokenSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const token = adminTokenInput.trim();
+    if (!token) return;
+    localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
+    void refetchWorkspaces();
+  }
+
+  function handleClearAdminToken() {
+    localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+    setAdminTokenInput('');
+    void refetchWorkspaces();
+  }
+
   return (
     <div className="bg-app-gradient relative min-h-screen">
       {/* ── Background System ────────────────────────────── */}
@@ -315,7 +400,7 @@ export default function WorkspaceHub() {
             selectedScenario={selectedScenario}
             workspaceName={workspaceName}
             isSubmitting={isSubmitting}
-            error={createMutation.isError}
+            errorMessage={createErrorMessage}
             customCount={customCount}
             customChurn={customChurn}
             customIndustry={customIndustry}
@@ -331,6 +416,15 @@ export default function WorkspaceHub() {
             onCreate={handleCreate}
             onRandomCreate={handleRandomCreate}
             onBack={() => setView('list')}
+          />
+        ) : adminAccessMessage ? (
+          <AdminAccessPanel
+            message={adminAccessMessage}
+            token={adminTokenInput}
+            disableTokenEntry={adminAccessNeedsBackendConfig}
+            onChangeToken={setAdminTokenInput}
+            onSubmit={handleAdminTokenSubmit}
+            onClear={handleClearAdminToken}
           />
         ) : (
           <ListView
@@ -399,6 +493,90 @@ export default function WorkspaceHub() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Admin Access Panel ─────────────────────────────────
+
+function AdminAccessPanel({
+  message,
+  token,
+  disableTokenEntry,
+  onChangeToken,
+  onSubmit,
+  onClear,
+}: {
+  message: string;
+  token: string;
+  disableTokenEntry: boolean;
+  onChangeToken: (token: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="animate-fade-in-up">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-primary-400)]">
+        Workspace Access
+      </p>
+      <h2 className="mt-2 text-3xl font-bold tracking-tight text-white">
+        Admin token required
+      </h2>
+      <p className="mt-3 max-w-xl text-sm leading-relaxed text-[rgba(255,255,255,0.45)]">
+        {message}
+      </p>
+
+      <form
+        onSubmit={onSubmit}
+        className="glass-elevated mt-8 max-w-xl space-y-4 rounded-xl p-6"
+      >
+        <div>
+          <label
+            htmlFor="workspace-admin-token"
+            className="block text-xs font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.48)]"
+          >
+            Admin token
+          </label>
+          <input
+            id="workspace-admin-token"
+            type="password"
+            value={token}
+            onChange={(event) => onChangeToken(event.target.value)}
+            disabled={disableTokenEntry}
+            autoComplete="off"
+            placeholder={
+              disableTokenEntry
+                ? 'Configure ADMIN_API_TOKEN on the backend first'
+                : 'Enter the workspace admin token'
+            }
+            className="glass-input mt-2 w-full px-4 py-2.5 text-sm disabled:opacity-50"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="submit"
+            disabled={disableTokenEntry || !token.trim()}
+            className="btn-primary disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
+          >
+            Save token
+            <ArrowRight className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onClear}
+            className="btn-secondary"
+          >
+            Clear stored token
+          </button>
+        </div>
+
+        <p className="text-xs leading-5 text-[rgba(255,255,255,0.40)]">
+          The token is stored only in this browser and sent as the
+          <span className="font-mono"> X-Admin-Token</span> header for workspace
+          management actions.
+        </p>
+      </form>
     </div>
   );
 }
@@ -738,7 +916,7 @@ function CreateView({
   selectedScenario,
   workspaceName,
   isSubmitting,
-  error,
+  errorMessage,
   customCount,
   customChurn,
   customIndustry,
@@ -759,7 +937,7 @@ function CreateView({
   selectedScenario: string | null;
   workspaceName: string;
   isSubmitting: boolean;
-  error: boolean;
+  errorMessage: string | null;
   customCount: number;
   customChurn: number;
   customIndustry: string;
@@ -1058,11 +1236,11 @@ function CreateView({
       )}
 
       {/* Error */}
-      {error && (
+      {errorMessage && (
         <div className="mt-4 rounded-lg border border-danger/30 bg-danger/10 p-3">
           <p className="flex items-center gap-2 text-sm text-[var(--color-danger)]">
             <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-            Failed to create workspace. Please try again.
+            {errorMessage}
           </p>
         </div>
       )}
