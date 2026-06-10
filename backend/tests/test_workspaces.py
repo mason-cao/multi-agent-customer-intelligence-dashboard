@@ -44,6 +44,7 @@ async def test_create_workspace_returns_one_time_access_token(client):
 @pytest.mark.asyncio
 async def test_public_synthetic_workspace_starts_without_admin_token(client, monkeypatch):
     import app.services.workspace_generator as generator
+    import app.services.workspace_manager as workspace_manager
     from app.services.workspace_manager import delete_workspace
 
     monkeypatch.setattr(settings, "public_synthetic_access", True, raising=False)
@@ -51,13 +52,28 @@ async def test_public_synthetic_workspace_starts_without_admin_token(client, mon
     def no_op_generation(_workspace_id: str):
         return None
 
+    def random_scenario():
+        return {
+            "company_name": "Pulse Labs",
+            "industry": "Media",
+            "customer_count": 800,
+            "churn_rate": 0.19,
+            "include_outage": False,
+            "profile": "churn_crisis",
+            "seed": 4242,
+        }
+
     monkeypatch.setattr(generator, "_run_generation", no_op_generation)
+    monkeypatch.setattr(workspace_manager, "generate_random_scenario", random_scenario)
 
     resp = await client.post("/api/workspaces/synthetic")
     assert resp.status_code == 201
     body = resp.json()
     assert body["name"] == "Synthetic Workspace"
-    assert body["scenario"] == "meridian_data"
+    assert body["scenario"] == "random"
+    assert body["company_name"] == "Pulse Labs"
+    assert body["industry"] == "Media"
+    assert body["customer_count"] == 800
     assert body["status"] == "generating"
     assert len(body["access_token"]) >= 43
 

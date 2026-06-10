@@ -117,7 +117,7 @@ def create_public_synthetic_workspace():
 
     ws = create_workspace(
         name="Synthetic Workspace",
-        scenario="meridian_data",
+        scenario="random",
     )
 
     from app.services.workspace_generator import (
