@@ -7,10 +7,18 @@ pipeline execution are handled separately by workspace_generator.py.
 
 import json
 import random
+import sqlite3
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
+from shutil import disk_usage
 from typing import Optional
 
+import structlog
+from sqlalchemy.exc import OperationalError
+
+from app.config import settings
+from app.db import workspace_db
 from app.db.workspace_db import (
     MetadataSession,
     WorkspaceBase,
@@ -24,6 +32,8 @@ from app.security.auth import (
     hash_workspace_token,
     workspace_token_matches,
 )
+
+logger = structlog.get_logger(__name__)
 
 # ── Predefined company archetypes ───────────────────────────────
 
@@ -129,6 +139,119 @@ def init_metadata_db():
         if column not in columns:
             with metadata_engine.begin() as conn:
                 conn.execute(text(ddl))
+
+
+def is_disk_full_error(exc: BaseException) -> bool:
+    """Return whether an exception represents an exhausted data volume."""
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    while current and id(current) not in seen:
+        seen.add(id(current))
+        message = str(current).lower()
+        if (
+            "database or disk is full" in message
+            or "no space left on device" in message
+        ):
+            return True
+        if isinstance(current, sqlite3.OperationalError) and "disk" in message:
+            return True
+        current = (
+            getattr(current, "orig", None)
+            or getattr(current, "__cause__", None)
+            or getattr(current, "__context__", None)
+        )
+    return False
+
+
+def _workspace_database_bundle_paths(db_path: Path) -> list[Path]:
+    """Return the SQLite database file and possible sidecar files."""
+    return [
+        db_path,
+        db_path.with_name(f"{db_path.name}-wal"),
+        db_path.with_name(f"{db_path.name}-shm"),
+        db_path.with_name(f"{db_path.name}-journal"),
+    ]
+
+
+def prune_workspace_data_for_free_space(
+    min_free_bytes: Optional[int] = None,
+) -> list[str]:
+    """Delete oldest workspace DB files until the data volume has free space.
+
+    Startup can run before SQLite is writable. This routine only removes
+    per-workspace data files, so it can recover space before metadata cleanup
+    attempts its first write.
+    """
+    target_free_bytes = (
+        settings.min_data_volume_free_bytes
+        if min_free_bytes is None
+        else min_free_bytes
+    )
+    if target_free_bytes <= 0:
+        return []
+
+    ensure_workspace_dirs()
+    workspaces_dir = workspace_db.WORKSPACES_DIR
+    if disk_usage(workspaces_dir).free >= target_free_bytes:
+        return []
+
+    db_files = sorted(
+        workspaces_dir.glob("*.db"),
+        key=lambda path: (path.stat().st_mtime, path.name),
+    )
+    deleted_workspace_ids: list[str] = []
+
+    for db_path in db_files:
+        removed_any = False
+        for path in _workspace_database_bundle_paths(db_path):
+            try:
+                path.unlink()
+                removed_any = True
+            except FileNotFoundError:
+                continue
+        if removed_any:
+            deleted_workspace_ids.append(db_path.stem)
+
+        if disk_usage(workspaces_dir).free >= target_free_bytes:
+            break
+
+    return deleted_workspace_ids
+
+
+def mark_pruned_workspaces_failed(workspace_ids: list[str]) -> int:
+    """Mark workspaces whose database files were pruned as retryable failures."""
+    if not workspace_ids:
+        return 0
+
+    db = MetadataSession()
+    try:
+        workspaces = (
+            db.query(Workspace)
+            .filter(Workspace.id.in_(workspace_ids))
+            .all()
+        )
+        for ws in workspaces:
+            ws.status = "failed"
+            ws.error_message = (
+                "Workspace data was pruned to recover storage. You can try again."
+            )
+            ws.completed_at = datetime.now(timezone.utc)
+        if workspaces:
+            try:
+                db.commit()
+            except OperationalError as exc:
+                if is_disk_full_error(exc):
+                    db.rollback()
+                    logger.error(
+                        "mark_pruned_workspaces_failed_skipped_disk_full",
+                        workspace_ids=workspace_ids,
+                        error=str(exc),
+                    )
+                    return 0
+                raise
+        return len(workspaces)
+    finally:
+        db.close()
 
 
 def list_workspaces() -> list[Workspace]:
@@ -335,7 +458,18 @@ def reconcile_orphaned_workspaces() -> int:
             )
             ws.completed_at = datetime.now(timezone.utc)
         if stuck:
-            db.commit()
+            try:
+                db.commit()
+            except OperationalError as exc:
+                if is_disk_full_error(exc):
+                    db.rollback()
+                    logger.error(
+                        "reconcile_orphaned_workspaces_skipped_disk_full",
+                        stuck_count=len(stuck),
+                        error=str(exc),
+                    )
+                    return 0
+                raise
         return len(stuck)
     finally:
         db.close()

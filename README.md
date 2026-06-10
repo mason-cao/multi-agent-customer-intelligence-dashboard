@@ -176,6 +176,7 @@ Production checklist:
 - Set `PUBLIC_SYNTHETIC_ACCESS=false` when public visitors should not be able to start bounded synthetic workspaces.
 - Set `CORS_ORIGINS` to the exact frontend origin.
 - Keep the Railway data volume mounted and backed up.
+- `MIN_DATA_VOLUME_FREE_BYTES` defaults to `67108864` (64 MiB); set it lower or to `0` to disable startup pruning of oldest workspace database files.
 - Keep Vercel security headers in `frontend/vercel.json` aligned with backend API origin.
 - Rotate workspace tokens when access should be revoked.
 

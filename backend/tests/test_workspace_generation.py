@@ -1,9 +1,13 @@
 """Generation reliability: agent-outcome classification, degraded completion,
 timeout scaling, and startup reconciliation of orphaned generations."""
 
+import os
+import sqlite3
 import threading
+from types import SimpleNamespace
 
 import pytest
+from sqlalchemy.exc import OperationalError
 
 from app.config import settings
 from tests.conftest import ADMIN_HEADERS
@@ -42,6 +46,97 @@ def test_timeout_scales_with_customer_count_and_has_floor():
     # Larger workspaces (ML + SHAP) get a larger budget; small ones keep a floor.
     assert generation_timeout_seconds(500) >= 900
     assert generation_timeout_seconds(10000) > generation_timeout_seconds(1000)
+
+
+def test_startup_prune_deletes_oldest_workspace_database_bundle(test_data_dir, monkeypatch):
+    import app.services.workspace_manager as workspace_manager
+
+    old_db = test_data_dir / "workspaces" / "111111111111.db"
+    old_wal = test_data_dir / "workspaces" / "111111111111.db-wal"
+    old_shm = test_data_dir / "workspaces" / "111111111111.db-shm"
+    new_db = test_data_dir / "workspaces" / "222222222222.db"
+    for path in [old_db, old_wal, old_shm, new_db]:
+        path.write_bytes(b"x")
+
+    old_time = 1_700_000_000
+    new_time = old_time + 60
+    for path in [old_db, old_wal, old_shm]:
+        path.touch()
+        path.chmod(0o600)
+        os.utime(path, (old_time, old_time))
+    os.utime(new_db, (new_time, new_time))
+
+    free_space = iter([0, 128 * 1024 * 1024])
+    monkeypatch.setattr(
+        workspace_manager,
+        "disk_usage",
+        lambda _path: SimpleNamespace(free=next(free_space)),
+    )
+
+    deleted = workspace_manager.prune_workspace_data_for_free_space(
+        min_free_bytes=64 * 1024 * 1024,
+    )
+
+    assert deleted == ["111111111111"]
+    assert not old_db.exists()
+    assert not old_wal.exists()
+    assert not old_shm.exists()
+    assert new_db.exists()
+
+
+def test_pruned_workspace_records_are_marked_failed(client):
+    from app.services.workspace_manager import (
+        create_workspace,
+        get_workspace,
+        mark_pruned_workspaces_failed,
+        update_workspace_status,
+    )
+
+    pruned = create_workspace("Pruned", "velocity_saas")
+    retained = create_workspace("Retained", "velocity_saas")
+    update_workspace_status(pruned.id, "ready")
+    update_workspace_status(retained.id, "ready")
+
+    count = mark_pruned_workspaces_failed([pruned.id, "missing000000"])
+
+    pruned_after = get_workspace(pruned.id)
+    retained_after = get_workspace(retained.id)
+    assert count == 1
+    assert pruned_after.status == "failed"
+    assert "pruned" in pruned_after.error_message
+    assert retained_after.status == "ready"
+
+
+def test_reconcile_orphaned_workspaces_does_not_raise_when_disk_is_full(monkeypatch):
+    import app.services.workspace_manager as workspace_manager
+
+    workspace = SimpleNamespace(status="generating", error_message=None, completed_at=None)
+    fake_session = SimpleNamespace(rolled_back=False, closed=False)
+
+    class FakeQuery:
+        def filter(self, *_args):
+            return self
+
+        def all(self):
+            return [workspace]
+
+    def fake_commit():
+        raise OperationalError(
+            "UPDATE workspaces",
+            {},
+            sqlite3.OperationalError("database or disk is full"),
+        )
+
+    fake_session.query = lambda _model: FakeQuery()
+    fake_session.commit = fake_commit
+    fake_session.rollback = lambda: setattr(fake_session, "rolled_back", True)
+    fake_session.close = lambda: setattr(fake_session, "closed", True)
+
+    monkeypatch.setattr(workspace_manager, "MetadataSession", lambda: fake_session)
+
+    assert workspace_manager.reconcile_orphaned_workspaces() == 0
+    assert fake_session.rolled_back is True
+    assert fake_session.closed is True
 
 
 @pytest.mark.asyncio

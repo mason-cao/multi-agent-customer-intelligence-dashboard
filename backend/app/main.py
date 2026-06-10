@@ -51,6 +51,16 @@ def parse_cors_origins(raw_origins: str) -> list[str]:
 async def lifespan(app: FastAPI):
     setup_logging()
 
+    from app.services.workspace_manager import prune_workspace_data_for_free_space
+
+    pruned_workspace_ids = prune_workspace_data_for_free_space()
+    if pruned_workspace_ids:
+        logger.warning(
+            "pruned_workspace_data_for_startup",
+            count=len(pruned_workspace_ids),
+            workspace_ids=pruned_workspace_ids,
+        )
+
     # Ensure all ORM-defined tables exist with proper constraints
     import app.models  # noqa: F401 — register all models with Base
     Base.metadata.create_all(bind=engine)
@@ -58,9 +68,13 @@ async def lifespan(app: FastAPI):
     # Initialize workspace metadata database
     from app.services.workspace_manager import (
         init_metadata_db,
+        mark_pruned_workspaces_failed,
         reconcile_orphaned_workspaces,
     )
     init_metadata_db()
+    marked_pruned = mark_pruned_workspaces_failed(pruned_workspace_ids)
+    if marked_pruned:
+        logger.warning("marked_pruned_workspaces_failed", count=marked_pruned)
 
     # Generation runs in daemon threads that don't survive a restart; fail any
     # workspace left mid-generation so it never hangs forever.
