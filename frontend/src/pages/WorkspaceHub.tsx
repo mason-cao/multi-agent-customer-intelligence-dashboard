@@ -641,11 +641,11 @@ function AdminAccessPanel({
           {isStartingSynthetic ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Starting synthetic workspace...
+              Starting random synthetic workspace...
             </>
           ) : (
             <>
-              Use Synthetic Workspace
+              Use Random Synthetic Workspace
               <Sparkles className="h-4 w-4" />
             </>
           )}
@@ -719,7 +719,7 @@ function ListView({
           ) : (
             <Sparkles className="h-4 w-4" />
           )}
-          Use Synthetic Workspace
+          Use Random Synthetic Workspace
         </button>
       </div>
       {syntheticErrorMessage && (

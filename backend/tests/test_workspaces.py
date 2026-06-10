@@ -1,11 +1,68 @@
 """Smoke tests for workspace CRUD lifecycle."""
 
 import pytest
+from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.orm import sessionmaker
 
 from app.config import settings
 
 
 ADMIN_HEADERS = {"X-Admin-Token": "test-admin-token"}
+
+
+def test_init_metadata_db_migrates_legacy_workspace_columns(tmp_path, monkeypatch):
+    import app.db.workspace_db as workspace_db
+    import app.services.workspace_manager as workspace_manager
+
+    metadata_path = tmp_path / "legacy_workspaces.db"
+    workspaces_dir = tmp_path / "workspaces"
+    engine = create_engine(f"sqlite:///{metadata_path}")
+    Session = sessionmaker(bind=engine)
+
+    with engine.begin() as conn:
+        conn.execute(text("""
+            CREATE TABLE workspaces (
+                id VARCHAR PRIMARY KEY,
+                name VARCHAR NOT NULL,
+                company_name VARCHAR NOT NULL,
+                scenario VARCHAR NOT NULL,
+                industry VARCHAR NOT NULL,
+                customer_count INTEGER NOT NULL,
+                status VARCHAR NOT NULL,
+                created_at DATETIME NOT NULL
+            )
+        """))
+
+    monkeypatch.setattr(workspace_db, "WORKSPACES_DIR", workspaces_dir)
+    monkeypatch.setattr(workspace_db, "METADATA_DB_PATH", metadata_path)
+    monkeypatch.setattr(workspace_db, "metadata_engine", engine)
+    monkeypatch.setattr(workspace_db, "MetadataSession", Session)
+    monkeypatch.setattr(workspace_manager, "metadata_engine", engine)
+    monkeypatch.setattr(workspace_manager, "MetadataSession", Session)
+
+    workspace_manager.init_metadata_db()
+
+    columns = {column["name"] for column in inspect(engine).get_columns("workspaces")}
+    assert {
+        "current_stage",
+        "stage_index",
+        "total_stages",
+        "completed_at",
+        "generation_started_at",
+        "seed",
+        "config_json",
+        "access_token_hash",
+        "error_message",
+        "pipeline_warnings",
+    }.issubset(columns)
+
+    ws = workspace_manager.create_workspace(
+        name="Synthetic Workspace",
+        scenario="random",
+    )
+
+    assert ws.id
+    assert workspace_manager.list_workspaces()[0].id == ws.id
 
 
 @pytest.mark.asyncio

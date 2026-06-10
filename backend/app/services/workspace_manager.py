@@ -114,9 +114,16 @@ def init_metadata_db():
     from sqlalchemy import inspect, text
     columns = [c['name'] for c in inspect(metadata_engine).get_columns('workspaces')]
     migrations = {
+        'current_stage': 'ALTER TABLE workspaces ADD COLUMN current_stage VARCHAR',
+        'stage_index': 'ALTER TABLE workspaces ADD COLUMN stage_index INTEGER',
+        'total_stages': 'ALTER TABLE workspaces ADD COLUMN total_stages INTEGER',
+        'completed_at': 'ALTER TABLE workspaces ADD COLUMN completed_at DATETIME',
         'generation_started_at': 'ALTER TABLE workspaces ADD COLUMN generation_started_at DATETIME',
-        'pipeline_warnings': 'ALTER TABLE workspaces ADD COLUMN pipeline_warnings TEXT',
+        'seed': 'ALTER TABLE workspaces ADD COLUMN seed INTEGER',
+        'config_json': 'ALTER TABLE workspaces ADD COLUMN config_json TEXT',
         'access_token_hash': 'ALTER TABLE workspaces ADD COLUMN access_token_hash VARCHAR',
+        'error_message': 'ALTER TABLE workspaces ADD COLUMN error_message TEXT',
+        'pipeline_warnings': 'ALTER TABLE workspaces ADD COLUMN pipeline_warnings TEXT',
     }
     for column, ddl in migrations.items():
         if column not in columns:
