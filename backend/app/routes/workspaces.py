@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from app.config import get_admin_api_token
 from app.config import settings
 from app.security.auth import (
     ADMIN_TOKEN_HEADER,
@@ -14,12 +15,18 @@ from app.security.auth import (
 from app.utils.error_handling import handle_errors
 
 from app.schemas.workspace import (
+    OwnerAccessCreate,
+    OwnerAccessStatusResponse,
     ScenarioResponse,
     WorkspaceAccessTokenResponse,
     WorkspaceCreate,
     WorkspaceCreateResponse,
     WorkspaceListResponse,
     WorkspaceResponse,
+)
+from app.services.owner_access import (
+    create_owner_passcode,
+    owner_passcode_configured,
 )
 from app.services.workspace_manager import (
     SCENARIOS,
@@ -41,6 +48,27 @@ def recover_data_volume_space() -> None:
     """Prune old workspace data if the persistent volume is below reserve."""
     pruned_workspace_ids = prune_workspace_data_for_free_space()
     mark_pruned_workspaces_failed(pruned_workspace_ids)
+
+
+def get_owner_access_status_response() -> OwnerAccessStatusResponse:
+    """Describe how owner workspace-management access is currently configured."""
+    if get_admin_api_token():
+        return OwnerAccessStatusResponse(
+            mode="deployment_token",
+            setup_required=False,
+            owner_access_enabled=True,
+        )
+    if owner_passcode_configured():
+        return OwnerAccessStatusResponse(
+            mode="owner_passcode",
+            setup_required=False,
+            owner_access_enabled=True,
+        )
+    return OwnerAccessStatusResponse(
+        mode="setup_required",
+        setup_required=True,
+        owner_access_enabled=False,
+    )
 
 
 def require_workspace_detail_access(workspace_id: str, request: Request) -> None:
@@ -115,7 +143,7 @@ def create_new_workspace(
 @router.post("/synthetic", response_model=WorkspaceCreateResponse, status_code=201)
 @handle_errors("create_public_synthetic_workspace")
 def create_public_synthetic_workspace():
-    """Create and start a bounded synthetic workspace without admin access."""
+    """Create and start a bounded demo workspace without owner access."""
     if not settings.public_synthetic_access:
         raise HTTPException(
             status_code=403,
@@ -143,17 +171,43 @@ def create_public_synthetic_workspace():
     if result.status != GenerationStartStatus.STARTED:
         raise HTTPException(
             status_code=500,
-            detail="We couldn't start the synthetic workspace. Try again.",
+            detail="We couldn't start the demo workspace. Try again.",
         )
 
     started_ws = get_workspace(ws.id)
     if not started_ws:
         raise HTTPException(
             status_code=500,
-            detail="We couldn't load the synthetic workspace. Try again.",
+            detail="We couldn't load the demo workspace. Try again.",
         )
     started_ws.access_token = ws.access_token
     return WorkspaceCreateResponse.model_validate(started_ws)
+
+
+@router.get("/owner-access", response_model=OwnerAccessStatusResponse)
+@handle_errors("get_owner_access_status")
+def get_owner_access_status():
+    """Return owner-access setup status for the Workspaces screen."""
+    return get_owner_access_status_response()
+
+
+@router.post("/owner-access", response_model=OwnerAccessStatusResponse, status_code=201)
+@handle_errors("create_owner_access")
+def create_owner_access(body: OwnerAccessCreate):
+    """Create first-run owner access when no deployment token is configured."""
+    if get_admin_api_token():
+        raise HTTPException(
+            status_code=409,
+            detail="Owner access is already controlled by the deployment settings.",
+        )
+    if owner_passcode_configured():
+        raise HTTPException(
+            status_code=409,
+            detail="Owner access is already set up.",
+        )
+
+    create_owner_passcode(body.passcode)
+    return get_owner_access_status_response()
 
 
 @router.get("/{workspace_id}", response_model=WorkspaceResponse)

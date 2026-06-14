@@ -49,3 +49,14 @@ export interface WorkspaceAccessTokenResponse {
   workspace_id: string;
   access_token: string;
 }
+
+export type OwnerAccessMode =
+  | 'deployment_token'
+  | 'owner_passcode'
+  | 'setup_required';
+
+export interface OwnerAccessStatus {
+  mode: OwnerAccessMode;
+  setup_required: boolean;
+  owner_access_enabled: boolean;
+}

@@ -42,6 +42,27 @@ class WorkspaceCreate(BaseModel):
         return normalized
 
 
+class OwnerAccessCreate(BaseModel):
+    passcode: str = Field(min_length=8, max_length=128)
+
+    @field_validator("passcode")
+    @classmethod
+    def normalize_passcode(cls, value: str) -> str:
+        """Strip incidental whitespace and reject blank owner passcodes."""
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Owner passcode is required")
+        if len(normalized) < 8:
+            raise ValueError("Owner passcode must be at least 8 characters")
+        return normalized
+
+
+class OwnerAccessStatusResponse(BaseModel):
+    mode: Literal["deployment_token", "owner_passcode", "setup_required"]
+    setup_required: bool
+    owner_access_enabled: bool
+
+
 class WorkspaceResponse(BaseModel):
     id: str
     name: str

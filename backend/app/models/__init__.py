@@ -16,6 +16,7 @@ from app.models.agent_run import AgentRun
 from app.models.audit_result import AuditResult
 from app.models.query_result import QueryResult
 from app.models.workspace_context import WorkspaceContext
+from app.models.workspace import OwnerAccess, Workspace
 
 __all__ = [
     "Customer",
@@ -36,4 +37,6 @@ __all__ = [
     "AuditResult",
     "QueryResult",
     "WorkspaceContext",
+    "OwnerAccess",
+    "Workspace",
 ]

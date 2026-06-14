@@ -5,6 +5,7 @@ import type {
   Workspace,
   WorkspaceAccessTokenResponse,
   WorkspaceListResponse,
+  OwnerAccessStatus,
   Scenario,
   CreateWorkspaceInput,
 } from '../types/workspace';
@@ -57,6 +58,29 @@ export function useScenarios() {
     queryFn: async () => {
       const { data } = await api.get('/workspaces/scenarios');
       return data;
+    },
+  });
+}
+
+export function useOwnerAccessStatus() {
+  return useQuery<OwnerAccessStatus>({
+    queryKey: ['workspaces', 'owner-access'],
+    queryFn: async () => {
+      const { data } = await api.get('/workspaces/owner-access');
+      return data;
+    },
+  });
+}
+
+export function useCreateOwnerAccess() {
+  const queryClient = useQueryClient();
+  return useMutation<OwnerAccessStatus, Error, string>({
+    mutationFn: async (passcode) => {
+      const { data } = await api.post('/workspaces/owner-access', { passcode });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces', 'owner-access'] });
     },
   });
 }

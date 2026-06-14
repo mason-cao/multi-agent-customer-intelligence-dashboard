@@ -93,13 +93,16 @@ def admin_headers():
 @pytest.fixture(autouse=True)
 def clean_workspaces(test_app):
     """Keep the shared metadata DB isolated between tests."""
+    from app.services.owner_access import clear_owner_access
     from app.services.workspace_manager import delete_workspace, list_workspaces
     from app.services.workspace_generator import reset_generation_registry
 
     reset_generation_registry()
+    clear_owner_access()
     for ws in list_workspaces():
         delete_workspace(ws.id)
     yield
     reset_generation_registry()
+    clear_owner_access()
     for ws in list_workspaces():
         delete_workspace(ws.id)

@@ -47,7 +47,7 @@ Vercel serves the static React frontend and proxies all `/api/*` requests to the
 
 ## Request Lifecycle
 
-Dashboard API requests include both `X-Workspace-ID` and `X-Workspace-Token` headers, set by the frontend Axios interceptor from the active workspace in `localStorage`. Workspace management requests include `X-Admin-Token`, either from a trusted frontend build or from the Workspaces screen token prompt. The no-admin synthetic starter uses a dedicated bounded route and can be disabled with `PUBLIC_SYNTHETIC_ACCESS=false`. The backend validates tokens before routing protected requests to the correct per-workspace SQLite database.
+Dashboard API requests include both `X-Workspace-ID` and `X-Workspace-Token` headers, set by the frontend Axios interceptor from the active workspace in `localStorage`. Workspace management requests include `X-Admin-Token`, which can be either a deployment-level `ADMIN_API_TOKEN` or a first-run owner passcode stored as a protected hash in the metadata database. The public demo workspace starter uses a dedicated bounded route and can be disabled with `PUBLIC_SYNTHETIC_ACCESS=false`. The backend validates tokens before routing protected requests to the correct per-workspace SQLite database.
 
 ```
 Frontend                        Backend                          Database
@@ -342,7 +342,7 @@ The `QueryAgent` uses strict intent classification + whitelisted SQL patterns. N
 - Route endpoints use the `@handle_errors` decorator for consistent error handling
 - Workspace IDs are validated against the generated 12-character hexadecimal format before database path resolution
 - Dashboard routes require a valid per-workspace token before opening a workspace database
-- Workspace management routes require the configured admin token
+- Workspace management routes require owner access, either a deployment-level `ADMIN_API_TOKEN` or a first-run owner passcode
 - Database file existence is checked before opening connections
 
 ### Resource Controls
@@ -391,7 +391,7 @@ CORS origins are configurable via the `CORS_ORIGINS` environment variable (comma
 | `CORS_ORIGINS` | Railway | No | `http://localhost:5173` |
 | `APP_ENV` | Railway | No | `development` |
 | `LOG_LEVEL` | Railway | No | `INFO` |
-| `ADMIN_API_TOKEN` | Railway | Yes | `""` |
+| `ADMIN_API_TOKEN` | Railway | No | `""` |
 | `MAX_WORKSPACES` | Railway | No | `25` |
 | `MAX_CONCURRENT_GENERATIONS` | Railway | No | `1` |
 | `PUBLIC_SYNTHETIC_ACCESS` | Railway | No | `true` |

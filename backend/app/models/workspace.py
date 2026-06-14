@@ -31,3 +31,13 @@ class Workspace(WorkspaceBase):
     access_token_hash = Column(String, nullable=True)
     error_message = Column(Text, nullable=True)
     pipeline_warnings = Column(Text, nullable=True)
+
+
+class OwnerAccess(WorkspaceBase):
+    """Single-row owner passcode metadata for first-run setup."""
+
+    __tablename__ = "owner_access"
+
+    id = Column(String, primary_key=True)
+    passcode_hash = Column(String, nullable=False)
+    created_at = Column(DateTime, nullable=False)
