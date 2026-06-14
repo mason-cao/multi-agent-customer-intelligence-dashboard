@@ -27,12 +27,20 @@ from app.services.workspace_manager import (
     delete_workspace,
     get_workspace,
     list_workspaces,
+    mark_pruned_workspaces_failed,
+    prune_workspace_data_for_free_space,
     rotate_workspace_access_token,
     update_workspace_status,
     validate_workspace_access_token,
 )
 
 router = APIRouter(prefix="/api/workspaces", tags=["workspaces"])
+
+
+def recover_data_volume_space() -> None:
+    """Prune old workspace data if the persistent volume is below reserve."""
+    pruned_workspace_ids = prune_workspace_data_for_free_space()
+    mark_pruned_workspaces_failed(pruned_workspace_ids)
 
 
 def require_workspace_detail_access(workspace_id: str, request: Request) -> None:
@@ -87,6 +95,7 @@ def create_new_workspace(
     _: None = Depends(require_admin_token),
 ):
     """Create a new workspace with the given scenario configuration."""
+    recover_data_volume_space()
     if len(list_workspaces()) >= settings.max_workspaces:
         raise HTTPException(status_code=409, detail="Workspace limit reached.")
 
@@ -112,6 +121,7 @@ def create_public_synthetic_workspace():
             status_code=403,
             detail="Synthetic workspace access is disabled.",
         )
+    recover_data_volume_space()
     if len(list_workspaces()) >= settings.max_workspaces:
         raise HTTPException(status_code=409, detail="Workspace limit reached.")
 
@@ -203,6 +213,7 @@ def trigger_generation(
             status_code=409,
             detail="This workspace is already being set up.",
         )
+    recover_data_volume_space()
 
     from app.services.workspace_generator import (
         GenerationStartStatus,

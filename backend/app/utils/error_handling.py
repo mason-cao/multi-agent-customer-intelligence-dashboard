@@ -8,6 +8,31 @@ from fastapi import HTTPException
 
 logger = structlog.get_logger(__name__)
 
+DATA_VOLUME_FULL_DETAIL = (
+    "The data volume is full. Free storage or increase the Railway "
+    "volume size, then try again."
+)
+
+
+def is_storage_full_error(exc: BaseException) -> bool:
+    """Return whether an exception chain indicates exhausted storage."""
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    while current and id(current) not in seen:
+        seen.add(id(current))
+        message = str(current).lower()
+        if (
+            "database or disk is full" in message
+            or "no space left on device" in message
+        ):
+            return True
+        current = (
+            getattr(current, "orig", None)
+            or getattr(current, "__cause__", None)
+            or getattr(current, "__context__", None)
+        )
+    return False
+
 
 def handle_errors(endpoint_name: str):
     """Wrap a route handler with standardized error logging and 500 responses.
@@ -24,8 +49,13 @@ def handle_errors(endpoint_name: str):
                     return await func(*args, **kwargs)
                 except HTTPException:
                     raise
-                except Exception:
+                except Exception as exc:
                     logger.exception(f"{endpoint_name}_failed")
+                    if is_storage_full_error(exc):
+                        raise HTTPException(
+                            status_code=507,
+                            detail=DATA_VOLUME_FULL_DETAIL,
+                        )
                     raise HTTPException(
                         status_code=500, detail="Internal server error"
                     )
@@ -38,8 +68,13 @@ def handle_errors(endpoint_name: str):
                 return func(*args, **kwargs)
             except HTTPException:
                 raise
-            except Exception:
+            except Exception as exc:
                 logger.exception(f"{endpoint_name}_failed")
+                if is_storage_full_error(exc):
+                    raise HTTPException(
+                        status_code=507,
+                        detail=DATA_VOLUME_FULL_DETAIL,
+                    )
                 raise HTTPException(
                     status_code=500, detail="Internal server error"
                 )

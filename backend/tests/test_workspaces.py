@@ -2,6 +2,7 @@
 
 import pytest
 from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 
 from app.config import settings
@@ -135,6 +136,32 @@ async def test_public_synthetic_workspace_starts_without_admin_token(client, mon
     assert len(body["access_token"]) >= 43
 
     delete_workspace(body["id"])
+
+
+@pytest.mark.asyncio
+async def test_public_synthetic_workspace_reports_full_data_volume(client, monkeypatch):
+    import sqlite3
+
+    import app.routes.workspaces as workspace_routes
+
+    monkeypatch.setattr(settings, "public_synthetic_access", True, raising=False)
+
+    def raise_disk_full(*_args, **_kwargs):
+        raise OperationalError(
+            "INSERT INTO workspaces",
+            {},
+            sqlite3.OperationalError("database or disk is full"),
+        )
+
+    monkeypatch.setattr(workspace_routes, "create_workspace", raise_disk_full)
+
+    resp = await client.post("/api/workspaces/synthetic")
+
+    assert resp.status_code == 507
+    assert resp.json()["detail"] == (
+        "The data volume is full. Free storage or increase the Railway "
+        "volume size, then try again."
+    )
 
 
 @pytest.mark.asyncio
