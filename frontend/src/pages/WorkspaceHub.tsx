@@ -495,9 +495,6 @@ export default function WorkspaceHub() {
             onGenerate={handleGenerate}
             onDelete={setDeleteTarget}
             onCreateNew={openCreateView}
-            onStartSynthetic={handleStartSynthetic}
-            isStartingSynthetic={syntheticMutation.isPending}
-            syntheticErrorMessage={syntheticErrorMessage}
           />
         )}
       </div>
@@ -737,9 +734,6 @@ function ListView({
   onGenerate,
   onDelete,
   onCreateNew,
-  onStartSynthetic,
-  isStartingSynthetic,
-  syntheticErrorMessage,
 }: {
   workspaces: Workspace[];
   isLoading: boolean;
@@ -748,9 +742,6 @@ function ListView({
   onGenerate: (ws: Workspace) => void;
   onDelete: (ws: Workspace) => void;
   onCreateNew: () => void;
-  onStartSynthetic: () => void;
-  isStartingSynthetic: boolean;
-  syntheticErrorMessage: string | null;
 }) {
   return (
     <div className="animate-fade-in-up">
@@ -774,26 +765,7 @@ function ListView({
           <Plus className="h-4 w-4" />
           New Workspace
         </button>
-        <button
-          type="button"
-          onClick={onStartSynthetic}
-          disabled={isStartingSynthetic}
-          className="btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isStartingSynthetic ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Sparkles className="h-4 w-4" />
-          )}
-          Start Demo Workspace
-        </button>
       </div>
-      {syntheticErrorMessage && (
-        <p className="mt-3 flex items-center gap-2 text-sm text-[var(--color-danger)]">
-          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-          {syntheticErrorMessage}
-        </p>
-      )}
 
       {isLoading ? (
         <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

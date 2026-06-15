@@ -128,6 +128,8 @@ No command line setup is required for the default owner flow.
 4. If owner access has not been created yet, choose a passcode. It can be any exact phrase at least 8 characters long. Longer is safer, for example `correct horse battery staple`.
 5. Save the passcode somewhere private. Future owner access uses the same passcode.
 
+Demo workspaces stay separate from Owner Mode. The first owner login starts with a clean workspace list, and workspaces created from Owner Mode are saved for future owner sessions.
+
 For advanced private deployments, a site owner can preconfigure owner access instead:
 
 1. Generate a strong random value:

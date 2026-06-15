@@ -46,6 +46,7 @@ def test_init_metadata_db_migrates_legacy_workspace_columns(tmp_path, monkeypatc
     columns = {column["name"] for column in inspect(engine).get_columns("workspaces")}
     assert {
         "current_stage",
+        "source",
         "stage_index",
         "total_stages",
         "completed_at",
@@ -136,6 +137,47 @@ async def test_public_synthetic_workspace_starts_without_admin_token(client, mon
     assert len(body["access_token"]) >= 43
 
     delete_workspace(body["id"])
+
+
+@pytest.mark.asyncio
+async def test_owner_workspace_list_hides_demo_workspaces_but_keeps_owner_workspaces(
+    client,
+    monkeypatch,
+):
+    import app.services.workspace_generator as generator
+    import app.services.workspace_manager as workspace_manager
+
+    monkeypatch.setattr(settings, "public_synthetic_access", True, raising=False)
+
+    def no_op_generation(_workspace_id: str):
+        return None
+
+    monkeypatch.setattr(generator, "_run_generation", no_op_generation)
+
+    demo_resp = await client.post("/api/workspaces/synthetic")
+    assert demo_resp.status_code == 201
+
+    owner_resp = await client.post("/api/workspaces", headers=ADMIN_HEADERS, json={
+        "name": "Owner First Workspace",
+        "scenario": "velocity_saas",
+    })
+    assert owner_resp.status_code == 201
+    owner_workspace = owner_resp.json()
+
+    list_resp = await client.get("/api/workspaces", headers=ADMIN_HEADERS)
+    assert list_resp.status_code == 200
+    body = list_resp.json()
+    assert body["total"] == 1
+    assert [ws["id"] for ws in body["workspaces"]] == [owner_workspace["id"]]
+
+    saved_again = await client.get("/api/workspaces", headers=ADMIN_HEADERS)
+    assert saved_again.status_code == 200
+    assert [ws["id"] for ws in saved_again.json()["workspaces"]] == [
+        owner_workspace["id"]
+    ]
+
+    for ws in workspace_manager.list_all_workspace_records():
+        workspace_manager.delete_workspace(ws.id)
 
 
 @pytest.mark.asyncio

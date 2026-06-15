@@ -83,10 +83,11 @@ If the workspace record or database file does not exist, the backend returns a 4
 Two independent database layers serve different purposes:
 
 **1. Metadata Database** (`data/workspaces.db`)
-- Stores workspace records: id, name, status, config, timestamps, error messages, workspace token hash
+- Stores workspace records: id, name, source, status, config, timestamps, error messages, workspace token hash
 - Single table, managed by `WorkspaceBase` declarative base
 - Shared across all workspaces
 - Created on application startup via lifespan handler
+- Owner Mode lists only records marked with the owner source. Public demo workspaces remain accessible by their one-time workspace token but do not appear in the owner workspace list.
 
 **2. Per-Workspace Databases** (`data/workspaces/{id}.db`)
 - One SQLite file per workspace, created during generation

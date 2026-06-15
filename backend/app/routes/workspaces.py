@@ -29,10 +29,12 @@ from app.services.owner_access import (
     owner_passcode_configured,
 )
 from app.services.workspace_manager import (
+    DEMO_WORKSPACE_SOURCE,
     SCENARIOS,
     create_workspace,
     delete_workspace,
     get_workspace,
+    list_all_workspace_records,
     list_workspaces,
     mark_pruned_workspaces_failed,
     prune_workspace_data_for_free_space,
@@ -108,7 +110,7 @@ def get_scenarios():
 @router.get("", response_model=WorkspaceListResponse)
 @handle_errors("list_all_workspaces")
 def list_all_workspaces(_: None = Depends(require_admin_token)):
-    """List all workspaces ordered by creation date."""
+    """List owner-created workspaces ordered by creation date."""
     workspaces = list_workspaces()
     return WorkspaceListResponse(
         workspaces=[WorkspaceResponse.model_validate(w) for w in workspaces],
@@ -150,12 +152,13 @@ def create_public_synthetic_workspace():
             detail="Synthetic workspace access is disabled.",
         )
     recover_data_volume_space()
-    if len(list_workspaces()) >= settings.max_workspaces:
+    if len(list_all_workspace_records()) >= settings.max_workspaces:
         raise HTTPException(status_code=409, detail="Workspace limit reached.")
 
     ws = create_workspace(
         name="Synthetic Workspace",
         scenario="random",
+        source=DEMO_WORKSPACE_SOURCE,
     )
 
     from app.services.workspace_generator import (

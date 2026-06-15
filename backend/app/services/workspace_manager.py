@@ -35,6 +35,9 @@ from app.security.auth import (
 
 logger = structlog.get_logger(__name__)
 
+OWNER_WORKSPACE_SOURCE = "owner"
+DEMO_WORKSPACE_SOURCE = "demo"
+
 # ── Predefined company archetypes ───────────────────────────────
 
 SCENARIOS = {
@@ -124,6 +127,7 @@ def init_metadata_db():
     from sqlalchemy import inspect, text
     columns = [c['name'] for c in inspect(metadata_engine).get_columns('workspaces')]
     migrations = {
+        'source': 'ALTER TABLE workspaces ADD COLUMN source VARCHAR',
         'current_stage': 'ALTER TABLE workspaces ADD COLUMN current_stage VARCHAR',
         'stage_index': 'ALTER TABLE workspaces ADD COLUMN stage_index INTEGER',
         'total_stages': 'ALTER TABLE workspaces ADD COLUMN total_stages INTEGER',
@@ -255,7 +259,21 @@ def mark_pruned_workspaces_failed(workspace_ids: list[str]) -> int:
 
 
 def list_workspaces() -> list[Workspace]:
-    """Return all workspaces ordered by creation date (newest first)."""
+    """Return owner-created workspaces ordered by creation date (newest first)."""
+    db = MetadataSession()
+    try:
+        return (
+            db.query(Workspace)
+            .filter(Workspace.source == OWNER_WORKSPACE_SOURCE)
+            .order_by(Workspace.created_at.desc())
+            .all()
+        )
+    finally:
+        db.close()
+
+
+def list_all_workspace_records() -> list[Workspace]:
+    """Return all workspace records, including demo and legacy records."""
     db = MetadataSession()
     try:
         return db.query(Workspace).order_by(Workspace.created_at.desc()).all()
@@ -281,6 +299,7 @@ def create_workspace(
     churn_rate: Optional[float] = None,
     include_outage: Optional[bool] = None,
     scenario_description: Optional[str] = None,
+    source: str = OWNER_WORKSPACE_SOURCE,
 ) -> Workspace:
     """Create a new workspace record in the metadata database."""
     ensure_workspace_dirs()
@@ -318,6 +337,7 @@ def create_workspace(
         name=name,
         company_name=company_name,
         scenario=scenario,
+        source=source,
         industry=resolved_industry,
         customer_count=resolved_count,
         status="created",

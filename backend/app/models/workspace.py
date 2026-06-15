@@ -17,6 +17,7 @@ class Workspace(WorkspaceBase):
     name = Column(String, nullable=False)
     company_name = Column(String, nullable=False)
     scenario = Column(String, nullable=False)
+    source = Column(String, nullable=False, default="owner")
     industry = Column(String, nullable=False)
     customer_count = Column(Integer, nullable=False)
     status = Column(String, nullable=False, default="created")
