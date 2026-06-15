@@ -1,11 +1,11 @@
 import { useNavigate } from 'react-router-dom';
-import { Activity } from 'lucide-react';
+import { Activity, LogOut } from 'lucide-react';
 import { useActiveWorkspace } from '../../contexts/workspaceContextValue';
 import Badge from '../shared/Badge';
 
 export default function Header() {
   const navigate = useNavigate();
-  const { activeWorkspace, clearWorkspace } = useActiveWorkspace();
+  const { activeWorkspace, clearWorkspace, logout } = useActiveWorkspace();
 
   return (
     <header className="glass-surface flex h-14 items-center justify-between border-b border-white/[0.06] px-8">
@@ -23,6 +23,7 @@ export default function Header() {
       <div className="flex items-center gap-3">
         <Badge tone="success" icon={Activity} label="Online" size="md" />
         <button
+          type="button"
           onClick={() => {
             clearWorkspace();
             navigate('/workspaces');
@@ -30,6 +31,17 @@ export default function Header() {
           className="btn-secondary py-1 px-3 text-xs"
         >
           Workspaces
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            logout();
+            navigate('/workspaces', { replace: true });
+          }}
+          className="btn-secondary py-1 px-3 text-xs"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Log out
         </button>
       </div>
     </header>

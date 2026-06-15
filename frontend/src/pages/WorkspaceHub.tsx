@@ -19,6 +19,7 @@ import {
   Trash2,
   Sliders,
   Sparkles,
+  LogOut,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useActiveWorkspace } from '../contexts/workspaceContextValue';
@@ -185,7 +186,7 @@ function getSyntheticErrorMessage(error: unknown): string {
 
 export default function WorkspaceHub() {
   const navigate = useNavigate();
-  const { activeWorkspace, setActiveWorkspace, clearWorkspace } = useActiveWorkspace();
+  const { activeWorkspace, setActiveWorkspace, clearWorkspace, logout } = useActiveWorkspace();
   const {
     data: list,
     isLoading,
@@ -413,6 +414,15 @@ export default function WorkspaceHub() {
     void refetchWorkspaces();
   }
 
+  function handleLogout() {
+    logout();
+    setAdminTokenInput('');
+    setPendingId(null);
+    setDeleteTarget(null);
+    setView('list');
+    void refetchWorkspaces();
+  }
+
   return (
     <div className="bg-app-gradient relative min-h-screen">
       {/* ── Background System ────────────────────────────── */}
@@ -428,7 +438,7 @@ export default function WorkspaceHub() {
 
       {/* ── Header ──────────────────────────────────────── */}
       <header className="glass-surface relative z-10 border-b border-[rgba(255,255,255,0.06)]">
-        <div className="mx-auto flex h-14 max-w-5xl items-center px-6">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--color-primary-400)] to-[var(--color-primary-600)] shadow-[0_0_12px_rgba(99,102,241,0.3)]">
               <LayoutDashboard className="h-3.5 w-3.5 text-white" />
@@ -442,6 +452,16 @@ export default function WorkspaceHub() {
               </span>
             </div>
           </div>
+          {adminTokenInput.trim() && (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="btn-secondary py-1.5 px-3 text-xs"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Log out
+            </button>
+          )}
         </div>
       </header>
 

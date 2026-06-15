@@ -9,6 +9,7 @@ import {
   ACTIVE_WORKSPACE_STORAGE_KEY,
   WORKSPACE_MISSING_EVENT,
 } from '../constants/workspace';
+import { clearStoredSession } from '../utils/session';
 
 const PRESERVED_KEYS = new Set(['workspaces', 'health']);
 
@@ -61,12 +62,20 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     clearWorkspaceState();
   }, [clearWorkspaceState]);
 
+  const logout = useCallback(() => {
+    queryClient.clear();
+    setStoredId(null);
+    setLocalWorkspace(null);
+    clearStoredSession();
+  }, [queryClient]);
+
   return (
     <WorkspaceContext.Provider
       value={{
         activeWorkspace,
         setActiveWorkspace,
         clearWorkspace,
+        logout,
         isLoading: !!storedId && !workspaceMissing && isLoading && !localWorkspace,
       }}
     >
