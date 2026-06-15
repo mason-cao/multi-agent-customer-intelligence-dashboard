@@ -5,7 +5,10 @@ import {
   ACTIVE_WORKSPACE_TOKEN_STORAGE_KEY,
   ADMIN_TOKEN_STORAGE_KEY,
 } from '../src/constants/workspace';
-import { clearStoredSession } from '../src/utils/session';
+import {
+  clearStoredSession,
+  shouldShowWorkspaceHubLogout,
+} from '../src/utils/session';
 
 class MemoryStorage {
   private readonly values = new Map<string, string>();
@@ -35,3 +38,18 @@ assert.equal(storage.getItem(ADMIN_TOKEN_STORAGE_KEY), null);
 assert.equal(storage.getItem(ACTIVE_WORKSPACE_STORAGE_KEY), null);
 assert.equal(storage.getItem(ACTIVE_WORKSPACE_TOKEN_STORAGE_KEY), null);
 assert.equal(storage.getItem('unrelated-setting'), 'keep-me');
+
+assert.equal(
+  shouldShowWorkspaceHubLogout({
+    workspacesIsLoading: false,
+    workspacesIsError: false,
+  }),
+  true,
+);
+assert.equal(
+  shouldShowWorkspaceHubLogout({
+    workspacesIsLoading: false,
+    workspacesIsError: true,
+  }),
+  false,
+);

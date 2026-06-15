@@ -11,3 +11,13 @@ export function clearStoredSession(storage: SessionStorageTarget = window.localS
   storage.removeItem(ACTIVE_WORKSPACE_STORAGE_KEY);
   storage.removeItem(ACTIVE_WORKSPACE_TOKEN_STORAGE_KEY);
 }
+
+export function shouldShowWorkspaceHubLogout({
+  workspacesIsLoading,
+  workspacesIsError,
+}: {
+  workspacesIsLoading: boolean;
+  workspacesIsError: boolean;
+}) {
+  return !workspacesIsLoading && !workspacesIsError;
+}

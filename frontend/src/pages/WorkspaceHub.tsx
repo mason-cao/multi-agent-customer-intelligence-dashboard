@@ -36,6 +36,7 @@ import {
 } from '../api/workspaces';
 import type { Workspace, Scenario, CreateWorkspaceInput } from '../types/workspace';
 import { PALETTE } from '../utils/colors';
+import { shouldShowWorkspaceHubLogout } from '../utils/session';
 import { ADMIN_TOKEN_STORAGE_KEY } from '../constants/workspace';
 
 // ── Constants ────────────────────────────────────────────
@@ -243,6 +244,10 @@ export default function WorkspaceHub() {
   const ownerSetupRequired =
     ownerAccessStatus?.setup_required ||
     (getApiErrorStatus(workspacesError) === 503 && !ownerAccessStatus?.owner_access_enabled);
+  const showLogout = shouldShowWorkspaceHubLogout({
+    workspacesIsLoading: isLoading,
+    workspacesIsError,
+  });
 
   // When generation starts, set workspace as active and navigate to generation view
   useEffect(() => {
@@ -452,7 +457,7 @@ export default function WorkspaceHub() {
               </span>
             </div>
           </div>
-          {adminTokenInput.trim() && (
+          {showLogout && (
             <button
               type="button"
               onClick={handleLogout}
