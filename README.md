@@ -130,6 +130,8 @@ No command line setup is required for the default owner flow.
 
 Demo workspaces stay separate from Owner Mode. The first owner login starts with a clean workspace list, and workspaces created from Owner Mode are saved for future owner sessions.
 
+Use **Log out** to clear the saved owner passcode and active workspace from the current browser. Logging out does not delete workspaces; enter the owner passcode again to return to Owner Mode later.
+
 For advanced private deployments, a site owner can preconfigure owner access instead:
 
 1. Generate a strong random value:
