@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Users, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Users, AlertTriangle, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import PageHeader from '../components/shared/PageHeader';
 import Card from '../components/shared/Card';
 import EmptyState from '../components/shared/EmptyState';
@@ -9,6 +9,7 @@ import { SEGMENT_COLORS, RISK_COLORS, PALETTE } from '../utils/colors';
 import { formatCurrency } from '../utils/formatters';
 
 const PAGE_SIZE = 25;
+const SEARCH_DEBOUNCE_MS = 300;
 
 function Skeleton({ className = '' }: { className?: string }) {
   return (
@@ -20,16 +21,29 @@ function Skeleton({ className = '' }: { className?: string }) {
 
 export default function Customer360() {
   const [page, setPage] = useState(0);
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+
+  // Debounce typing, and reset to page 1 whenever the filter changes.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(0);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const offset = page * PAGE_SIZE;
-  const { data, isLoading, isError } = useCustomers(PAGE_SIZE, offset);
+  const { data, isLoading, isError } = useCustomers(PAGE_SIZE, offset, search);
 
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
+  const isFiltering = search.trim().length > 0;
 
   return (
     <div>
       <PageHeader
         title="Customer 360 Explorer"
-        description="Deep-dive into individual customer profiles, behavior, and analysis"
+        description="Browse enriched customer profiles with segment, churn, and sentiment signals"
       />
 
       {isLoading ? (
@@ -47,7 +61,7 @@ export default function Customer360() {
             Failed to load customer data.
           </p>
         </Card>
-      ) : data.customers.length === 0 ? (
+      ) : data.customers.length === 0 && !isFiltering ? (
         <EmptyState
           icon={Users}
           title="No customer profiles found"
@@ -61,8 +75,19 @@ export default function Customer360() {
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-[var(--color-primary-400)]" />
                 <span className="text-sm font-semibold text-white">
-                  {data.total.toLocaleString()} customers
+                  {data.total.toLocaleString()} {isFiltering ? 'matching' : ''} customers
                 </span>
+              </div>
+              <div className="relative min-w-0 flex-1 sm:max-w-xs">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--color-text-tertiary)]" />
+                <input
+                  type="search"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="Search name, company, or email…"
+                  aria-label="Search customers"
+                  className="glass-input w-full py-2 pl-9 pr-3 text-sm"
+                />
               </div>
               <div className="flex items-center gap-3">
                 <button
@@ -75,7 +100,7 @@ export default function Customer360() {
                   <ChevronLeft className="h-4 w-4" />
                 </button>
                 <span className="rounded-md bg-white/5 px-2.5 py-1 font-mono text-xs text-[var(--color-text-secondary)]">
-                  Page {page + 1} of {totalPages}
+                  Page {page + 1} of {Math.max(totalPages, 1)}
                 </span>
                 <button
                   type="button"
@@ -108,6 +133,13 @@ export default function Customer360() {
                   </tr>
                 </thead>
                 <tbody>
+                  {data.customers.length === 0 && (
+                    <tr>
+                      <td colSpan={9} className="py-10 text-center text-sm text-[var(--color-text-tertiary)]">
+                        No customers match “{search.trim()}”.
+                      </td>
+                    </tr>
+                  )}
                   {data.customers.map((c) => (
                     <tr
                       key={c.customer_id}

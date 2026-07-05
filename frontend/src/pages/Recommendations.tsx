@@ -27,6 +27,7 @@ const CATEGORY_TONE: Record<string, BadgeTone> = {
   support: 'warning',
 };
 
+/** Title-case snake_case enum values (categories, action codes). */
 function humanize(value: string | null | undefined): string {
   if (!value) return 'Not specified';
   return value
@@ -34,6 +35,11 @@ function humanize(value: string | null | undefined): string {
     .replace(/\s+/g, ' ')
     .trim()
     .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+/** Drivers are already prose sentences — show them as written. */
+function driverText(value: string | null | undefined): string {
+  return value?.trim() || 'Not specified';
 }
 
 function Skeleton({ className = '' }: { className?: string }) {
@@ -138,7 +144,7 @@ export default function Recommendations() {
               icon={Lightbulb}
               className="animate-fade-in-up stagger-4"
             >
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={280}>
                 <BarChart
                   layout="vertical"
                   data={chartData}
@@ -153,7 +159,7 @@ export default function Recommendations() {
                   <YAxis
                     type="category"
                     dataKey="action"
-                    width={110}
+                    width={160}
                     {...AXIS_STYLE}
                     tickFormatter={(value: unknown) => String(value)}
                   />
@@ -216,10 +222,10 @@ export default function Recommendations() {
                             </span>
                           </td>
                           <td className="max-w-[220px] py-2.5 text-xs leading-5 text-[var(--color-text-secondary)]">
-                            <p>{humanize(r.primary_driver)}</p>
+                            <p>{driverText(r.primary_driver)}</p>
                             {r.secondary_driver && (
                               <p className="mt-1 text-[var(--color-text-tertiary)]">
-                                Also: {humanize(r.secondary_driver)}
+                                Also: {driverText(r.secondary_driver)}
                               </p>
                             )}
                           </td>
@@ -227,7 +233,7 @@ export default function Recommendations() {
                             {r.urgency_score.toFixed(1)}
                           </td>
                           <td className="py-2.5 text-xs text-[var(--color-text-secondary)]">
-                            {r.target_timeframe}
+                            {humanize(r.target_timeframe)}
                           </td>
                         </tr>
                       ))

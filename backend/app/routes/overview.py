@@ -15,7 +15,13 @@ from app.models.customer import Customer
 from app.models.customer_feature import CustomerFeature
 from app.models.order import Order
 from app.models.sentiment_result import SentimentResult
-from app.schemas.overview import KpiCard, NarrativeResponse, OverviewKpis
+from app.schemas.overview import (
+    KpiCard,
+    NarrativeResponse,
+    OverviewKpis,
+    OverviewTrends,
+    TrendPoint,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -95,8 +101,14 @@ def get_overview_kpis(db: Session = Depends(get_db)):
     # --- Total customers ---
     total_customers = db.query(func.count(Customer.customer_id)).scalar() or 0
 
-    # --- Monthly revenue (most recent 30 days of valid order data) ---
-    order_rows = db.query(Order.order_date, Order.amount).all()
+    # --- Monthly revenue (most recent 30 days of completed orders) ---
+    # Refunded/failed orders are excluded, matching the feature engine's
+    # revenue definition so the dashboard and agent outputs agree.
+    order_rows = (
+        db.query(Order.order_date, Order.amount)
+        .filter(Order.status == "completed")
+        .all()
+    )
     monthly_revenue, revenue_trend = _compute_recent_revenue(order_rows)
 
     # --- Churn rate (avg probability across all predictions) ---
@@ -131,7 +143,7 @@ def get_overview_kpis(db: Session = Depends(get_db)):
             label="Monthly Revenue",
             value=_fmt_currency(monthly_revenue),
             trend=round(revenue_trend, 1),
-            trend_label="vs prior 30d",
+            trend_label="% vs prior 30d",
         ),
         churn_rate=KpiCard(
             label="Churn Rate",
@@ -231,5 +243,62 @@ def get_narrative(db: Session = Depends(get_db)):
         ],
         highlights=highlights,
         concerns=concerns,
-        generated_at=datetime.utcnow().isoformat(),
+        generated_at=datetime.now(timezone.utc).isoformat(),
     )
+
+
+@router.get("/trends", response_model=OverviewTrends)
+@handle_errors("get_overview_trends")
+def get_overview_trends(db: Session = Depends(get_db)):
+    """Weekly revenue and cumulative customer counts for the KPI sparklines.
+
+    Both series are computed from real workspace data over the last 8 weeks
+    of the data window (anchored to the most recent completed order).
+    """
+    weeks = 8
+
+    order_rows = (
+        db.query(Order.order_date, Order.amount)
+        .filter(Order.status == "completed")
+        .all()
+    )
+    parsed_orders = []
+    for row in order_rows:
+        order_date = _parse_order_datetime(row.order_date)
+        if order_date is not None:
+            parsed_orders.append((order_date, float(row.amount or 0.0)))
+
+    if not parsed_orders:
+        return OverviewTrends(revenue=[], customers=[])
+
+    latest = max(order_date for order_date, _ in parsed_orders)
+    # Week boundaries, oldest first; bucket i covers (start, start + 7d]
+    boundaries = [latest - timedelta(days=7 * (weeks - i)) for i in range(weeks + 1)]
+
+    revenue_points = []
+    for i in range(weeks):
+        start, end = boundaries[i], boundaries[i + 1]
+        total = sum(
+            amount for order_date, amount in parsed_orders if start < order_date <= end
+        )
+        revenue_points.append(
+            TrendPoint(period=end.strftime("%Y-%m-%d"), value=round(total, 2))
+        )
+
+    signup_rows = db.query(Customer.signup_date).all()
+    signup_dates = []
+    for (signup,) in signup_rows:
+        parsed = _parse_order_datetime(signup)
+        if parsed is not None:
+            signup_dates.append(parsed)
+    signup_dates.sort()
+
+    customer_points = []
+    for i in range(1, weeks + 1):
+        end = boundaries[i]
+        count = sum(1 for signup in signup_dates if signup <= end)
+        customer_points.append(
+            TrendPoint(period=end.strftime("%Y-%m-%d"), value=float(count))
+        )
+
+    return OverviewTrends(revenue=revenue_points, customers=customer_points)

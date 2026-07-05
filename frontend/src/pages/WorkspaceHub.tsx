@@ -170,6 +170,19 @@ function getOwnerAccessErrorMessage(error: unknown): string {
   return detail ?? "We couldn't save owner access. Please try again.";
 }
 
+function getListActionErrorMessage(error: unknown): string {
+  const status = getApiErrorStatus(error);
+  const detail = getApiErrorDetail(error);
+
+  if (status === 429) {
+    return detail ?? 'Generation capacity is in use. Try again in a moment.';
+  }
+  if (status === 401 || status === 403) {
+    return 'Owner access was rejected. Update the saved passcode and retry.';
+  }
+  return detail ?? "That didn't work. Please try again.";
+}
+
 function getSyntheticErrorMessage(error: unknown): string {
   const status = getApiErrorStatus(error);
   const detail = getApiErrorDetail(error);
@@ -240,6 +253,16 @@ export default function WorkspaceHub() {
     : null;
   const syntheticErrorMessage = syntheticMutation.isError
     ? getSyntheticErrorMessage(syntheticMutation.error)
+    : null;
+  // Start/enter failures happen from the list view (e.g. 429 capacity), so
+  // they need a visible home there — silent failure looks like a dead button.
+  const listErrorMessage = generateMutation.isError
+    ? getListActionErrorMessage(generateMutation.error)
+    : rotateTokenMutation.isError
+      ? getListActionErrorMessage(rotateTokenMutation.error)
+      : null;
+  const deleteErrorMessage = deleteMutation.isError
+    ? getListActionErrorMessage(deleteMutation.error)
     : null;
   const ownerSetupRequired =
     ownerAccessStatus?.setup_required ||
@@ -516,6 +539,7 @@ export default function WorkspaceHub() {
             workspaces={workspaces}
             isLoading={isLoading}
             pendingId={pendingId}
+            errorMessage={listErrorMessage}
             onEnter={handleEnter}
             onGenerate={handleGenerate}
             onDelete={setDeleteTarget}
@@ -551,6 +575,12 @@ export default function WorkspaceHub() {
                 </p>
               </div>
             </div>
+            {deleteErrorMessage && (
+              <p className="mt-3 flex items-center gap-2 text-sm text-[var(--color-danger)]">
+                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                {deleteErrorMessage}
+              </p>
+            )}
             <div className="mt-5 flex gap-3">
               <button
                 type="button"
@@ -755,6 +785,7 @@ function ListView({
   workspaces,
   isLoading,
   pendingId,
+  errorMessage,
   onEnter,
   onGenerate,
   onDelete,
@@ -763,6 +794,7 @@ function ListView({
   workspaces: Workspace[];
   isLoading: boolean;
   pendingId: string | null;
+  errorMessage: string | null;
   onEnter: (ws: Workspace) => void;
   onGenerate: (ws: Workspace) => void;
   onDelete: (ws: Workspace) => void;
@@ -778,7 +810,7 @@ function ListView({
       </h2>
       <p className="mt-3 max-w-xl text-sm leading-relaxed text-[rgba(255,255,255,0.40)]">
         Create company workspaces with realistic synthetic data. Each
-        workspace runs an 8-stage intelligence pipeline that generates behavioral
+        workspace runs an 8-agent intelligence pipeline that generates behavioral
         profiles, segments, churn predictions, and executive insights.
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
@@ -791,6 +823,15 @@ function ListView({
           New Workspace
         </button>
       </div>
+
+      {errorMessage && (
+        <div className="mt-4 max-w-xl rounded-lg border border-danger/30 bg-danger/10 p-3">
+          <p className="flex items-center gap-2 text-sm text-[var(--color-danger)]">
+            <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+            {errorMessage}
+          </p>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -1036,7 +1077,7 @@ function GeneratingStatus({
       )}
       {isPending && (
         <p className="mt-2 text-[11px] text-[var(--color-primary-400)]">
-          You'll be redirected when ready...
+          Opening the setup view...
         </p>
       )}
     </>

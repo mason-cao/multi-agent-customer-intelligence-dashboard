@@ -20,6 +20,16 @@ export interface KpiData {
   trend_label: string;
 }
 
+export interface TrendPoint {
+  period: string;
+  value: number;
+}
+
+export interface OverviewTrends {
+  revenue: TrendPoint[];
+  customers: TrendPoint[];
+}
+
 export interface AgentRun {
   id: string;
   agent_name: string;

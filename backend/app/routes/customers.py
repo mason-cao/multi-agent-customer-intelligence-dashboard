@@ -1,5 +1,7 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
@@ -20,9 +22,26 @@ def get_customers(
     db: Session = Depends(get_db),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
+    q: Optional[str] = Query(None, max_length=80),
 ):
-    """Paginated customer list with cross-agent enrichment."""
-    total = db.query(func.count(Customer.customer_id)).scalar() or 0
+    """Paginated customer list with cross-agent enrichment.
+
+    `q` filters by name, company, or email (case-insensitive substring),
+    always bound as a SQL parameter.
+    """
+    search_filter = None
+    if q and q.strip():
+        term = f"%{q.strip()}%"
+        search_filter = or_(
+            Customer.name.ilike(term),
+            Customer.company.ilike(term),
+            Customer.email.ilike(term),
+        )
+
+    total_query = db.query(func.count(Customer.customer_id))
+    if search_filter is not None:
+        total_query = total_query.filter(search_filter)
+    total = total_query.scalar() or 0
 
     # Subquery for per-customer avg sentiment from sentiment_results
     sent_sub = (
@@ -34,7 +53,7 @@ def get_customers(
         .subquery()
     )
 
-    rows = (
+    rows_query = (
         db.query(
             Customer.customer_id,
             Customer.name,
@@ -68,6 +87,11 @@ def get_customers(
             sent_sub,
             Customer.customer_id == sent_sub.c.customer_id,
         )
+    )
+    if search_filter is not None:
+        rows_query = rows_query.filter(search_filter)
+    rows = (
+        rows_query
         .order_by(Customer.name)
         .offset(offset)
         .limit(limit)

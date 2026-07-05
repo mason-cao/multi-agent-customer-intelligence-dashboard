@@ -11,6 +11,9 @@ interface StatCardProps {
   value: string | number;
   icon?: LucideIcon;
   trend?: { value: number; label?: string };
+  /** How to color a positive trend: 'auto' = green (growth is good),
+   *  'inverse' = red (a rising value is bad, e.g. at-risk counts). */
+  trendTone?: 'auto' | 'inverse';
   sparkline?: { data: number[]; color?: string };
   variant?: 'default' | 'elevated' | 'hero';
   glowColor?: string;
@@ -22,14 +25,19 @@ export default function StatCard({
   value,
   icon: Icon,
   trend,
+  trendTone = 'auto',
   sparkline,
   variant = 'elevated',
   glowColor,
   className = '',
 }: StatCardProps) {
+  const trendIsGood =
+    trendTone === 'inverse' ? (trend?.value ?? 0) < 0 : (trend?.value ?? 0) > 0;
+  const trendColor = trendIsGood
+    ? 'var(--color-success)'
+    : 'var(--color-danger)';
   const sparkColor =
-    sparkline?.color ??
-    (trend && trend.value >= 0 ? PALETTE.success : PALETTE.danger);
+    sparkline?.color ?? (trendIsGood || (trend?.value ?? 0) === 0 ? PALETTE.success : PALETTE.danger);
 
   const sparkData = sparkline
     ? sparkline.data.map((v) => ({ value: v }))
@@ -69,19 +77,13 @@ export default function StatCard({
           {trend && (
             <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--color-text-secondary)]">
               {trend.value > 0 && (
-                <TrendingUp className="h-3 w-3 text-[var(--color-success)]" />
+                <TrendingUp className="h-3 w-3" style={{ color: trendColor }} />
               )}
               {trend.value < 0 && (
-                <TrendingDown className="h-3 w-3 text-[var(--color-danger)]" />
+                <TrendingDown className="h-3 w-3" style={{ color: trendColor }} />
               )}
               {trend.value !== 0 && (
-                <span
-                  className={
-                    trend.value > 0
-                      ? 'text-[var(--color-success)]'
-                      : 'text-[var(--color-danger)]'
-                  }
-                >
+                <span style={{ color: trendColor }}>
                   {trend.value > 0 ? '+' : ''}
                   {trend.value}
                 </span>

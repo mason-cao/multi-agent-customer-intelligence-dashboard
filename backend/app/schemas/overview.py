@@ -30,3 +30,13 @@ class RevenueTrendPoint(BaseModel):
     date: str
     revenue: float
     is_anomaly: bool = False
+
+
+class TrendPoint(BaseModel):
+    period: str
+    value: float
+
+
+class OverviewTrends(BaseModel):
+    revenue: List[TrendPoint]
+    customers: List[TrendPoint]

@@ -44,7 +44,6 @@ export default function App() {
               <Route element={<Layout />}>
                 <Route path="/" element={<Overview />} />
                 <Route path="/customers" element={<Customer360 />} />
-                <Route path="/customers/:id" element={<Customer360 />} />
                 <Route path="/segments" element={<Segments />} />
                 <Route path="/churn" element={<ChurnRetention />} />
                 <Route path="/sentiment" element={<SentimentSupport />} />

@@ -10,6 +10,7 @@ stay independent of the per-workspace agent models (which use Base from database
 """
 
 import re
+import threading
 from pathlib import Path
 
 from sqlalchemy import create_engine
@@ -50,14 +51,43 @@ def get_workspace_db_path(workspace_id: str) -> Path:
     return WORKSPACES_DIR / f"{workspace_id}.db"
 
 
+# ── Workspace engine cache ──────────────────────────────────────
+# A fresh engine per request discards SQLite's page cache and pays
+# connection setup on every dashboard call. Engines are cached per
+# workspace instead; anything that deletes the underlying DB file
+# (delete, regeneration, pruning) must call dispose_workspace_engine()
+# so no pooled connection keeps the stale file's inode alive.
+_ENGINE_LOCK = threading.Lock()
+_ENGINE_CACHE: dict[str, tuple] = {}
+
+
 def get_workspace_engine(workspace_id: str):
-    """Create a SQLAlchemy engine for a specific workspace database."""
+    """Return the cached SQLAlchemy engine for a workspace database."""
     db_path = get_workspace_db_path(workspace_id)
-    return create_engine(f"sqlite:///{db_path}", echo=False)
+    with _ENGINE_LOCK:
+        cached = _ENGINE_CACHE.get(workspace_id)
+        if cached is None:
+            engine = create_engine(f"sqlite:///{db_path}", echo=False)
+            cached = (engine, sessionmaker(bind=engine))
+            _ENGINE_CACHE[workspace_id] = cached
+    return cached[0]
+
+
+def get_workspace_sessionmaker(workspace_id: str):
+    """Return the cached sessionmaker bound to a workspace engine."""
+    get_workspace_engine(workspace_id)
+    with _ENGINE_LOCK:
+        return _ENGINE_CACHE[workspace_id][1]
 
 
 def get_workspace_session(workspace_id: str):
     """Create a new database session for a specific workspace."""
-    engine = get_workspace_engine(workspace_id)
-    Session = sessionmaker(bind=engine)
-    return Session()
+    return get_workspace_sessionmaker(workspace_id)()
+
+
+def dispose_workspace_engine(workspace_id: str):
+    """Evict a workspace engine and close its pooled connections."""
+    with _ENGINE_LOCK:
+        cached = _ENGINE_CACHE.pop(workspace_id, None)
+    if cached:
+        cached[0].dispose()

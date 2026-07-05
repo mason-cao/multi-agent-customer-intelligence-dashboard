@@ -353,9 +353,9 @@ def _aggregate_metrics(engine) -> Dict[str, Any]:
     ].iloc[0]
     s["top_action_count"] = int(s["rec_action_dist"][top_action_code])
 
-    # ── Orders (revenue trend) ────────────────────────────────────
+    # ── Orders (revenue trend) — completed only, matching feature engine ──
     orders = pd.read_sql(
-        text("SELECT order_date, amount FROM orders"),
+        text("SELECT order_date, amount FROM orders WHERE status = 'completed'"),
         engine,
     )
     latest_date = orders["order_date"].max()

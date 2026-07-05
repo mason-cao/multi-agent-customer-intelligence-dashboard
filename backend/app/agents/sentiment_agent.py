@@ -398,31 +398,37 @@ class SentimentAgent(BaseAgent):
         else:
             nps_per_cust = pd.DataFrame(columns=["customer_id", "nps_score"])
 
-        # Write avg_sentiment
-        sentiment_count = 0
-        for _, row in cust_sentiment.iterrows():
+        # Write avg_sentiment and nps_score as batched executemany updates —
+        # one statement per table instead of one round-trip per customer.
+        sentiment_params = [
+            {"score": float(row["avg_sentiment"]), "cid": row["customer_id"]}
+            for _, row in cust_sentiment.iterrows()
+        ]
+        sentiment_count = len(sentiment_params)
+        if sentiment_params:
             db.execute(
                 text(
                     "UPDATE customer_features "
                     "SET avg_sentiment = :score "
                     "WHERE customer_id = :cid"
                 ),
-                {"score": float(row["avg_sentiment"]), "cid": row["customer_id"]},
+                sentiment_params,
             )
-            sentiment_count += 1
 
-        # Write nps_score
-        nps_count = 0
-        for _, row in nps_per_cust.iterrows():
+        nps_params = [
+            {"nps": int(row["nps_score"]), "cid": row["customer_id"]}
+            for _, row in nps_per_cust.iterrows()
+        ]
+        nps_count = len(nps_params)
+        if nps_params:
             db.execute(
                 text(
                     "UPDATE customer_features "
                     "SET nps_score = :nps "
                     "WHERE customer_id = :cid"
                 ),
-                {"nps": int(row["nps_score"]), "cid": row["customer_id"]},
+                nps_params,
             )
-            nps_count += 1
 
         db.commit()
         self._logger.info(

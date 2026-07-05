@@ -10,16 +10,14 @@ import PageHeader from '../components/shared/PageHeader';
 import Card from '../components/shared/Card';
 import StatCard from '../components/shared/StatCard';
 import EmptyState from '../components/shared/EmptyState';
-import { useOverviewKpis, useOverviewNarrative, useAgentsSummary } from '../api/hooks';
+import {
+  useOverviewKpis,
+  useOverviewNarrative,
+  useOverviewTrends,
+  useAgentsSummary,
+} from '../api/hooks';
+import { PALETTE } from '../utils/colors';
 import type { KpiData } from '../types';
-
-function generateSparklineData(trend: number): number[] {
-  const base = 100;
-  const target = base * (1 + trend / 100);
-  return Array.from({ length: 7 }, (_, i) =>
-    base + ((target - base) * i) / 6 + (Math.sin(i * 1.5) * 3)
-  );
-}
 
 type NarrativeMetric = { label: string; value: string | number };
 
@@ -69,6 +67,7 @@ export default function Overview() {
   const { data: kpis, isLoading, isError } = useOverviewKpis();
   const { data: narrative, isLoading: narrativeLoading } =
     useOverviewNarrative();
+  const { data: trends } = useOverviewTrends();
   const { data: agentData } = useAgentsSummary();
 
   const kpiList: KpiData[] = kpis
@@ -84,6 +83,18 @@ export default function Overview() {
   // Split into hero (first 2) and secondary (remaining 3)
   const heroKpis = kpiList.slice(0, 2);
   const secondaryKpis = kpiList.slice(2);
+
+  // Real 8-week series from workspace data (no fabricated sparklines):
+  // cumulative customers for the first hero card, weekly completed-order
+  // revenue for the second.
+  const heroSparklines = [
+    trends?.customers.length
+      ? { data: trends.customers.map((p) => p.value), color: PALETTE.indigo }
+      : undefined,
+    trends?.revenue.length
+      ? { data: trends.revenue.map((p) => p.value) }
+      : undefined,
+  ];
 
   // Pipeline health from agent runs
   const latestRuns = agentData?.runs ?? [];
@@ -133,7 +144,7 @@ export default function Overview() {
                 value={kpi.value}
                 variant="hero"
                 trend={{ value: kpi.trend, label: kpi.trend_label }}
-                sparkline={{ data: generateSparklineData(kpi.trend) }}
+                sparkline={heroSparklines[i]}
                 className={`animate-fade-in-up stagger-${i + 1}`}
               />
             ))}
@@ -147,6 +158,9 @@ export default function Overview() {
                 title={kpi.label}
                 value={kpi.value}
                 trend={{ value: kpi.trend, label: kpi.trend_label }}
+                // Churn's trend is a count of high/critical-risk accounts —
+                // a rising number is bad, so don't paint it green.
+                trendTone={kpi.label === 'Churn Rate' ? 'inverse' : 'auto'}
                 className={`animate-fade-in-up stagger-${i + 3}`}
               />
             ))}

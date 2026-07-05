@@ -34,7 +34,7 @@ def get_db(request: Request):
 
     from app.db.workspace_db import (
         get_workspace_db_path,
-        get_workspace_engine,
+        get_workspace_sessionmaker,
         is_valid_workspace_id,
     )
 
@@ -67,9 +67,7 @@ def get_db(request: Request):
             status_code=404,
             detail=f"Workspace database not found: {workspace_id}",
         )
-    ws_engine = get_workspace_engine(workspace_id)
-    WsSession = sessionmaker(bind=ws_engine)
-    db = WsSession()
+    db = get_workspace_sessionmaker(workspace_id)()
 
     try:
         yield db

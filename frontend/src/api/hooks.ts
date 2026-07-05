@@ -3,6 +3,7 @@ import api from './client';
 import { useActiveWorkspace } from '../contexts/workspaceContextValue';
 import type {
   KpiData,
+  OverviewTrends,
   SegmentSummary,
   ChurnDistribution,
   AtRiskCustomer,
@@ -62,6 +63,18 @@ export function useOverviewNarrative() {
     queryKey: ['overview', 'narrative', activeWorkspace?.id, activeWorkspace?.completed_at],
     queryFn: async () => {
       const { data } = await api.get('/overview/narrative');
+      return data;
+    },
+    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
+  });
+}
+
+export function useOverviewTrends() {
+  const { activeWorkspace } = useActiveWorkspace();
+  return useQuery<OverviewTrends>({
+    queryKey: ['overview', 'trends', activeWorkspace?.id, activeWorkspace?.completed_at],
+    queryFn: async () => {
+      const { data } = await api.get('/overview/trends');
       return data;
     },
     enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
@@ -176,15 +189,22 @@ export function useAgentsSummary() {
 
 // ── Customers ─────────────────────────────────────────────
 
-export function useCustomers(limit = 50, offset = 0) {
+export function useCustomers(limit = 50, offset = 0, q = '') {
   const { activeWorkspace } = useActiveWorkspace();
+  const search = q.trim();
   return useQuery<CustomerListResponse>({
-    queryKey: ['customers', limit, offset, activeWorkspace?.id, activeWorkspace?.completed_at],
+    queryKey: ['customers', limit, offset, search, activeWorkspace?.id, activeWorkspace?.completed_at],
     queryFn: async () => {
-      const { data } = await api.get(`/customers?limit=${limit}&offset=${offset}`);
+      const params = new URLSearchParams({
+        limit: String(limit),
+        offset: String(offset),
+      });
+      if (search) params.set('q', search);
+      const { data } = await api.get(`/customers?${params.toString()}`);
       return data;
     },
     enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
+    placeholderData: (previous) => previous,
   });
 }
 

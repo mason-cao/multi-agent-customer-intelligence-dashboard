@@ -201,8 +201,8 @@ export default function ChurnRetention() {
                       {...TOOLTIP_STYLE}
                       formatter={(value: unknown) =>
                         typeof value === 'number'
-                          ? [`${(value * 100).toFixed(1)}%`, 'Importance']
-                          : [String(value), 'Importance']
+                          ? [value.toFixed(3), 'Avg SHAP impact']
+                          : [String(value), 'Avg SHAP impact']
                       }
                     />
                     <Bar

@@ -191,14 +191,21 @@ class BaseAgent(ABC):
                 error=str(exc),
             )
 
-            self.save_run(
-                db=db,
-                run_id=run_id,
-                status="failed",
-                started_at=started_at,
-                duration_ms=elapsed_ms,
-                error_message=str(exc),
-            )
+            # A failed flush leaves the session unusable until rolled back;
+            # without this, the audit write below would raise instead of
+            # recording the failure.
+            try:
+                db.rollback()
+                self.save_run(
+                    db=db,
+                    run_id=run_id,
+                    status="failed",
+                    started_at=started_at,
+                    duration_ms=elapsed_ms,
+                    error_message=str(exc),
+                )
+            except Exception:
+                self._logger.error("agent_failure_audit_write_failed", run_id=run_id)
 
             return {
                 "status": "failed",

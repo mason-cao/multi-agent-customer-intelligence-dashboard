@@ -22,8 +22,10 @@ from app.db import workspace_db
 from app.db.workspace_db import (
     MetadataSession,
     WorkspaceBase,
+    dispose_workspace_engine,
     ensure_workspace_dirs,
     get_workspace_db_path,
+    is_valid_workspace_id,
     metadata_engine,
 )
 from app.models.workspace import Workspace
@@ -206,6 +208,8 @@ def prune_workspace_data_for_free_space(
     deleted_workspace_ids: list[str] = []
 
     for db_path in db_files:
+        if is_valid_workspace_id(db_path.stem):
+            dispose_workspace_engine(db_path.stem)
         removed_any = False
         for path in _workspace_database_bundle_paths(db_path):
             try:
@@ -400,10 +404,12 @@ def prepare_for_regeneration(workspace_id: str) -> bool:
     if not ws:
         return False
 
-    # Delete the old workspace database file
-    db_path = get_workspace_db_path(workspace_id)
-    if db_path.exists():
-        db_path.unlink()
+    # Delete the old workspace database file (and any sidecar files) after
+    # closing pooled connections, so the fresh DB can't inherit a stale
+    # handle or hot journal from the previous generation.
+    dispose_workspace_engine(workspace_id)
+    for path in _workspace_database_bundle_paths(get_workspace_db_path(workspace_id)):
+        path.unlink(missing_ok=True)
 
     # Reset progress fields
     update_workspace_status(
@@ -507,9 +513,9 @@ def delete_workspace(workspace_id: str) -> bool:
     finally:
         db.close()
 
-    # Remove the workspace database file if it exists
-    db_path = get_workspace_db_path(workspace_id)
-    if db_path.exists():
-        db_path.unlink()
+    # Close pooled connections, then remove the database and sidecar files
+    dispose_workspace_engine(workspace_id)
+    for path in _workspace_database_bundle_paths(get_workspace_db_path(workspace_id)):
+        path.unlink(missing_ok=True)
 
     return True
