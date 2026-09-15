@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 from sqlalchemy import text
 
 from app.db.database import Base, SessionLocal, engine
+from app.services.pipeline import PIPELINE, execute_pipeline
 
 # ── Derived tables (pipeline outputs) ────────────────────────────
 DERIVED_TABLES = [
@@ -40,19 +41,6 @@ DERIVED_TABLES = [
     "customer_segments",
     "customer_features",
 ]
-
-# ── Pipeline order ───────────────────────────────────────────────
-PIPELINE = [
-    ("BehaviorAgent", "app.agents.behavior_agent", "BehaviorAgent"),
-    ("SegmentationAgent", "app.agents.segmentation_agent", "SegmentationAgent"),
-    ("SentimentAgent", "app.agents.sentiment_agent", "SentimentAgent"),
-    ("ChurnAgent", "app.agents.churn_agent", "ChurnAgent"),
-    ("RecommendationAgent", "app.agents.recommendation_agent", "RecommendationAgent"),
-    ("NarrativeAgent", "app.agents.narrative_agent", "NarrativeAgent"),
-    ("AuditAgent", "app.agents.audit_agent", "AuditAgent"),
-    ("QueryAgent", "app.agents.query_agent", "QueryAgent"),
-]
-
 
 def clean_tables():
     """Drop derived tables, clean agent_runs, and recreate with ORM constraints."""
@@ -76,21 +64,6 @@ def clean_tables():
     print("  Recreated tables with ORM constraints\n")
 
 
-def run_agent(label: str, module_path: str, class_name: str) -> dict:
-    """Import, instantiate, and execute a single agent."""
-    import importlib
-    module = importlib.import_module(module_path)
-    agent_class = getattr(module, class_name)
-    agent = agent_class()
-
-    db = SessionLocal()
-    try:
-        output = agent.execute(db)
-        return output
-    finally:
-        db.close()
-
-
 def main():
     parser = argparse.ArgumentParser(description="Run the Nova Core agent pipeline")
     parser.add_argument("--clean", action="store_true", help="Drop derived tables and recreate with ORM constraints before running")
@@ -103,34 +76,29 @@ def main():
     total_start = time.time()
     results = {}
 
-    for i, (label, module_path, class_name) in enumerate(PIPELINE, 1):
-        print(f"[{i}/8] Running {label}...", end=" ", flush=True)
-        start = time.time()
+    def announce(spec):
+        print(f"Running {spec.label}...", end=" ", flush=True)
 
-        try:
-            output = run_agent(label, module_path, class_name)
-            elapsed = time.time() - start
-            status = output.get("status", "unknown")
-            rows = output.get("rows_affected", "?")
-            print(f"{status} ({rows} rows, {elapsed:.1f}s)")
-            results[label] = output
-        except Exception as e:
-            elapsed = time.time() - start
-            print(f"FAILED ({elapsed:.1f}s): {e}")
-            results[label] = {"status": "failed", "error": str(e)}
-            # Continue pipeline — downstream agents may still produce partial results
+    for outcome in execute_pipeline(SessionLocal, before_agent=announce):
+        output = outcome.output
+        status = output.get("_status", "failed")
+        rows = output.get("rows_affected", "?")
+        print(f"{status} ({rows} rows, {outcome.duration_seconds:.1f}s)")
+        results[outcome.spec.label] = output
+        if outcome.message:
+            print(f"  {outcome.message}")
 
     total_elapsed = time.time() - total_start
     print(f"\n=== PIPELINE COMPLETE ({total_elapsed:.1f}s) ===\n")
 
     # Summary
-    succeeded = sum(1 for r in results.values() if r.get("status") == "completed")
-    failed = sum(1 for r in results.values() if r.get("status") == "failed")
-    print(f"  Succeeded: {succeeded}/8")
+    succeeded = sum(1 for r in results.values() if r.get("_status") == "completed")
+    failed = sum(1 for r in results.values() if r.get("_status") == "failed")
+    print(f"  Succeeded: {succeeded}/{len(PIPELINE)}")
     if failed:
-        print(f"  Failed:    {failed}/8")
+        print(f"  Failed:    {failed}/{len(PIPELINE)}")
         for label, r in results.items():
-            if r.get("status") == "failed":
+            if r.get("_status") == "failed":
                 print(f"    - {label}: {r.get('error', 'unknown')}")
 
     # Verify table row counts
