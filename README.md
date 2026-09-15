@@ -63,7 +63,7 @@ Owner workspace management routes require:
 
 - `X-Admin-Token`
 
-The frontend sends these headers through the shared Axios client. Workspace tokens are returned once on create or rotation and then stored client-side for the active workspace.
+The frontend sends these headers through the shared native-fetch client. Workspace tokens are returned once on create or rotation and then stored client-side for the active workspace.
 
 Owner access lets one trusted person create, delete, regenerate, and manage every workspace. If no deployment token is configured, the app asks the first owner to create an owner passcode in the Workspaces screen. The app stores a protected hash of that passcode in `data/workspaces.db`; it does not store the plaintext passcode.
 
@@ -93,7 +93,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the detailed topology, data model, pi
 ### Prerequisites
 
 - Python 3.11+
-- Node.js 18+
+- Node.js 20.19+ or 22.12+ (required by Vite 8)
 - npm
 
 ### Backend
@@ -158,10 +158,10 @@ For advanced private deployments, a site owner can preconfigure owner access ins
 | `MAX_WORKSPACES` | Backend | No | Workspace quota, default `25` |
 | `MAX_CONCURRENT_GENERATIONS` | Backend | No | Generation concurrency limit, default `1` |
 | `PUBLIC_SYNTHETIC_ACCESS` | Backend | No | Enables the bounded public demo workspace starter, default `true` |
-| `ANTHROPIC_API_KEY` | Backend | No | Optional provider key for narrative/query routing |
-| `OPENAI_API_KEY` | Backend | No | Optional provider key for narrative/query routing |
+| `ANTHROPIC_API_KEY` | Backend | No | Optional provider key for query routing |
+| `OPENAI_API_KEY` | Backend | No | Optional provider key for query routing |
 
-No external provider key is required for local operation.
+No external provider key is required for local operation. Narrative summaries use computed data and templates; optional providers assist query routing.
 
 `ADMIN_TOKEN` and `VITE_ADMIN_TOKEN` are accepted as compatibility aliases. If no deployment owner secret is configured, the Workspaces screen lets the first owner create an owner passcode and then stores entered passcodes in that browser under `novacore_admin_token`.
 
@@ -171,22 +171,23 @@ No external provider key is required for local operation.
 
 ```bash
 cd backend
-.venv/bin/pytest
+.venv/bin/python -m pytest
 ```
 
 ```bash
 cd frontend
 npm run lint
+npm test
 npm run build
 npm audit --json
 ```
 
-Current expected baseline:
+Verification checks:
 
 - Backend test suite passes.
 - Frontend lint and production build pass.
 - npm audit reports zero vulnerabilities.
-- Browser checks pass on desktop and mobile.
+- Run browser checks on desktop and mobile when a browser is connected.
 
 ---
 
@@ -230,7 +231,7 @@ backend/
 frontend/
   public/fonts/      Local font assets
   src/
-    api/             Axios client and TanStack Query hooks
+    api/             Fetch client and TanStack Query hooks
     components/      Layout and reusable UI
     contexts/        Workspace state
     pages/           Dashboard and workspace views
