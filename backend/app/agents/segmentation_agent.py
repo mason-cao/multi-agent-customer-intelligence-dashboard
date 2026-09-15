@@ -1,95 +1,13 @@
-"""
-SegmentationAgent — assigns customers to business-friendly segments
-using deterministic rule-based logic on RFM + engagement features.
-
-Approach: Waterfall rules evaluated in priority order.  Thresholds are
-percentile-based, computed from customer_features at runtime so they
-adapt to the data while remaining 100 % deterministic for the same input.
-
-Explainability: Every assignment traces to specific feature thresholds.
-Each customer receives a primary_reason explaining their classification.
-
-Inputs:  customer_features (5K rows)
-Outputs: customer_segments (5K rows)
-Phase:   1 (depends on BehaviorAgent having populated customer_features)
-"""
+"""Segmentation pipeline stage."""
 
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Tuple
-
 import numpy as np
 import pandas as pd
 from sqlalchemy import text
-
 from app.agents.base import BaseAgent
-
-
-# ── Version ───────────────────────────────────────────────────────
-# Bump when rules, thresholds, or segment definitions change.
-SEGMENTATION_VERSION = "rules-v1"
-
-# ── Segment definitions (priority order — first match wins) ──────
-SEGMENTS = [
-    {
-        "id": 0,
-        "code": "champions",
-        "name": "Champions",
-        "description": (
-            "Top-tier customers with high revenue, strong engagement, "
-            "and recent purchase activity. Priority for retention and upsell."
-        ),
-    },
-    {
-        "id": 1,
-        "code": "loyal",
-        "name": "Loyal Customers",
-        "description": (
-            "Consistent buyers with solid revenue contribution and "
-            "regular purchase patterns. Priority for deepening relationship."
-        ),
-    },
-    {
-        "id": 2,
-        "code": "growth",
-        "name": "Growth Potential",
-        "description": (
-            "Recently active customers with moderate engagement showing "
-            "room for expansion. Priority for activation campaigns."
-        ),
-    },
-    {
-        "id": 3,
-        "code": "at_risk",
-        "name": "At Risk",
-        "description": (
-            "Previously valuable customers showing signs of declining "
-            "engagement or purchase frequency. Priority for re-engagement."
-        ),
-    },
-    {
-        "id": 4,
-        "code": "dormant",
-        "name": "Dormant",
-        "description": (
-            "Customers with low recent activity and minimal engagement. "
-            "Priority for win-back campaigns or graceful sunset."
-        ),
-    },
-]
-
-SEGMENT_BY_CODE = {s["code"]: s for s in SEGMENTS}
-VALID_CODES = {s["code"] for s in SEGMENTS}
-
-# ── Feature columns consumed ─────────────────────────────────────
-FEATURE_COLS = [
-    "customer_id",
-    "total_revenue",
-    "order_count",
-    "days_since_last_order",
-    "engagement_score",
-    "avg_order_value",
-    "support_ticket_count_30d",
-]
+from app.db.outputs import replace_output
+from app.agents.segmentation.definitions import SEGMENTATION_VERSION, SEGMENTS, SEGMENT_BY_CODE, FEATURE_COLS
 
 
 class SegmentationAgent(BaseAgent):
@@ -98,14 +16,9 @@ class SegmentationAgent(BaseAgent):
     def name(self) -> str:
         return "segmentation"
 
-    # ──────────────────────────────────────────────────────────────
-    # Main entry
-    # ──────────────────────────────────────────────────────────────
-
     def run(self, db) -> Dict[str, Any]:
         engine = db.get_bind()
 
-        # Step 1 — Load customer features
         df = pd.read_sql(
             text("SELECT " + ", ".join(FEATURE_COLS) + " FROM customer_features"),
             engine,
@@ -121,23 +34,18 @@ class SegmentationAgent(BaseAgent):
                 "error": "customer_features table is empty — BehaviorAgent may have failed",
             }
 
-        # Step 2 — Compute percentile thresholds from the data
         thresholds = _compute_thresholds(df)
         self._logger.info(
             "thresholds_computed",
             thresholds={k: round(v, 2) for k, v in thresholds.items()},
         )
 
-        # Step 3 — Assign segments via waterfall rules (vectorized)
         df["segment_code"] = _assign_segments(df, thresholds)
 
-        # Step 4 — Enrich with segment metadata and per-customer reasons
         segments = _build_output(df, thresholds)
 
-        # Step 5 — Write to database (DELETE + INSERT preserves ORM constraints)
-        self._write_segments(segments, db, engine)
+        replace_output(db, "customer_segments", segments)
 
-        # Step 6 — Build summary statistics
         dist = segments.groupby("segment_name")["customer_id"].count().to_dict()
 
         merged = segments.merge(
@@ -175,10 +83,6 @@ class SegmentationAgent(BaseAgent):
                 },
             },
         }
-
-    # ──────────────────────────────────────────────────────────────
-    # Validation
-    # ──────────────────────────────────────────────────────────────
 
     def validate_output(
         self, output: Dict[str, Any]
@@ -218,22 +122,6 @@ class SegmentationAgent(BaseAgent):
 
         return (len(errors) == 0, errors)
 
-    # ──────────────────────────────────────────────────────────────
-    # Database persistence
-    # ──────────────────────────────────────────────────────────────
-
-    def _write_segments(self, segments, db, engine):
-        """Write segments via DELETE + INSERT to preserve ORM constraints."""
-        self._logger.info("writing_segments", rows=len(segments))
-        db.execute(text("DELETE FROM customer_segments"))
-        db.commit()
-        segments.to_sql(
-            "customer_segments", engine, if_exists="append", index=False
-        )
-
-
-# ── Module-level helpers ──────────────────────────────────────────
-
 
 def _compute_thresholds(df: pd.DataFrame) -> Dict[str, float]:
     """Derive percentile-based thresholds from the feature distribution."""
@@ -246,7 +134,6 @@ def _compute_thresholds(df: pd.DataFrame) -> Dict[str, float]:
         "recency_p50": float(df["days_since_last_order"].quantile(0.50)),
         "order_count_p50": float(df["order_count"].quantile(0.50)),
     }
-
 
 def _assign_segments(
     df: pd.DataFrame, t: Dict[str, float]
@@ -278,7 +165,6 @@ def _assign_segments(
 
     return np.select(conditions, choices, default="dormant")
 
-
 def _build_output(
     df: pd.DataFrame, thresholds: Dict[str, float]
 ) -> pd.DataFrame:
@@ -305,7 +191,6 @@ def _build_output(
         )
 
     return pd.DataFrame(rows)
-
 
 def _explain_assignment(
     row: pd.Series, code: str, thresholds: Dict[str, float]

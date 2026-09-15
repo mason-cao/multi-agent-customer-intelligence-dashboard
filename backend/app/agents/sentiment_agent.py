@@ -1,161 +1,14 @@
-"""
-SentimentAgent — deterministic sentiment analysis with keyword enrichment.
-
-Hybrid approach:
-  - Feedback: rating-based scoring (linear map from 1-10 to [-1,+1])
-  - Tickets:  rule-based scoring (category + priority + resolution)
-  - Both:     keyword-based topic extraction, emotion detection
-
-No LLM calls required — fully deterministic and offline.
-
-Inputs:  feedback (7,651 rows), support_tickets (11,080 rows)
-Outputs: sentiment_results (~18,700 rows),
-         updates customer_features.avg_sentiment + nps_score
-Phase:   1 (no agent dependencies)
-"""
+"""Sentiment pipeline stage."""
 
 import json
 import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Tuple
-
 import pandas as pd
 from sqlalchemy import text
-
 from app.agents.base import BaseAgent
-
-
-# ── Topic taxonomy: keyword → topic mapping ──────────────────────
-
-TOPIC_KEYWORDS = {
-    "billing_confusion": [
-        "billing", "invoice", "charge", "payment", "price",
-        "pricing", "cost", "subscription", "renew",
-    ],
-    "performance": [
-        "slow", "performance", "speed", "timeout", "latency",
-        "loading", "lag", "timing out",
-    ],
-    "missing_feature": [
-        "feature", "missing", "need", "wish", "request",
-        "roadmap", "ability", "would like",
-    ],
-    "onboarding": [
-        "onboard", "setup", "getting started", "learning curve",
-        "training", "documentation",
-    ],
-    "data_quality": [
-        "data", "sync", "export", "import", "csv",
-        "corrupt", "report", "accurate",
-    ],
-    "integration": [
-        "integration", "api", "connect", "third-party",
-        "plugin", "webhook", "integrate",
-    ],
-    "support_quality": [
-        "support", "help", "responsive", "resolved",
-        "response time", "team",
-    ],
-    "usability": [
-        "ui", "interface", "intuitive", "confusing",
-        "user experience", "ux", "design", "easy to use",
-    ],
-    "reliability": [
-        "down", "outage", "crash", "bug", "error",
-        "broken", "fail", "issue", "unstable",
-    ],
-    "security": [
-        "security", "password", "auth", "sso",
-        "permission", "access", "sign-on",
-    ],
-    "value": [
-        "value", "worth", "roi", "productive",
-        "efficiency", "save", "hours",
-    ],
-    "communication": [
-        "communicate", "update", "notify",
-        "announcement", "changelog",
-    ],
-}
-
-
-# ── Emotion detection keywords ───────────────────────────────────
-
-EMOTION_KEYWORDS = {
-    "frustration": [
-        "frustrated", "annoying", "annoyed", "ridiculous",
-        "unacceptable", "fed up", "terrible",
-    ],
-    "satisfaction": [
-        "happy", "pleased", "satisfied", "great",
-        "excellent", "love", "wonderful",
-    ],
-    "disappointment": [
-        "disappointed", "let down", "expected more",
-        "unfortunate", "disappointing",
-    ],
-    "enthusiasm": [
-        "amazing", "impressed", "fantastic",
-        "excited", "incredible",
-    ],
-    "confusion": [
-        "confusing", "unclear", "don't understand",
-        "complicated", "lost", "steep",
-    ],
-    "gratitude": [
-        "thanks", "thank", "appreciate", "grateful", "helpful",
-    ],
-    "anxiety": [
-        "worried", "concerned", "risk", "afraid",
-        "uncertain", "confidence",
-    ],
-}
-
-
-# ── Keyword sets for score adjustment ────────────────────────────
-
-POSITIVE_WORDS = frozenset({
-    "love", "great", "excellent", "amazing", "fantastic", "impressed",
-    "helpful", "responsive", "intuitive", "easy", "wonderful", "perfect",
-    "saved", "efficient", "recommend", "best", "appreciate", "better",
-})
-
-NEGATIVE_WORDS = frozenset({
-    "frustrated", "broken", "terrible", "worst", "awful", "horrible",
-    "disappointed", "slow", "crash", "bug", "fail", "failed", "poor",
-    "unacceptable", "confusing", "corrupt", "lost", "cancel", "alternative",
-})
-
-
-# ── Ticket scoring rules ────────────────────────────────────────
-
-CATEGORY_SCORES = {
-    "cancellation": -0.70,
-    "bug_report": -0.50,
-    "technical": -0.30,
-    "billing": -0.30,
-    "feature_request": -0.10,
-    "onboarding": 0.00,
-}
-
-PRIORITY_MODIFIERS = {
-    "urgent": -0.15,
-    "high": -0.05,
-    "medium": 0.00,
-    "low": 0.05,
-}
-
-RESOLUTION_MODIFIERS = {
-    "resolved": 0.15,
-    "open": 0.00,
-    "escalated": -0.10,
-}
-
-
-# ── Label thresholds ─────────────────────────────────────────────
-
-NEGATIVE_THRESHOLD = -0.20
-POSITIVE_THRESHOLD = 0.20
+from app.db.outputs import replace_output
+from app.agents.sentiment.definitions import TOPIC_KEYWORDS, EMOTION_KEYWORDS, POSITIVE_WORDS, NEGATIVE_WORDS, CATEGORY_SCORES, PRIORITY_MODIFIERS, RESOLUTION_MODIFIERS, NEGATIVE_THRESHOLD, POSITIVE_THRESHOLD
 
 
 class SentimentAgent(BaseAgent):
@@ -164,14 +17,11 @@ class SentimentAgent(BaseAgent):
     def name(self) -> str:
         return "sentiment"
 
-    # ──────────────────────────────────────────────────────────────
     # Main run
-    # ──────────────────────────────────────────────────────────────
 
     def run(self, db) -> Dict[str, Any]:
         engine = db.get_bind()
 
-        # Step 1 — Load text sources
         feedback = pd.read_sql(
             text(
                 "SELECT feedback_id, customer_id, submitted_at, "
@@ -190,27 +40,19 @@ class SentimentAgent(BaseAgent):
             "loaded_sources", feedback=len(feedback), tickets=len(tickets),
         )
 
-        # Step 2 — Score each source
         fb_results = self._score_feedback(feedback)
         tk_results = self._score_tickets(tickets)
 
-        # Step 3 — Combine and write to sentiment_results
         all_results = pd.concat([fb_results, tk_results], ignore_index=True)
         all_results["computed_at"] = datetime.now(timezone.utc).isoformat()
 
         self._logger.info("writing_sentiment_results", rows=len(all_results))
-        db.execute(text("DELETE FROM sentiment_results"))
-        db.commit()
-        all_results.to_sql(
-            "sentiment_results", engine, if_exists="append", index=False,
-        )
+        replace_output(db, "sentiment_results", all_results)
 
-        # Step 4 — Aggregate to customer level and update customer_features
         customers_updated = self._update_customer_aggregates(
             all_results, feedback, db, engine,
         )
 
-        # Step 5 — Build summary
         label_dist = all_results["sentiment_label"].value_counts().to_dict()
         avg_score = round(float(all_results["sentiment_score"].mean()), 4)
 
@@ -259,9 +101,7 @@ class SentimentAgent(BaseAgent):
             },
         }
 
-    # ──────────────────────────────────────────────────────────────
     # Feedback scoring — rating-based with keyword adjustment
-    # ──────────────────────────────────────────────────────────────
 
     def _score_feedback(self, df: pd.DataFrame) -> pd.DataFrame:
         rows = []
@@ -287,9 +127,7 @@ class SentimentAgent(BaseAgent):
             })
         return pd.DataFrame(rows)
 
-    # ──────────────────────────────────────────────────────────────
     # Ticket scoring — category + priority + resolution + keywords
-    # ──────────────────────────────────────────────────────────────
 
     def _score_tickets(self, df: pd.DataFrame) -> pd.DataFrame:
         rows = []
@@ -322,9 +160,7 @@ class SentimentAgent(BaseAgent):
             })
         return pd.DataFrame(rows)
 
-    # ──────────────────────────────────────────────────────────────
     # Text analysis helpers
-    # ──────────────────────────────────────────────────────────────
 
     @staticmethod
     def _keyword_adjustment(text: str) -> float:
@@ -363,9 +199,7 @@ class SentimentAgent(BaseAgent):
                 emotions = ["indifference"]
         return emotions[:3]
 
-    # ──────────────────────────────────────────────────────────────
     # Customer-level aggregation
-    # ──────────────────────────────────────────────────────────────
 
     def _update_customer_aggregates(
         self,
@@ -430,17 +264,12 @@ class SentimentAgent(BaseAgent):
                 nps_params,
             )
 
-        db.commit()
         self._logger.info(
             "customer_aggregates_updated",
             with_sentiment=sentiment_count,
             with_nps=nps_count,
         )
         return {"with_sentiment": sentiment_count, "with_nps": nps_count}
-
-    # ──────────────────────────────────────────────────────────────
-    # Validation
-    # ──────────────────────────────────────────────────────────────
 
     def validate_output(
         self, output: Dict[str, Any]
@@ -489,10 +318,6 @@ class SentimentAgent(BaseAgent):
             )
 
         return (len(errors) == 0, errors)
-
-
-# ── Module-level helpers ─────────────────────────────────────────
-
 
 def _score_to_label(score: float) -> str:
     if score < NEGATIVE_THRESHOLD:

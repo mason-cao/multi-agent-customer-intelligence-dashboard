@@ -10,22 +10,18 @@ Stage map (14 total):
     14:   Finalizing (AuditAgent + QueryAgent)
 """
 
-import importlib
 import json
-import sys
 import threading
 import time
 from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
-from typing import Optional, Tuple
 
 from sqlalchemy.orm import sessionmaker
 
 from app.config import settings
+from app.services.pipeline import AgentSpec, TOTAL_STAGES, execute_pipeline
 from app.db.workspace_db import (
     ensure_workspace_dirs,
-    get_workspace_db_path,
     get_workspace_engine,
 )
 from app.services.workspace_manager import (
@@ -34,14 +30,6 @@ from app.services.workspace_manager import (
     update_workspace_status,
 )
 
-# ── Import path for scripts/generate_data.py ───────────────────
-PROJ_ROOT = Path(__file__).resolve().parent.parent.parent.parent
-SCRIPTS_DIR = str(PROJ_ROOT / "scripts")
-if SCRIPTS_DIR not in sys.path:
-    sys.path.insert(0, SCRIPTS_DIR)
-
-# ── Constants ──────────────────────────────────────────────────
-TOTAL_STAGES = 14
 _GENERATION_LOCK = threading.Lock()
 _ACTIVE_GENERATIONS: set[str] = set()
 
@@ -60,34 +48,6 @@ class GenerationStartStatus(str, Enum):
 class GenerationStartResult:
     status: GenerationStartStatus
     detail: str
-
-
-@dataclass(frozen=True)
-class AgentSpec:
-    """One node in the pipeline DAG.
-
-    `critical=True` agents produce data the dashboard depends on, so a hard
-    failure must stop the run. Non-critical agents (narrative, audit, query
-    indexing) degrade gracefully — a failure is recorded as a warning but the
-    workspace still completes.
-    """
-
-    label: str
-    module: str
-    class_name: str
-    critical: bool
-
-
-PIPELINE = [
-    AgentSpec("BehaviorAgent", "app.agents.behavior_agent", "BehaviorAgent", True),
-    AgentSpec("SegmentationAgent", "app.agents.segmentation_agent", "SegmentationAgent", True),
-    AgentSpec("SentimentAgent", "app.agents.sentiment_agent", "SentimentAgent", True),
-    AgentSpec("ChurnAgent", "app.agents.churn_agent", "ChurnAgent", True),
-    AgentSpec("RecommendationAgent", "app.agents.recommendation_agent", "RecommendationAgent", True),
-    AgentSpec("NarrativeAgent", "app.agents.narrative_agent", "NarrativeAgent", False),
-    AgentSpec("AuditAgent", "app.agents.audit_agent", "AuditAgent", False),
-    AgentSpec("QueryAgent", "app.agents.query_agent", "QueryAgent", False),
-]
 
 
 def generation_timeout_seconds(customer_count: int) -> int:
@@ -129,44 +89,22 @@ def _run_generation_with_release(workspace_id: str):
         _release_generation_slot(workspace_id)
 
 
-def classify_agent_outcome(
-    label: str, critical: bool, status: str
-) -> Tuple[str, Optional[str]]:
-    """Decide what a single agent's `_status` means for the run.
-
-    Returns (action, message) where action is:
-      - "ok":    agent completed cleanly
-      - "warn":  degraded — record a warning but keep going
-      - "fatal": a required agent failed — abort the run
-    """
-    if status == "completed":
-        return "ok", None
-    if status == "failed" and critical:
-        return "fatal", f"{label} failed and is required for the dashboard"
-    if status == "failed":
-        return "warn", f"{label} failed (non-critical) — its section may be unavailable"
-    return "warn", f"{label} completed with warnings"
-
-
 def start_generation(workspace_id: str) -> GenerationStartResult:
     """Start workspace generation in a background thread.
 
     Marks the workspace as 'generating' immediately and spawns the
     generation thread. Returns a status describing whether the job was accepted.
     """
-    ws = get_workspace(workspace_id)
-    if not ws:
-        return GenerationStartResult(
-            GenerationStartStatus.NOT_FOUND,
-            "This workspace doesn't exist.",
-        )
-    if ws.status not in ("created", "failed", "ready"):
-        return GenerationStartResult(
-            GenerationStartStatus.INVALID_STATUS,
-            "This workspace is already being set up.",
-        )
-
     with _GENERATION_LOCK:
+        ws = get_workspace(workspace_id)
+        if not ws:
+            return GenerationStartResult(
+                GenerationStartStatus.NOT_FOUND, "This workspace doesn't exist.",
+            )
+        if ws.status not in ("created", "failed", "ready"):
+            return GenerationStartResult(
+                GenerationStartStatus.INVALID_STATUS, "This workspace is already being set up.",
+            )
         if workspace_id in _ACTIVE_GENERATIONS:
             return GenerationStartResult(
                 GenerationStartStatus.INVALID_STATUS,
@@ -180,7 +118,6 @@ def start_generation(workspace_id: str) -> GenerationStartResult:
         _ACTIVE_GENERATIONS.add(workspace_id)
 
     try:
-        # For failed/ready workspaces, delete stale DB and reset progress
         if ws.status in ("failed", "ready"):
             if not prepare_for_regeneration(workspace_id):
                 _release_generation_slot(workspace_id)
@@ -189,7 +126,6 @@ def start_generation(workspace_id: str) -> GenerationStartResult:
                     "This workspace doesn't exist.",
                 )
         else:
-            # Fresh workspace — just mark as generating
             update_workspace_status(
                 workspace_id, "generating",
                 current_stage="Initializing workspace",
@@ -203,9 +139,12 @@ def start_generation(workspace_id: str) -> GenerationStartResult:
             daemon=True,
         )
         thread.start()
-    except Exception:
+    except Exception as exc:
         _release_generation_slot(workspace_id)
-        raise
+        update_workspace_status(workspace_id, "failed", error_message=str(exc))
+        return GenerationStartResult(
+            GenerationStartStatus.START_FAILED, "Could not start workspace generation.",
+        )
 
     return GenerationStartResult(
         GenerationStartStatus.STARTED,
@@ -235,12 +174,11 @@ def _run_generation(workspace_id: str):
                     f"Generation exceeded {timeout_limit}s limit"
                 )
 
-        # ── Phase 1: Synthetic Data Generation (stages 1-7) ────────
         _check_timeout()
         ensure_workspace_dirs()
         ws_engine = get_workspace_engine(workspace_id)
 
-        # Map generate_data.py stage indices to the names the frontend expects
+        # These labels are part of the frontend progress contract.
         _DATA_STAGE_NAMES = {
             1: "Customers",
             2: "Subscriptions",
@@ -252,6 +190,7 @@ def _run_generation(workspace_id: str):
         }
 
         def on_data_stage(index, name):
+            _check_timeout()
             stage_label = _DATA_STAGE_NAMES.get(index, name)
             update_workspace_status(
                 workspace_id, "generating",
@@ -260,7 +199,7 @@ def _run_generation(workspace_id: str):
                 total_stages=TOTAL_STAGES,
             )
 
-        from generate_data import generate_dataset
+        from app.services.data_generation.dataset import generate_dataset
 
         seed = config.get("seed")
         if seed is None:
@@ -276,57 +215,27 @@ def _run_generation(workspace_id: str):
             include_outage=config.get("include_outage", True),
         )
 
-        # ── Write workspace context for agents/routes ──────────────
         _write_workspace_context(ws_engine, config)
 
-        # ── Phase 2: Agent Pipeline (stages 8-14) ─────────────────
         WsSession = sessionmaker(bind=ws_engine)
         warnings: list[str] = []
 
-        for i, spec in enumerate(PIPELINE):
+        def before_agent(spec: AgentSpec):
             _check_timeout()
-            # Stages 8-13: individual agents, stage 14: finalize
-            if i <= 5:
-                stage_name = f"Running {spec.label}"
-                stage_index = 8 + i
-            elif i == 6:
-                stage_name = "Finalizing workspace"
-                stage_index = 14
-            else:
-                # i == 7 (QueryAgent) — still in "Finalizing" stage
-                stage_name = None
-
-            if stage_name:
-                update_workspace_status(
-                    workspace_id, "generating",
-                    current_stage=stage_name,
-                    stage_index=stage_index,
-                    total_stages=TOTAL_STAGES,
-                )
-
-            module = importlib.import_module(spec.module)
-            agent_class = getattr(module, spec.class_name)
-            agent = agent_class()
-
-            db = WsSession()
-            try:
-                result = agent.execute(db)
-            finally:
-                db.close()
-
-            # BaseAgent.execute swallows agent exceptions and returns a status
-            # dict — inspect it so a crashed agent doesn't silently yield a
-            # "ready" workspace with empty tables.
-            agent_status = (result or {}).get("_status", "failed")
-            action, message = classify_agent_outcome(
-                spec.label, spec.critical, agent_status
+            update_workspace_status(
+                workspace_id, "generating",
+                current_stage=spec.stage_name,
+                stage_index=spec.stage_index,
+                total_stages=TOTAL_STAGES,
             )
-            if action == "fatal":
-                raise RuntimeError(message)
-            if action == "warn":
-                warnings.append(message)
 
-        # ── Done ───────────────────────────────────────────────────
+        for outcome in execute_pipeline(WsSession, before_agent=before_agent):
+            if outcome.action == "fatal":
+                raise RuntimeError(outcome.message)
+            if outcome.message:
+                warnings.append(outcome.message)
+        _check_timeout()
+
         # Guard: if poll-side timeout already marked this failed, don't override
         ws_final = get_workspace(workspace_id)
         if ws_final and ws_final.status == "failed":
@@ -358,8 +267,7 @@ def _write_workspace_context(engine, config: dict):
 
     with engine.begin() as conn:
         conn.execute(text("DELETE FROM workspace_context"))
-        for key, value in context_rows.items():
-            conn.execute(
-                text("INSERT INTO workspace_context (key, value) VALUES (:k, :v)"),
-                {"k": key, "v": value},
-            )
+        conn.execute(
+            text("INSERT INTO workspace_context (key, value) VALUES (:k, :v)"),
+            [{"k": key, "v": value} for key, value in context_rows.items()],
+        )

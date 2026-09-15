@@ -12,10 +12,8 @@ from sqlalchemy.exc import OperationalError
 from app.config import settings
 from tests.conftest import ADMIN_HEADERS
 
-from app.services.workspace_generator import (
-    classify_agent_outcome,
-    generation_timeout_seconds,
-)
+from app.services.pipeline import classify_agent_outcome
+from app.services.workspace_generator import generation_timeout_seconds
 
 
 def test_completed_agent_is_ok():
@@ -132,7 +130,7 @@ def test_reconcile_orphaned_workspaces_does_not_raise_when_disk_is_full(monkeypa
     fake_session.rollback = lambda: setattr(fake_session, "rolled_back", True)
     fake_session.close = lambda: setattr(fake_session, "closed", True)
 
-    monkeypatch.setattr(workspace_manager, "MetadataSession", lambda: fake_session)
+    monkeypatch.setattr(workspace_manager.workspace_db, "MetadataSession", lambda: fake_session)
 
     assert workspace_manager.reconcile_orphaned_workspaces() == 0
     assert fake_session.rolled_back is True
@@ -241,3 +239,19 @@ async def test_reconcile_orphaned_workspaces_fails_stuck_generations(client):
 
     # Clean up so the shared session-scoped metadata DB stays empty for other tests.
     delete_workspace(ws_id)
+
+
+def test_thread_start_failure_releases_slot_and_marks_workspace_failed(monkeypatch):
+    from app.services import workspace_generator as generator
+    from app.services.workspace_manager import create_workspace, get_workspace
+
+    workspace = create_workspace("Cannot start", "velocity_saas")
+
+    def fail_start(self):
+        raise RuntimeError("thread unavailable")
+
+    monkeypatch.setattr(threading.Thread, "start", fail_start)
+    result = generator.start_generation(workspace.id)
+    assert result.status == generator.GenerationStartStatus.START_FAILED
+    assert generator.active_generation_count() == 0
+    assert get_workspace(workspace.id).status == "failed"

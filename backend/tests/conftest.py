@@ -46,14 +46,6 @@ def test_data_dir(tmp_path_factory):
     ws_mod.metadata_engine = test_meta_engine
     ws_mod.MetadataSession = test_meta_session
 
-    # -- Patch workspace_manager.py imported references --
-    # workspace_manager captures MetadataSession/metadata_engine at import time,
-    # so we must patch its local names too.
-    import app.services.workspace_manager as wm_mod
-
-    wm_mod.MetadataSession = test_meta_session
-    wm_mod.metadata_engine = test_meta_engine
-
     return tmp
 
 

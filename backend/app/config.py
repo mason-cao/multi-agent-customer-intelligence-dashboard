@@ -8,7 +8,6 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     openai_api_key: str = ""
     database_url: str = "sqlite:///data/nexus.db"
-    chroma_persist_dir: str = "data/chroma"
     app_env: str = "development"
     log_level: str = "INFO"
     max_workspaces: int = 25

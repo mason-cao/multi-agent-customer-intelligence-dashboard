@@ -2,17 +2,12 @@
 
 from sqlalchemy import create_engine, text
 
-from app.agents.query_agent import (
-    INTENT_HANDLERS,
-    QueryAgent,
-    _handle_customer_lookup,
-    _handle_industry_breakdown,
-    _handle_revenue_by_segment,
-    _handle_ticket_topics,
-    _handle_top_risk_customers,
-    classify_intent,
-    extract_params,
-)
+from app.agents.query_agent import QueryAgent
+from app.agents.query.handlers import INTENT_HANDLERS
+from app.agents.query.customers import _handle_customer_lookup, _handle_industry_breakdown, _handle_top_risk_customers
+from app.agents.query.segments import _handle_revenue_by_segment
+from app.agents.query.reports import _handle_ticket_topics
+from app.agents.query.intents import classify_intent, extract_params
 from app.services.llm_client import LLMClient
 
 

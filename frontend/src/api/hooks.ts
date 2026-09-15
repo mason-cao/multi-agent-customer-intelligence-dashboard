@@ -1,6 +1,8 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import api from './client';
 import { useActiveWorkspace } from '../contexts/workspaceContextValue';
+import { useWorkspaceQuery } from './workspaceQueries';
+import { getWorkspaceCredentials } from './client';
 import type {
   KpiData,
   OverviewTrends,
@@ -17,7 +19,6 @@ import type {
   QuerySuggestion,
 } from '../types';
 
-// ── Overview ──────────────────────────────────────────────
 
 interface OverviewKpis {
   total_customers: KpiData;
@@ -38,184 +39,79 @@ interface NarrativeResponse {
 export function useHealthCheck() {
   return useQuery({
     queryKey: ['health'],
-    queryFn: async () => {
-      const { data } = await api.get('/health');
-      return data;
-    },
+    queryFn: ({ signal }) => api.get('/health', { signal }),
   });
 }
 
 export function useOverviewKpis() {
-  const { activeWorkspace } = useActiveWorkspace();
-  return useQuery<OverviewKpis>({
-    queryKey: ['overview', 'kpis', activeWorkspace?.id, activeWorkspace?.completed_at],
-    queryFn: async () => {
-      const { data } = await api.get('/overview/kpis');
-      return data;
-    },
-    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
-  });
+  return useWorkspaceQuery<OverviewKpis>('/overview/kpis', ['overview', 'kpis']);
 }
 
 export function useOverviewNarrative() {
-  const { activeWorkspace } = useActiveWorkspace();
-  return useQuery<NarrativeResponse>({
-    queryKey: ['overview', 'narrative', activeWorkspace?.id, activeWorkspace?.completed_at],
-    queryFn: async () => {
-      const { data } = await api.get('/overview/narrative');
-      return data;
-    },
-    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
-  });
+  return useWorkspaceQuery<NarrativeResponse>('/overview/narrative', ['overview', 'narrative']);
 }
 
 export function useOverviewTrends() {
-  const { activeWorkspace } = useActiveWorkspace();
-  return useQuery<OverviewTrends>({
-    queryKey: ['overview', 'trends', activeWorkspace?.id, activeWorkspace?.completed_at],
-    queryFn: async () => {
-      const { data } = await api.get('/overview/trends');
-      return data;
-    },
-    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
-  });
+  return useWorkspaceQuery<OverviewTrends>('/overview/trends', ['overview', 'trends']);
 }
 
-// ── Segments ──────────────────────────────────────────────
 
 export function useSegmentSummary() {
-  const { activeWorkspace } = useActiveWorkspace();
-  return useQuery<SegmentSummary[]>({
-    queryKey: ['segments', 'summary', activeWorkspace?.id, activeWorkspace?.completed_at],
-    queryFn: async () => {
-      const { data } = await api.get('/segments/summary');
-      return data;
-    },
-    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
-  });
+  return useWorkspaceQuery<SegmentSummary[]>('/segments/summary', ['segments', 'summary']);
 }
 
-// ── Churn ─────────────────────────────────────────────────
 
 export function useChurnDistribution() {
-  const { activeWorkspace } = useActiveWorkspace();
-  return useQuery<ChurnDistribution[]>({
-    queryKey: ['churn', 'distribution', activeWorkspace?.id, activeWorkspace?.completed_at],
-    queryFn: async () => {
-      const { data } = await api.get('/churn/distribution');
-      return data;
-    },
-    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
-  });
+  return useWorkspaceQuery<ChurnDistribution[]>('/churn/distribution', ['churn', 'distribution']);
 }
 
 export function useAtRiskCustomers(limit = 20) {
-  const { activeWorkspace } = useActiveWorkspace();
-  return useQuery<AtRiskCustomer[]>({
-    queryKey: ['churn', 'at-risk', limit, activeWorkspace?.id, activeWorkspace?.completed_at],
-    queryFn: async () => {
-      const { data } = await api.get(`/churn/at-risk?limit=${limit}`);
-      return data;
-    },
-    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
-  });
+  return useWorkspaceQuery<AtRiskCustomer[]>(`/churn/at-risk?limit=${limit}`, ['churn', 'at-risk', limit]);
 }
 
 export function useFeatureImportance() {
-  const { activeWorkspace } = useActiveWorkspace();
-  return useQuery<FeatureImportance[]>({
-    queryKey: ['churn', 'feature-importance', activeWorkspace?.id, activeWorkspace?.completed_at],
-    queryFn: async () => {
-      const { data } = await api.get('/churn/feature-importance');
-      return data;
-    },
-    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
-  });
+  return useWorkspaceQuery<FeatureImportance[]>('/churn/feature-importance', ['churn', 'feature-importance']);
 }
 
-// ── Recommendations ───────────────────────────────────────
 
 export function useRecommendationSummary() {
-  const { activeWorkspace } = useActiveWorkspace();
-  return useQuery<RecommendationSummary>({
-    queryKey: ['recommendations', 'summary', activeWorkspace?.id, activeWorkspace?.completed_at],
-    queryFn: async () => {
-      const { data } = await api.get('/recommendations/summary');
-      return data;
-    },
-    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
-  });
+  return useWorkspaceQuery<RecommendationSummary>('/recommendations/summary', ['recommendations', 'summary']);
 }
 
 export function useTopRecommendations(limit = 20) {
-  const { activeWorkspace } = useActiveWorkspace();
-  return useQuery<RecommendationItem[]>({
-    queryKey: ['recommendations', 'top', limit, activeWorkspace?.id, activeWorkspace?.completed_at],
-    queryFn: async () => {
-      const { data } = await api.get(`/recommendations/top?limit=${limit}`);
-      return data;
-    },
-    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
-  });
+  return useWorkspaceQuery<RecommendationItem[]>(`/recommendations/top?limit=${limit}`, ['recommendations', 'top', limit]);
 }
 
-// ── Sentiment ─────────────────────────────────────────────
 
 export function useSentimentSummary() {
-  const { activeWorkspace } = useActiveWorkspace();
-  return useQuery<SentimentSummary>({
-    queryKey: ['sentiment', 'summary', activeWorkspace?.id, activeWorkspace?.completed_at],
-    queryFn: async () => {
-      const { data } = await api.get('/sentiment/summary');
-      return data;
-    },
-    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
-  });
+  return useWorkspaceQuery<SentimentSummary>('/sentiment/summary', ['sentiment', 'summary']);
 }
 
-// ── Agent Audit ───────────────────────────────────────────
 
 export function useAgentsSummary() {
-  const { activeWorkspace } = useActiveWorkspace();
-  return useQuery<AgentsSummary>({
-    queryKey: ['agents', 'summary', activeWorkspace?.id, activeWorkspace?.completed_at],
-    queryFn: async () => {
-      const { data } = await api.get('/agents/summary');
-      return data;
-    },
-    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
-  });
+  return useWorkspaceQuery<AgentsSummary>('/agents/summary', ['agents', 'summary']);
 }
 
-// ── Customers ─────────────────────────────────────────────
 
 export function useCustomers(limit = 50, offset = 0, q = '') {
-  const { activeWorkspace } = useActiveWorkspace();
   const search = q.trim();
-  return useQuery<CustomerListResponse>({
-    queryKey: ['customers', limit, offset, search, activeWorkspace?.id, activeWorkspace?.completed_at],
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        limit: String(limit),
-        offset: String(offset),
-      });
-      if (search) params.set('q', search);
-      const { data } = await api.get(`/customers?${params.toString()}`);
-      return data;
-    },
-    enabled: !!activeWorkspace && activeWorkspace.status === 'ready',
-    placeholderData: (previous) => previous,
-  });
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (search) params.set('q', search);
+  return useWorkspaceQuery<CustomerListResponse>(
+    `/customers?${params}`, ['customers', limit, offset, search], true,
+  );
 }
 
-// ── Query (Ask Anything) ──────────────────────────────────
 
 export function useAskQuestion() {
+  const { activeWorkspace } = useActiveWorkspace();
+  const stored = getWorkspaceCredentials();
+  const workspace = activeWorkspace ? {
+    id: activeWorkspace.id,
+    token: activeWorkspace.access_token ?? (stored?.id === activeWorkspace.id ? stored.token : null),
+  } : undefined;
   return useMutation<QueryResult, Error, string>({
-    mutationFn: async (question: string) => {
-      const { data } = await api.post('/query', { question });
-      return data;
-    },
+    mutationFn: (question) => api.post<QueryResult>('/query', { question }, { workspace }),
   });
 }
 
@@ -224,10 +120,7 @@ export function useQuerySuggestions() {
   // the active workspace and can be cached for the session.
   return useQuery<QuerySuggestion[]>({
     queryKey: ['query', 'suggestions'],
-    queryFn: async () => {
-      const { data } = await api.get('/query/suggestions');
-      return data;
-    },
+    queryFn: ({ signal }) => api.get<QuerySuggestion[]>('/query/suggestions', { signal }),
     staleTime: Infinity,
   });
 }

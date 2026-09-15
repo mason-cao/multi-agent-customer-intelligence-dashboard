@@ -8,11 +8,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text as sql_text
 
 from app.db.database import get_db
+from app.utils.formatting import format_currency as _fmt_currency
 from app.utils.error_handling import handle_errors
 from app.models.anomaly import Anomaly
 from app.models.churn_prediction import ChurnPrediction
 from app.models.customer import Customer
-from app.models.customer_feature import CustomerFeature
 from app.models.order import Order
 from app.models.sentiment_result import SentimentResult
 from app.schemas.overview import (
@@ -36,14 +36,6 @@ def _read_workspace_context(db: Session) -> dict:
     except Exception:
         logger.warning("workspace_context_read_failed", exc_info=True)
         return {}
-
-
-def _fmt_currency(amount: float) -> str:
-    if amount >= 1_000_000:
-        return f"${amount / 1_000_000:.1f}M"
-    if amount >= 1_000:
-        return f"${amount / 1_000:.1f}K"
-    return f"${amount:.0f}"
 
 
 def _parse_order_datetime(value) -> datetime | None:

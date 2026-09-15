@@ -38,8 +38,6 @@ def test_init_metadata_db_migrates_legacy_workspace_columns(tmp_path, monkeypatc
     monkeypatch.setattr(workspace_db, "METADATA_DB_PATH", metadata_path)
     monkeypatch.setattr(workspace_db, "metadata_engine", engine)
     monkeypatch.setattr(workspace_db, "MetadataSession", Session)
-    monkeypatch.setattr(workspace_manager, "metadata_engine", engine)
-    monkeypatch.setattr(workspace_manager, "MetadataSession", Session)
 
     workspace_manager.init_metadata_db()
 

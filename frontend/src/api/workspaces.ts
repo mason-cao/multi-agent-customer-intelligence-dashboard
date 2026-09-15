@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { AxiosError } from 'axios';
+import { getApiErrorStatus } from './errors';
+import { clearDashboardQueries } from './workspaceQueries';
 import api from './client';
 import type {
   Workspace,
@@ -10,17 +11,13 @@ import type {
   CreateWorkspaceInput,
 } from '../types/workspace';
 
-type ApiError = AxiosError<{ detail?: string }>;
 
 export function useWorkspaces() {
   return useQuery<WorkspaceListResponse>({
     queryKey: ['workspaces'],
-    queryFn: async () => {
-      const { data } = await api.get('/workspaces');
-      return data;
-    },
+    queryFn: ({ signal }) => api.get<WorkspaceListResponse>('/workspaces', { signal }),
     retry: (failureCount, error) => {
-      const status = (error as ApiError).response?.status;
+      const status = getApiErrorStatus(error);
       if (status === 401 || status === 403 || status === 503) return false;
       return failureCount < 3;
     },
@@ -36,13 +33,10 @@ export function useWorkspaces() {
 export function useWorkspace(id: string | null) {
   return useQuery<Workspace>({
     queryKey: ['workspaces', id],
-    queryFn: async () => {
-      const { data } = await api.get(`/workspaces/${id}`);
-      return data;
-    },
+    queryFn: ({ signal }) => api.get<Workspace>(`/workspaces/${id}`, { signal }),
     enabled: !!id,
     retry: (failureCount, error) => {
-      if ((error as ApiError).response?.status === 404) return false;
+      if (getApiErrorStatus(error) === 404) return false;
       return failureCount < 3;
     },
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
@@ -55,30 +49,21 @@ export function useWorkspace(id: string | null) {
 export function useScenarios() {
   return useQuery<Scenario[]>({
     queryKey: ['workspaces', 'scenarios'],
-    queryFn: async () => {
-      const { data } = await api.get('/workspaces/scenarios');
-      return data;
-    },
+    queryFn: ({ signal }) => api.get<Scenario[]>('/workspaces/scenarios', { signal }),
   });
 }
 
 export function useOwnerAccessStatus() {
   return useQuery<OwnerAccessStatus>({
     queryKey: ['workspaces', 'owner-access'],
-    queryFn: async () => {
-      const { data } = await api.get('/workspaces/owner-access');
-      return data;
-    },
+    queryFn: ({ signal }) => api.get<OwnerAccessStatus>('/workspaces/owner-access', { signal }),
   });
 }
 
 export function useCreateOwnerAccess() {
   const queryClient = useQueryClient();
   return useMutation<OwnerAccessStatus, Error, string>({
-    mutationFn: async (passcode) => {
-      const { data } = await api.post('/workspaces/owner-access', { passcode });
-      return data;
-    },
+    mutationFn: (passcode) => api.post('/workspaces/owner-access', { passcode }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workspaces', 'owner-access'] });
     },
@@ -88,10 +73,7 @@ export function useCreateOwnerAccess() {
 export function useCreateWorkspace() {
   const queryClient = useQueryClient();
   return useMutation<Workspace, Error, CreateWorkspaceInput>({
-    mutationFn: async (body) => {
-      const { data } = await api.post('/workspaces', body);
-      return data;
-    },
+    mutationFn: (body) => api.post('/workspaces', body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workspaces'] });
     },
@@ -101,10 +83,7 @@ export function useCreateWorkspace() {
 export function useStartSyntheticWorkspace() {
   const queryClient = useQueryClient();
   return useMutation<Workspace, Error>({
-    mutationFn: async () => {
-      const { data } = await api.post('/workspaces/synthetic');
-      return data;
-    },
+    mutationFn: () => api.post('/workspaces/synthetic'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workspaces'] });
     },
@@ -114,30 +93,18 @@ export function useStartSyntheticWorkspace() {
 export function useGenerateWorkspace() {
   const queryClient = useQueryClient();
   return useMutation<Workspace, Error, string>({
-    mutationFn: async (workspaceId) => {
-      const { data } = await api.post(`/workspaces/${workspaceId}/generate`);
-      return data;
-    },
+    mutationFn: (workspaceId) => api.post(`/workspaces/${workspaceId}/generate`),
     onSuccess: (_, workspaceId) => {
       queryClient.invalidateQueries({ queryKey: ['workspaces', workspaceId] });
       queryClient.invalidateQueries({ queryKey: ['workspaces'] });
-      // Clear stale dashboard data from the previous generation
-      queryClient.removeQueries({
-        predicate: (query) => {
-          const key = query.queryKey[0] as string;
-          return key !== 'workspaces' && key !== 'health';
-        },
-      });
+      clearDashboardQueries(queryClient, workspaceId);
     },
   });
 }
 
 export function useRotateWorkspaceToken() {
   return useMutation<WorkspaceAccessTokenResponse, Error, string>({
-    mutationFn: async (workspaceId) => {
-      const { data } = await api.post(`/workspaces/${workspaceId}/access-token`);
-      return data;
-    },
+    mutationFn: (workspaceId) => api.post(`/workspaces/${workspaceId}/access-token`),
   });
 }
 

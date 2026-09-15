@@ -10,8 +10,9 @@ import {
   WORKSPACE_MISSING_EVENT,
 } from '../constants/workspace';
 import { clearStoredSession } from '../utils/session';
+import { getApiErrorStatus } from '../api/errors';
+import { clearDashboardQueries } from '../api/workspaceQueries';
 
-const PRESERVED_KEYS = new Set(['workspaces', 'health']);
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
@@ -21,16 +22,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [localWorkspace, setLocalWorkspace] = useState<Workspace | null>(null);
 
   const { data, isLoading, isError, error } = useWorkspace(storedId);
-  const errorStatus = (error as { response?: { status?: number } } | null)?.response?.status;
+  const errorStatus = getApiErrorStatus(error);
   const workspaceMissing = isError && errorStatus === 404;
 
-  // Use API data when available, fall back to optimistic local data
-  const activeWorkspace = workspaceMissing ? null : data ?? localWorkspace;
+  const activeWorkspace = workspaceMissing ? null :
+    (data?.id === storedId ? data : null) ??
+    (localWorkspace?.id === storedId ? localWorkspace : null);
 
   const clearDashboardCache = useCallback(() => {
-    queryClient.removeQueries({
-      predicate: (query) => !PRESERVED_KEYS.has(query.queryKey[0] as string),
-    });
+    clearDashboardQueries(queryClient);
   }, [queryClient]);
 
   const clearWorkspaceState = useCallback(() => {
@@ -55,8 +55,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(ACTIVE_WORKSPACE_STORAGE_KEY, ws.id);
     if (ws.access_token) {
       localStorage.setItem(ACTIVE_WORKSPACE_TOKEN_STORAGE_KEY, ws.access_token);
+    } else if (ws.id !== storedId) {
+      localStorage.removeItem(ACTIVE_WORKSPACE_TOKEN_STORAGE_KEY);
     }
-  }, [clearDashboardCache]);
+  }, [clearDashboardCache, storedId]);
 
   const clearWorkspace = useCallback(() => {
     clearWorkspaceState();

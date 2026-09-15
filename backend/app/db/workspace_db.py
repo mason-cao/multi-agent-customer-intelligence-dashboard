@@ -61,8 +61,8 @@ _ENGINE_LOCK = threading.Lock()
 _ENGINE_CACHE: dict[str, tuple] = {}
 
 
-def get_workspace_engine(workspace_id: str):
-    """Return the cached SQLAlchemy engine for a workspace database."""
+def _get_workspace_database(workspace_id: str):
+    """Resolve the engine and sessionmaker together under the cache lock."""
     db_path = get_workspace_db_path(workspace_id)
     with _ENGINE_LOCK:
         cached = _ENGINE_CACHE.get(workspace_id)
@@ -70,14 +70,16 @@ def get_workspace_engine(workspace_id: str):
             engine = create_engine(f"sqlite:///{db_path}", echo=False)
             cached = (engine, sessionmaker(bind=engine))
             _ENGINE_CACHE[workspace_id] = cached
-    return cached[0]
+    return cached
+
+
+def get_workspace_engine(workspace_id: str):
+    return _get_workspace_database(workspace_id)[0]
 
 
 def get_workspace_sessionmaker(workspace_id: str):
     """Return the cached sessionmaker bound to a workspace engine."""
-    get_workspace_engine(workspace_id)
-    with _ENGINE_LOCK:
-        return _ENGINE_CACHE[workspace_id][1]
+    return _get_workspace_database(workspace_id)[1]
 
 
 def get_workspace_session(workspace_id: str):

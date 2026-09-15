@@ -36,6 +36,6 @@ def submit_query(body: QueryRequest, db: Session = Depends(get_db)):
 def query_suggestions():
     """Guided prompt suggestions, derived from the intent registry. No workspace
     data is needed, so this works before any query has been run."""
-    from app.agents.query_agent import build_suggestions
+    from app.agents.query.intents import build_suggestions
 
     return build_suggestions()

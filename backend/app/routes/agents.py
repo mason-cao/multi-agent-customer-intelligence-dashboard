@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy import desc, func
+from sqlalchemy import case, desc, func, select
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
@@ -15,27 +15,13 @@ router = APIRouter(prefix="/api/agents", tags=["agents"])
 @handle_errors("get_agents_summary")
 def get_agents_summary(db: Session = Depends(get_db)):
     """Combined audit summary and agent run history."""
-    # Audit summary
-    total_checks = db.query(func.count(AuditResult.audit_id)).scalar() or 0
-    passed = (
-        db.query(func.count(AuditResult.audit_id))
-        .filter(AuditResult.passed == 1)
-        .scalar()
-        or 0
-    )
+    total_checks, passed, critical_failures, warnings = db.query(
+        func.count(AuditResult.audit_id),
+        func.coalesce(func.sum(AuditResult.passed), 0),
+        func.coalesce(func.sum(case(((AuditResult.passed == 0) & (AuditResult.severity == "critical"), 1), else_=0)), 0),
+        func.coalesce(func.sum(case(((AuditResult.passed == 0) & (AuditResult.severity == "warning"), 1), else_=0)), 0),
+    ).one()
     failed = total_checks - passed
-    critical_failures = (
-        db.query(func.count(AuditResult.audit_id))
-        .filter(AuditResult.passed == 0, AuditResult.severity == "critical")
-        .scalar()
-        or 0
-    )
-    warnings = (
-        db.query(func.count(AuditResult.audit_id))
-        .filter(AuditResult.passed == 0, AuditResult.severity == "warning")
-        .scalar()
-        or 0
-    )
 
     category_rows = (
         db.query(
@@ -51,35 +37,24 @@ def get_agents_summary(db: Session = Depends(get_db)):
         for r in category_rows
     }
 
-    # Agent runs — latest finished run per agent (completed or partial)
-    runs = (
-        db.query(AgentRun)
-        .filter(AgentRun.status.in_(["completed", "partial"]))
-        .order_by(desc(AgentRun.completed_at))
-        .all()
-    )
+    ranked_runs = select(
+        AgentRun.id,
+        func.row_number().over(
+            partition_by=AgentRun.agent_name,
+            order_by=(desc(AgentRun.started_at), desc(AgentRun.id)),
+        ).label("rank"),
+    ).subquery()
+    runs = db.query(AgentRun).filter(AgentRun.id.in_(
+        select(ranked_runs.c.id).where(ranked_runs.c.rank == 1)
+    )).order_by(desc(AgentRun.started_at)).all()
+    latest_runs = [
+        {field: getattr(run, field) for field in (
+            "id", "agent_name", "run_id", "status", "started_at",
+            "completed_at", "duration_ms", "tokens_used", "model_used",
+        )}
+        for run in runs
+    ]
 
-    # Deduplicate to latest per agent
-    seen = set()
-    latest_runs = []
-    for r in runs:
-        if r.agent_name not in seen:
-            seen.add(r.agent_name)
-            latest_runs.append(
-                {
-                    "id": r.id,
-                    "agent_name": r.agent_name,
-                    "run_id": r.run_id,
-                    "status": r.status,
-                    "started_at": r.started_at,
-                    "completed_at": r.completed_at,
-                    "duration_ms": r.duration_ms,
-                    "tokens_used": r.tokens_used,
-                    "model_used": r.model_used,
-                }
-            )
-
-    # Audit check details
     checks = (
         db.query(AuditResult)
         .order_by(AuditResult.check_category, AuditResult.check_name)

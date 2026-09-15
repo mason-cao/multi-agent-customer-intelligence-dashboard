@@ -24,13 +24,13 @@ from app.schemas.workspace import (
     WorkspaceListResponse,
     WorkspaceResponse,
 )
+from app.services.scenarios import SCENARIOS
 from app.services.owner_access import (
     create_owner_passcode,
     owner_passcode_configured,
 )
 from app.services.workspace_manager import (
     DEMO_WORKSPACE_SOURCE,
-    SCENARIOS,
     create_workspace,
     delete_workspace,
     get_workspace,

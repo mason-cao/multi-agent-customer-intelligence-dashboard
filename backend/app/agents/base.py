@@ -1,15 +1,4 @@
-"""
-BaseAgent — abstract base class for all Nova Core agents.
-
-Every agent inherits from this and implements:
-  - name (property): unique agent identifier
-  - run(db): execute the agent's logic, return result dict
-  - validate_output(output): check result validity
-
-The base class provides:
-  - save_run(): writes execution metadata to agent_runs table
-  - Structured logging with agent name context
-"""
+"""Execute agents with validation, atomic output writes, and an audit record."""
 
 import json
 import uuid
@@ -28,10 +17,6 @@ class BaseAgent(ABC):
     def __init__(self):
         self._logger = structlog.get_logger().bind(agent=self.name)
 
-    # ------------------------------------------------------------------
-    # Abstract interface — every agent must implement these
-    # ------------------------------------------------------------------
-
     @property
     @abstractmethod
     def name(self) -> str:
@@ -40,35 +25,16 @@ class BaseAgent(ABC):
 
     @abstractmethod
     def run(self, db) -> Dict[str, Any]:
-        """
-        Execute the agent's core logic.
+        """Produce output in db's transaction; return status and rows_affected.
 
-        Args:
-            db: SQLAlchemy Session
-
-        Returns:
-            Dict with agent-specific output data.
-            Must include at minimum: {"status": "completed", "rows_affected": int}
+        Commit is owned by execute(), so failure can roll back all agent writes.
         """
         ...
 
     @abstractmethod
     def validate_output(self, output: Dict[str, Any]) -> Tuple[bool, List[str]]:
-        """
-        Validate the agent's output for correctness.
-
-        Args:
-            output: The dict returned by run()
-
-        Returns:
-            (is_valid, error_messages) — True with empty list if valid,
-            False with list of error descriptions if invalid.
-        """
+        """Return (is_valid, errors) for the produced output."""
         ...
-
-    # ------------------------------------------------------------------
-    # Concrete helpers — shared by all agents
-    # ------------------------------------------------------------------
 
     def save_run(
         self,
@@ -77,10 +43,10 @@ class BaseAgent(ABC):
         status: str,
         started_at: datetime,
         duration_ms: int,
-        output_summary: Dict[str, Any] = None,
+        output_summary: Dict[str, Any] | None = None,
         tokens_used: int = 0,
-        model_used: str = None,
-        error_message: str = None,
+        model_used: str | None = None,
+        error_message: str | None = None,
     ) -> str:
         """
         Write an entry to the agent_runs audit table.
@@ -116,20 +82,11 @@ class BaseAgent(ABC):
         )
         return row_id
 
-    def execute(self, db, run_id: str = None) -> Dict[str, Any]:
-        """
-        Full execution wrapper: run + validate + save audit trail.
+    def execute(self, db, run_id: str | None = None) -> Dict[str, Any]:
+        """Run and validate, then commit the output with its audit record.
 
-        This is the method the orchestrator calls. It handles timing,
-        error catching, validation, and audit logging.
-
-        Args:
-            db: SQLAlchemy Session
-            run_id: Pipeline run identifier (groups agents from same execution).
-                    If None, generates a standalone run ID.
-
-        Returns:
-            The agent's output dict, augmented with validation info.
+        Partial validation results are retained; execution failures roll back
+        output changes and get a separate failure record.
         """
         run_id = run_id or str(uuid.uuid4())
         started_at = datetime.now(timezone.utc)
@@ -137,6 +94,8 @@ class BaseAgent(ABC):
 
         try:
             output = self.run(db)
+            if output.get("status") == "failed":
+                raise RuntimeError(output.get("error") or f"{self.name} failed")
             elapsed_ms = int(
                 (datetime.now(timezone.utc) - started_at).total_seconds() * 1000
             )

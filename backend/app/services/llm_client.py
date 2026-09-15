@@ -23,7 +23,6 @@ Usage:
 
 import json
 import time
-import logging
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -34,9 +33,6 @@ from app.config import settings
 logger = structlog.get_logger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Response dataclass
-# ---------------------------------------------------------------------------
 @dataclass
 class LLMResponse:
     content: str
@@ -45,9 +41,6 @@ class LLMResponse:
     raw_json: Optional[Any] = field(default=None, repr=False)
 
 
-# ---------------------------------------------------------------------------
-# Mock responses — keyed by prompt_type
-# ---------------------------------------------------------------------------
 MOCK_RESPONSES = {
     "sentiment": json.dumps({
         "sentiment_score": 0.2,
@@ -139,9 +132,6 @@ MOCK_RESPONSES = {
 }
 
 
-# ---------------------------------------------------------------------------
-# Provider adapters
-# ---------------------------------------------------------------------------
 class _AnthropicAdapter:
     """Wraps the Anthropic Python SDK."""
 
@@ -229,9 +219,6 @@ class _MockAdapter:
         )
 
 
-# ---------------------------------------------------------------------------
-# Unified client
-# ---------------------------------------------------------------------------
 DEFAULT_MODELS = {
     "anthropic": "claude-sonnet-4-20250514",
     "openai": "gpt-4o-mini",
@@ -342,14 +329,13 @@ class LLMClient:
                         json_mode=json_mode,
                     )
 
-                # If json_mode, validate the response parses
                 if json_mode:
                     resp.raw_json = _parse_json(resp.content)
                     if resp.raw_json is None and attempt < 2:
                         logger.warning(
                             "json_parse_retry",
                             attempt=attempt,
-                            content_preview=resp.content[:200],
+                            content_length=len(resp.content),
                         )
                         prompt = (
                             prompt
@@ -382,7 +368,6 @@ class LLMClient:
                     break
                 time.sleep(2 ** attempt)
 
-        # All retries exhausted — raise
         raise RuntimeError(
             f"LLM call failed after 3 attempts ({self._provider}): {last_error}"
         ) from last_error
@@ -427,9 +412,6 @@ class LLMClient:
             return None
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 def _maybe_add_json_instruction(prompt: str, json_mode: bool) -> str:
     """Anthropic doesn't have a native JSON mode, so we add an instruction."""
     if not json_mode:
