@@ -352,7 +352,10 @@ The `QueryAgent` uses strict intent classification + whitelisted SQL patterns. N
 
 ### Resource Controls
 
-- `MAX_WORKSPACES` limits the number of retained workspaces
+- `MAX_WORKSPACES` limits the number of retained owner workspaces
+- `MAX_DEMO_WORKSPACES` independently caps retained public demos (default `25`); owner and legacy records do not consume demo slots
+- When the demo pool fills, admission deletes failed demos first, then the oldest completed demos, including their SQLite files and sidecars; quota cleanup never deletes owner/legacy records or live generation workers
+- Demo admission, quota cleanup, and generation start share a process lock so concurrent requests cannot overfill the pool or reclaim a demo being regenerated
 - `MAX_CONCURRENT_GENERATIONS` limits simultaneous background generation jobs
 - Generation start requests return `429` when capacity is reached
 - Startup reconciliation marks interrupted `generating` workspaces as failed with a retryable message
@@ -398,6 +401,7 @@ CORS origins are configurable via the `CORS_ORIGINS` environment variable (comma
 | `LOG_LEVEL` | Railway | No | `INFO` |
 | `ADMIN_API_TOKEN` | Railway | No | `""` |
 | `MAX_WORKSPACES` | Railway | No | `25` |
+| `MAX_DEMO_WORKSPACES` | Railway | No | `25` |
 | `MAX_CONCURRENT_GENERATIONS` | Railway | No | `1` |
 | `PUBLIC_SYNTHETIC_ACCESS` | Railway | No | `true` |
 | `ANTHROPIC_API_KEY` | Railway | No | `""` (mock mode) |

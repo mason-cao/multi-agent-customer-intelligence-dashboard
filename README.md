@@ -130,6 +130,8 @@ No command line setup is required for the default owner flow.
 
 Demo workspaces stay separate from Owner Mode. The first owner login starts with a clean workspace list, and workspaces created from Owner Mode are saved for future owner sessions.
 
+Public demos use a separate pool capped by `MAX_DEMO_WORKSPACES` (default `25`). When it fills, starting a new demo reclaims failed demos first, then the oldest completed demo, including its database files. Owner and legacy workspaces do not consume demo slots and are never removed by this quota cleanup. Workspaces still being generated are protected; if capacity is busy, try again after generation finishes.
+
 Use **Log out** to clear the saved owner passcode and active workspace from the current browser. Logging out does not delete workspaces; enter the owner passcode again to return to Owner Mode later.
 
 For advanced private deployments, a site owner can preconfigure owner access instead:
@@ -155,7 +157,8 @@ For advanced private deployments, a site owner can preconfigure owner access ins
 | `CORS_ORIGINS` | Backend | Production | Comma-separated allowed frontend origins |
 | `APP_ENV` | Backend | No | Set to `production` for JSON logs and production behavior |
 | `LOG_LEVEL` | Backend | No | Logging threshold, default `INFO` |
-| `MAX_WORKSPACES` | Backend | No | Workspace quota, default `25` |
+| `MAX_WORKSPACES` | Backend | No | Owner workspace quota, default `25` |
+| `MAX_DEMO_WORKSPACES` | Backend | No | Retained public demo quota with automatic reclamation, default `25` |
 | `MAX_CONCURRENT_GENERATIONS` | Backend | No | Generation concurrency limit, default `1` |
 | `PUBLIC_SYNTHETIC_ACCESS` | Backend | No | Enables the bounded public demo workspace starter, default `true` |
 | `ANTHROPIC_API_KEY` | Backend | No | Optional provider key for query routing |

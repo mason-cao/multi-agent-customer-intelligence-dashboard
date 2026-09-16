@@ -75,10 +75,11 @@ class SentimentAgent(BaseAgent):
             avg_score=avg_score,
         )
 
-        # Query total customer count for proportional validation
-        total_customers = pd.read_sql(
-            text("SELECT COUNT(*) AS n FROM customers"), engine
-        )["n"].iloc[0]
+        # Stay in the output transaction: large SQLite writes can spill the
+        # page cache and hold an exclusive lock until the agent commits.
+        total_customers = db.execute(
+            text("SELECT COUNT(*) FROM customers")
+        ).scalar_one()
 
         return {
             "status": "completed",

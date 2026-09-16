@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     log_level: str = "INFO"
     max_workspaces: int = 25
+    max_demo_workspaces: int = 25
     max_concurrent_generations: int = 1
     public_synthetic_access: bool = True
     min_data_volume_free_bytes: int = 64 * 1024 * 1024

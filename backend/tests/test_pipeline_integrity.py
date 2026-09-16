@@ -139,6 +139,32 @@ def test_source_generation_failure_rolls_back_prior_stages(pipeline_engine):
             assert connection.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar_one() == 0
 
 
+def test_sentiment_generation_survives_sqlite_cache_spill(pipeline_engine):
+    from app.agents.behavior_agent import BehaviorAgent
+    from app.agents.sentiment_agent import SentimentAgent
+    from app.services.data_generation.dataset import generate_dataset
+
+    counts = generate_dataset(pipeline_engine, customer_count=100, seed=42)
+    with sessionmaker(bind=pipeline_engine)() as db:
+        assert BehaviorAgent().execute(db)["_status"] == "completed"
+        # Reproduce a large production write using a small page cache. SQLite
+        # spills dirty pages and blocks reads from a second connection until
+        # this transaction commits; the agent must use its own connection.
+        db.execute(text("PRAGMA cache_size = 1"))
+        db.execute(text("PRAGMA cache_spill = ON"))
+        result = SentimentAgent().execute(db)
+
+    assert result["_status"] in ("completed", "partial"), result
+    assert result["total_customers"] == 100
+    with pipeline_engine.connect() as connection:
+        assert connection.execute(text("SELECT COUNT(*) FROM sentiment_results")).scalar_one() == (
+            counts["feedback"] + counts["support_tickets"]
+        )
+        assert connection.execute(text(
+            "SELECT COUNT(*) FROM customer_features WHERE avg_sentiment IS NOT NULL"
+        )).scalar_one() > 50
+
+
 def test_agent_history_shows_latest_failure_instead_of_older_success(pipeline_engine):
     from app.models.agent_run import AgentRun
     from app.routes.agents import get_agents_summary

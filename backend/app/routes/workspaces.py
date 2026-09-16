@@ -34,8 +34,8 @@ from app.services.workspace_manager import (
     create_workspace,
     delete_workspace,
     get_workspace,
-    list_all_workspace_records,
     list_workspaces,
+    make_room_for_demo_workspace,
     mark_pruned_workspaces_failed,
     prune_workspace_data_for_free_space,
     rotate_workspace_access_token,
@@ -151,40 +151,51 @@ def create_public_synthetic_workspace():
             status_code=403,
             detail="Synthetic workspace access is disabled.",
         )
-    recover_data_volume_space()
-    if len(list_all_workspace_records()) >= settings.max_workspaces:
-        raise HTTPException(status_code=409, detail="Workspace limit reached.")
-
-    ws = create_workspace(
-        name="Synthetic Workspace",
-        scenario="random",
-        source=DEMO_WORKSPACE_SOURCE,
-    )
-
     from app.services.workspace_generator import (
         GenerationStartStatus,
+        generation_start_guard,
         start_generation,
     )
 
-    result = start_generation(ws.id)
-    if result.status != GenerationStartStatus.STARTED:
-        delete_workspace(ws.id)
-    if result.status == GenerationStartStatus.CAPACITY_REACHED:
-        raise HTTPException(status_code=429, detail=result.detail)
-    if result.status != GenerationStartStatus.STARTED:
-        raise HTTPException(
-            status_code=500,
-            detail="We couldn't start the demo workspace. Try again.",
+    with generation_start_guard() as active_workspace_ids:
+        # Reject busy requests before creating records or reclaiming demos.
+        if len(active_workspace_ids) >= settings.max_concurrent_generations:
+            raise HTTPException(
+                status_code=429,
+                detail="Generation capacity reached. Try again later.",
+            )
+        recover_data_volume_space()
+        if not make_room_for_demo_workspace(active_workspace_ids):
+            raise HTTPException(
+                status_code=429,
+                detail="Demo workspace capacity is temporarily unavailable. Try again later.",
+            )
+
+        ws = create_workspace(
+            name="Synthetic Workspace",
+            scenario="random",
+            source=DEMO_WORKSPACE_SOURCE,
         )
 
-    started_ws = get_workspace(ws.id)
-    if not started_ws:
-        raise HTTPException(
-            status_code=500,
-            detail="We couldn't load the demo workspace. Try again.",
-        )
-    started_ws.access_token = ws.access_token
-    return WorkspaceCreateResponse.model_validate(started_ws)
+        result = start_generation(ws.id)
+        if result.status != GenerationStartStatus.STARTED:
+            delete_workspace(ws.id)
+        if result.status == GenerationStartStatus.CAPACITY_REACHED:
+            raise HTTPException(status_code=429, detail=result.detail)
+        if result.status != GenerationStartStatus.STARTED:
+            raise HTTPException(
+                status_code=500,
+                detail="We couldn't start the demo workspace. Try again.",
+            )
+
+        started_ws = get_workspace(ws.id)
+        if not started_ws:
+            raise HTTPException(
+                status_code=500,
+                detail="We couldn't load the demo workspace. Try again.",
+            )
+        started_ws.access_token = ws.access_token
+        return WorkspaceCreateResponse.model_validate(started_ws)
 
 
 @router.get("/owner-access", response_model=OwnerAccessStatusResponse)

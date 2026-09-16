@@ -201,6 +201,43 @@ def list_all_workspace_records() -> list[Workspace]:
         db.close()
 
 
+def make_room_for_demo_workspace(protected_workspace_ids: frozenset[str]) -> bool:
+    """Reclaim finished demos when their independent pool is full.
+
+    Call while holding the generation start guard so another request cannot
+    fill the slot or regenerate a candidate before its database is removed.
+    Owner and unclassified legacy records never count against this pool.
+    """
+    if settings.max_demo_workspaces <= 0:
+        return False
+
+    db = workspace_db.MetadataSession()
+    try:
+        demos = (
+            db.query(Workspace)
+            .filter(Workspace.source == DEMO_WORKSPACE_SOURCE)
+            .order_by(Workspace.created_at.asc(), Workspace.id.asc())
+            .all()
+        )
+    finally:
+        db.close()
+
+    slots_needed = max(0, len(demos) - settings.max_demo_workspaces + 1)
+    candidates = [
+        ws for ws in demos
+        if ws.status in ("failed", "ready") and ws.id not in protected_workspace_ids
+    ]
+    # The query supplies age order; stable sorting prefers failed demos.
+    candidates.sort(key=lambda ws: ws.status != "failed")
+    if len(candidates) < slots_needed:
+        return False
+
+    for ws in candidates[:slots_needed]:
+        delete_workspace(ws.id)
+        logger.info("reclaimed_demo_workspace", workspace_id=ws.id, status=ws.status)
+    return True
+
+
 def get_workspace(workspace_id: str) -> Optional[Workspace]:
     """Return a single workspace by ID, or None."""
     db = workspace_db.MetadataSession()

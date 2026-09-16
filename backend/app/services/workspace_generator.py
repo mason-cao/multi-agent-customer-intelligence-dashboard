@@ -13,6 +13,7 @@ Stage map (14 total):
 import json
 import threading
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
 
@@ -30,7 +31,7 @@ from app.services.workspace_manager import (
     update_workspace_status,
 )
 
-_GENERATION_LOCK = threading.Lock()
+_GENERATION_LOCK = threading.RLock()
 _ACTIVE_GENERATIONS: set[str] = set()
 
 
@@ -64,6 +65,17 @@ def active_generation_count() -> int:
     """Return the number of generation workers reserved in this process."""
     with _GENERATION_LOCK:
         return len(_ACTIVE_GENERATIONS)
+
+
+@contextmanager
+def generation_start_guard():
+    """Serialize demo admission/cleanup with all generation starts.
+
+    The lock is reentrant because demo admission calls start_generation().
+    Keep live workers protected even if a poll has marked their record failed.
+    """
+    with _GENERATION_LOCK:
+        yield frozenset(_ACTIVE_GENERATIONS)
 
 
 def reset_generation_registry():
